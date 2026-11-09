@@ -3,45 +3,44 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>เวียนตรวจ รปภ. มรย. - มหาวิทยาลัยราชภัฏยะลา</title>
+  <title>ระบบเวียนตรวจ รปภ. มรย. - มหาวิทยาลัยราชภัฏยะลา</title>
   
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bai+Jamjuree:wght@500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bai+Jamjuree:wght@500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap">
   
   <!-- CSS -->
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <!-- Sticky App Bar -->
+  <!-- แถบด้านบนสุด (App Bar) -->
   <header class="bar">
     <div class="bar-in">
       <div class="brand">
-        <div class="brand-icon">🛡️</div>
-        <div class="brand-info">
+        <span class="brand-icon">🛡️</span>
+        <div>
           <h1>เวียนตรวจ รปภ. มรย.</h1>
-          <small>มหาวิทยาลัยราชภัฏยะลา (YRU Patrol)</small>
+          <small>มหาวิทยาลัยราชภัฏยะลา</small>
         </div>
       </div>
       <div class="header-right">
         <div class="clock" id="appClock">
-          <span id="clockTime">--:--:--</span>
-          <small id="clockDate">กำลังโหลดวันที่...</small>
+          <span id="clockTime">--:-- น.</span>
+          <small id="clockDate">วันที่</small>
         </div>
-        <button class="theme-toggle" id="themeToggle" title="สลับโหมดมืด/สว่าง" aria-label="Toggle Theme">🌙</button>
+        <button type="button" class="theme-toggle" id="themeToggle" title="สลับโหมดมืด/สว่าง">🌙</button>
       </div>
+    </div>
 
-      <!-- Navigation Tabs -->
-      <nav class="tabs" role="tablist">
-        <button type="button" role="tab" id="tabGuard" aria-selected="true" data-tab="guard">
-          <span>🚶‍♂️</span> เดินตรวจเวร
+    <!-- แท็บเปลี่ยนโหมด 2 หน้า เข้าใจง่าย -->
+    <div class="wrap">
+      <nav class="tabs">
+        <button type="button" id="tabGuard" aria-selected="true" data-tab="guard">
+          🚶‍♂️ สำหรับ รปภ. (เดินตรวจ)
         </button>
-        <button type="button" role="tab" id="tabSupervisor" aria-selected="false" data-tab="supervisor">
-          <span>📊</span> รายงาน / ผู้ตรวจการ
-        </button>
-        <button type="button" role="tab" id="tabCheckpoints" aria-selected="false" data-tab="checkpoints">
-          <span>📍</span> จุดตรวจ
+        <button type="button" id="tabSupervisor" aria-selected="false" data-tab="supervisor">
+          📋 สำหรับหัวหน้าเวร (สรุปผล)
         </button>
       </nav>
     </div>
@@ -49,166 +48,175 @@
 
   <div class="wrap">
     <main>
-      <!-- TAB 1: เจ้าหน้าที่ รปภ. เดินตรวจเวร (Guard View) -->
-      <section id="panelGuard" class="tab-panel" role="tabpanel" aria-labelledby="tabGuard">
-        <!-- Duty Setup Card -->
-        <div class="card row">
-          <div class="two-col">
-            <div>
-              <label class="lbl" for="guardSelect">เจ้าหน้าที่ รปภ. ผู้ปฏิบัติหน้าที่</label>
-              <select id="guardSelect"></select>
-            </div>
-            <div>
-              <label class="lbl" for="roundSelect">รอบการเดินตรวจ</label>
-              <select id="roundSelect">
-                <option value="รอบที่ 1">รอบที่ 1</option>
-                <option value="รอบที่ 2">รอบที่ 2</option>
-                <option value="รอบที่ 3">รอบที่ 3</option>
-                <option value="รอบที่ 4">รอบที่ 4</option>
-                <option value="รอบพิเศษ / สุ่มตรวจ">รอบพิเศษ / สุ่มตรวจ</option>
-              </select>
-            </div>
+      <!-- ==========================================
+           หน้า 1: สำหรับ รปภ. เดินตรวจเวร (Guard View)
+           ========================================== -->
+      <section id="panelGuard" class="tab-panel">
+        <!-- 1. ปุ่มแจ้งเหตุด่วนฉุกเฉิน (อยู่อันดับ 1 เด่นสุด) -->
+        <button type="button" class="btn-emergency-main" id="openOffCpBtn">
+          <span>🚨</span> แจ้งเหตุด่วนฉุกเฉิน / พบนอกจุดตรวจ
+        </button>
+
+        <!-- 2. ข้อมูล รปภ. ผู้ปฏิบัติหน้าที่ -->
+        <div class="card highlight">
+          <div style="margin-bottom: 12px;">
+            <label class="lbl" for="guardSelect">👤 1. เลือกชื่อของคุณ (รปภ. ผู้ตรวจ):</label>
+            <select id="guardSelect" style="font-size: 19px;"></select>
           </div>
 
-          <div>
-            <label class="lbl">กะการปฏิบัติงาน</label>
-            <div class="seg" id="shiftSegment">
+          <div style="margin-bottom: 12px;">
+            <label class="lbl">⏰ 2. กะเวลาที่ปฏิบัติงาน:</label>
+            <div class="seg-shifts" id="shiftSegment">
               <button type="button" aria-pressed="true" style="--c:var(--sm)" data-shift="morning">
-                <b>กะเช้า</b>
+                <b>☀️ กะเช้า</b>
                 <small>07:00 - 15:00</small>
               </button>
               <button type="button" aria-pressed="false" style="--c:var(--sa)" data-shift="afternoon">
-                <b>กะบ่าย</b>
+                <b>⛅ กะบ่าย</b>
                 <small>15:00 - 23:00</small>
               </button>
               <button type="button" aria-pressed="false" style="--c:var(--sn)" data-shift="night">
-                <b>กะดึก</b>
+                <b>🌙 กะดึก</b>
                 <small>23:00 - 07:00</small>
               </button>
             </div>
           </div>
-        </div>
 
-        <!-- Progress Card -->
-        <div class="card">
-          <div class="sec-head" style="margin-bottom: 10px;">
-            <h2>ความคืบหน้ารอบปัจจุบัน</h2>
-            <span class="tag ok" id="progressTag">0 / 0 จุด</span>
-          </div>
-          <div class="prog">
-            <div class="prog-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
-              <i id="progressBarFill" style="width: 0%;"></i>
-            </div>
-            <b id="progressPercent">0%</b>
+          <div>
+            <label class="lbl" for="roundSelect">🔄 3. รอบที่เดินตรวจ:</label>
+            <select id="roundSelect">
+              <option value="รอบที่ 1">รอบที่ 1</option>
+              <option value="รอบที่ 2">รอบที่ 2</option>
+              <option value="รอบที่ 3">รอบที่ 3</option>
+              <option value="รอบที่ 4">รอบที่ 4</option>
+              <option value="รอบพิเศษ / สุ่มตรวจ">รอบพิเศษ / สุ่มตรวจ</option>
+            </select>
           </div>
         </div>
 
-        <!-- Emergency Incident Button -->
-        <div>
-          <button type="button" class="btn emergency" id="openOffCpBtn" style="width: 100%; min-height: 54px; font-size: 16px;">
-            🚨 พบเหตุนอกจุดตรวจ / แจ้งเหตุด่วนฉุกเฉิน
-          </button>
-        </div>
-
-        <!-- Checkpoints List Card -->
+        <!-- 3. แถบความคืบหน้าการตรวจรอบนี้ -->
         <div class="card">
-          <div class="sec-head" style="margin-bottom: 14px;">
+          <div class="progress-summary">
             <div>
-              <h2>รายการจุดตรวจ (Checkpoints)</h2>
-              <small style="color:var(--muted); font-size:13px;">รวมจุดตรวจทั่วไปและจุดเฝ้าระวังพื้นที่เสี่ยง มรย.</small>
+              <span style="font-weight: 700; font-size: 17px;">ความคืบหน้าการเดินตรวจ:</span>
+              <div id="progressText" style="font-size: 15px; color: var(--muted); margin-top: 2px;">ตรวจเสร็จแล้ว 0 จาก 10 จุด</div>
             </div>
-            <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
-              <button type="button" class="risk-filter-btn active" id="filterAllCpBtn">ทั้งหมด</button>
-              <button type="button" class="risk-filter-btn" id="filterRiskCpBtn">⚠️ เฉพาะพื้นที่เสี่ยง</button>
-              <button type="button" class="btn ghost small" id="resetRoundBtn">🔄 เริ่มรอบใหม่</button>
-            </div>
+            <b id="progressPercent" style="font-size: 24px;">0%</b>
           </div>
-          <p class="hint" style="margin-bottom: 12px;">แตะที่จุดตรวจเพื่อลงเวลาและบันทึกผลการตรวจสอบ</p>
+          <div class="progress-bar-wrap">
+            <div class="progress-bar-fill" id="progressBarFill" style="width: 0%;"></div>
           </div>
-          <p class="hint" style="margin-bottom: 12px;">แตะที่จุดตรวจเพื่อลงเวลาและบันทึกผลการตรวจสอบ</p>
+        </div>
 
+        <!-- 4. รายการจุดตรวจ (Checkpoints) -->
+        <div class="card">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px; flex-wrap:wrap; gap:8px;">
+            <h2 style="font-size: 20px;">📍 รายการจุดตรวจใน มรย.</h2>
+            <button type="button" class="btn ghost" id="resetRoundBtn" style="font-size: 14px; min-height: 40px; padding: 0 12px;">
+              🔄 เริ่มรอบใหม่
+            </button>
+          </div>
+
+          <!-- ตัวกรองจุดตรวจแบบง่าย -->
+          <div class="chip-row" style="margin-bottom: 14px;">
+            <button type="button" class="chip-btn active" id="filterAllCpBtn">ดูทุกจุดตรวจ (10 จุด)</button>
+            <button type="button" class="chip-btn" id="filterRiskCpBtn" style="color: #dc2626;">⚠️ เฉพาะพื้นที่เสี่ยง (3 จุด)</button>
+          </div>
+
+          <!-- รายการการ์ดจุดตรวจ -->
           <div class="cp-list" id="checkpointList">
             <!-- Rendered by JS -->
           </div>
         </div>
       </section>
 
-      <!-- TAB 2: ผู้ตรวจการ / แดชบอร์ดรายงาน (Supervisor View) -->
-      <section id="panelSupervisor" class="tab-panel" role="tabpanel" aria-labelledby="tabSupervisor" hidden>
-        <!-- KPI Stats -->
-        <div class="stat-grid">
-          <div class="stat-box">
-            <small>บันทึกการตรวจทั้งหมด</small>
-            <b id="statTotal">0</b>
+      <!-- ==========================================
+           หน้า 2: สำหรับหัวหน้าเวร / รายงานสรุปผล
+           ========================================== -->
+      <section id="panelSupervisor" class="tab-panel" hidden>
+        <!-- การ์ดสรุปตัวเลขสถิติ -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px;">
+          <div class="card" style="padding: 12px; text-align: center;">
+            <div style="font-size: 14px; color: var(--muted);">บันทึกทั้งหมด</div>
+            <b id="statTotal" style="font-size: 28px; color: var(--ink);">0</b>
           </div>
-          <div class="stat-box ok">
-            <small>สถานะปกติ</small>
-            <b id="statOk">0</b>
+          <div class="card" style="padding: 12px; text-align: center; border-color: var(--ok-border); background: var(--ok-bg);">
+            <div style="font-size: 14px; color: var(--ok); font-weight: 700;">ปกติเรียบร้อย</div>
+            <b id="statOk" style="font-size: 28px; color: var(--ok);">0</b>
           </div>
-          <div class="stat-box alert">
-            <small>พบเหตุผิดปกติ</small>
-            <b id="statAlert">0</b>
+          <div class="card" style="padding: 12px; text-align: center; border-color: var(--alert-border); background: var(--alert-bg);">
+            <div style="font-size: 14px; color: var(--alert); font-weight: 700;">พบเหตุผิดปกติ</div>
+            <b id="statAlert" style="font-size: 28px; color: var(--alert);">0</b>
           </div>
-          <div class="stat-box">
-            <small>จุดตรวจที่เปิดใช้งาน</small>
-            <b id="statActiveCp">0</b>
+          <div class="card" style="padding: 12px; text-align: center;">
+            <div style="font-size: 14px; color: var(--muted);">จุดตรวจทั้งหมด</div>
+            <b id="statActiveCp" style="font-size: 28px; color: var(--accent);">10</b>
           </div>
         </div>
 
-        <!-- Filters -->
+        <!-- ตัวกรองค้นหาแบบเข้าใจง่าย -->
         <div class="card">
-          <div class="sec-head" style="margin-bottom: 12px;">
-            <h2>ตัวกรองรายงาน</h2>
-            <button type="button" class="btn ghost small" id="exportCsvBtn">📥 ส่งออก CSV</button>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px;">
+            <h2 style="font-size: 19px;">🔍 ตัวกรองค้นหาข้อมูล</h2>
+            <button type="button" class="btn ghost" id="exportCsvBtn" style="min-height: 44px; padding: 0 14px;">
+              📥 โหลดไฟล์ Excel (CSV)
+            </button>
           </div>
-          <div class="filters">
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px;">
             <div>
-              <label class="lbl" for="filterDate">วันที่</label>
+              <label class="lbl" for="filterDate">วันที่:</label>
               <input type="date" id="filterDate">
             </div>
             <div>
-              <label class="lbl" for="filterShift">กะการทำงาน</label>
+              <label class="lbl" for="filterShift">กะทำงาน:</label>
               <select id="filterShift">
-                <option value="all">ทุุกกะ</option>
+                <option value="all">ทุกกะ</option>
                 <option value="morning">กะเช้า</option>
                 <option value="afternoon">กะบ่าย</option>
                 <option value="night">กะดึก</option>
               </select>
             </div>
             <div>
-              <label class="lbl" for="filterStatus">สถานะ</label>
+              <label class="lbl" for="filterStatus">เลือกดูสถานะ:</label>
               <select id="filterStatus">
                 <option value="all">ทั้งหมด</option>
                 <option value="ok">เฉพาะปกติ</option>
-                <option value="alert">เฉพาะพบเหตุผิดปกติ</option>
-                <option value="risk">เฉพาะในพื้นที่เสี่ยง</option>
+                <option value="alert">เฉพาะพบปัญหา/ผิดปกติ</option>
+                <option value="risk">เฉพาะจุดเสี่ยง</option>
                 <option value="off">เฉพาะเหตุนอกจุดตรวจ</option>
               </select>
-            </div>
-            <div>
-              <label class="lbl" for="filterSearch">ค้นหาข้อความ</label>
-              <input type="text" id="filterSearch" placeholder="พิมพ์จุดตรวจ, ชื่อ รปภ.">
             </div>
           </div>
         </div>
 
-        <!-- Report Table -->
+        <!-- ฟีดแจ้งเตือนเหตุผิดปกติ (ถ้ามี) -->
         <div class="card">
-          <div class="sec-head" style="margin-bottom: 12px;">
-            <h2>บันทึกการเวียนตรวจล่าสุด</h2>
-            <span class="tag" id="logCountTag">0 รายการ</span>
+          <h2 style="font-size: 19px; color: var(--alert); margin-bottom: 12px;">
+            🚨 รายการเหตุผิดปกติล่าสุด (ต้องตรวจสอบ)
+          </h2>
+          <div id="incidentList" style="display: flex; flex-direction: column; gap: 10px;">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+
+        <!-- ตารางบันทึกการตรวจทั้งหมด -->
+        <div class="card">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px;">
+            <h2 style="font-size: 19px;">📋 ตารางบันทึกการตรวจทั้งหมด</h2>
+            <span class="tag ok" id="logCountTag">0 รายการ</span>
           </div>
           <div class="tbl">
             <table>
               <thead>
                 <tr>
-                  <th>เวลา / วันที่</th>
-                  <th>จุดตรวจ</th>
-                  <th>ผู้ตรวจ (รปภ.)</th>
+                  <th>เวลา</th>
+                  <th>สถานที่ / จุดตรวจ</th>
+                  <th>รปภ. ผู้ตรวจ</th>
                   <th>กะ / รอบ</th>
                   <th>สถานะ</th>
-                  <th>หมายเหตุ / รายละเอียด</th>
-                  <th>รูปถ่าย</th>
+                  <th>รายละเอียด</th>
+                  <th>รูป</th>
                 </tr>
               </thead>
               <tbody id="reportTableBody">
@@ -217,126 +225,82 @@
             </table>
           </div>
         </div>
-
-        <!-- Incident Feed -->
-        <div class="card">
-          <div class="sec-head" style="margin-bottom: 12px;">
-            <h2>⚠️ บันทึกเหตุการณ์ผิดปกติ (Incidents Log)</h2>
-          </div>
-          <div class="logs" id="incidentList">
-            <!-- Rendered by JS -->
-          </div>
-        </div>
-      </section>
-
-      <!-- TAB 3: จัดการจุดตรวจ (Manage Checkpoints) -->
-      <section id="panelCheckpoints" class="tab-panel" role="tabpanel" aria-labelledby="tabCheckpoints" hidden>
-        <div class="card">
-          <div class="sec-head" style="margin-bottom: 14px;">
-            <h2>เพิ่มจุดตรวจใหม่</h2>
-          </div>
-          <form id="addCheckpointForm" class="row">
-            <div class="two-col">
-              <div>
-                <label class="lbl" for="newCpCode">รหัสจุดตรวจ (Code)</label>
-                <input type="text" id="newCpCode" placeholder="เช่น CP-11" required>
-              </div>
-              <div>
-                <label class="lbl" for="newCpZone">โซน / พื้นที่</label>
-                <input type="text" id="newCpZone" placeholder="เช่น อาคารเรียนรวม, ประตูรอบนอก" required>
-              </div>
-            </div>
-            <div>
-              <label class="lbl" for="newCpName">ชื่อจุดตรวจ</label>
-              <input type="text" id="newCpName" placeholder="เช่น อาคารศูนย์ภาษาและการเรียนรู้" required>
-            </div>
-            <div>
-              <label class="lbl" for="newCpDesc">คำอธิบายสิ่งที่ต้องตรวจ</label>
-              <textarea id="newCpDesc" style="min-height: 80px;" placeholder="ระบุสิ่งที่ต้องสังเกต เช่น ประตูหน้าต่าง, สายตรวจไฟ, สวิตช์เบรกเกอร์"></textarea>
-            </div>
-            <div>
-              <label class="chk">
-                <input type="checkbox" id="newCpIsRisk">
-                <b>⚠️ กำหนดให้เป็น "พื้นที่เสี่ยงพิเศษ"</b> (แสดงแถบเตือนสีแดงในหน้ารายการจุดตรวจ)
-              </label>
-            </div>
-            <button type="submit" class="btn">➕ เพิ่มจุดตรวจ</button>
-          </form>
-        </div>
-
-        <div class="card">
-          <div class="sec-head" style="margin-bottom: 14px;">
-            <h2>รายการจุดตรวจทั้งหมดในระบบ</h2>
-            <button type="button" class="btn ghost small" id="resetCheckpointsBtn">คืนค่าเริ่มต้น</button>
-          </div>
-          <div id="checkpointEditorList">
-            <!-- Rendered by JS -->
-          </div>
-        </div>
       </section>
     </main>
   </div>
 
-  <!-- Sheet Modal: บันทึกการตรวจ (Inspection Bottom Sheet) -->
+  <!-- ==========================================
+       หน้าต่างที่ 1: บันทึกผลการตรวจ (เข้าใจง่ายมาก)
+       ========================================== -->
   <div class="veil" id="inspectionVeil" hidden>
-    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
-      <div class="sheet-header">
+    <div class="sheet" role="dialog" aria-modal="true">
+      <div class="sheet-head">
         <div>
-          <h2 id="sheetTitle" style="font-size: 20px;">บันทึกผลการตรวจ</h2>
-          <small id="sheetSubtitle" style="color:var(--muted); font-size:13px;"></small>
+          <h2 id="sheetTitle" style="color: var(--ink);">บันทึกผลการตรวจ</h2>
+          <div id="sheetSubtitle" style="font-size: 14px; color: var(--muted); margin-top: 4px;"></div>
         </div>
         <button type="button" class="sheet-close" id="sheetCloseBtn" aria-label="ปิด">✕</button>
       </div>
 
-      <!-- Live Timestamp -->
-      <div class="stamp">
+      <!-- สรุปเวลาและผู้ตรวจ -->
+      <div style="background: var(--bg); padding: 10px 14px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
         <div>
-          <b id="sheetStampTime">--:--:--</b>
-          <small id="sheetStampDate">วันที่บันทึก</small>
+          <span style="font-size: 13px; color: var(--muted);">เวลาที่บันทึก:</span>
+          <div id="sheetStampTime" style="font-size: 20px; font-weight: 700; color: var(--accent);">--:-- น.</div>
         </div>
-        <div style="margin-left: auto; text-align: right;">
-          <span class="tag" id="sheetGuardTag">รปภ.</span>
+        <div style="text-align: right;">
+          <span style="font-size: 13px; color: var(--muted);">ผู้บันทึก:</span>
+          <div id="sheetGuardTag" style="font-size: 16px; font-weight: 700;">รปภ.</div>
         </div>
       </div>
 
-      <!-- Status Picker -->
+      <!-- ข้อ 1: เลือกสถานะ (2 ปุ่มยักษ์ กดง่ายที่สุด) -->
       <div>
-        <label class="lbl">สถานะจุดตรวจ</label>
-        <div class="two">
-          <button type="button" class="pick ok" id="statusOkBtn" aria-pressed="true">
-            ✓ ปกติเรียบร้อย
+        <label class="lbl" style="font-size: 18px; color: var(--ink);">
+          👉 ขั้นที่ 1: ตรวจจุดนี้แล้ว เป็นอย่างไร?
+        </label>
+        <div class="decision-two">
+          <button type="button" class="btn-decision ok" id="statusOkBtn" aria-pressed="true">
+            <span style="font-size: 28px;">✅</span>
+            <span>ปกติ เรียบร้อยดี</span>
           </button>
-          <button type="button" class="pick alert" id="statusAlertBtn" aria-pressed="false">
-            ⚠️ พบเหตุผิดปกติ
+          <button type="button" class="btn-decision alert" id="statusAlertBtn" aria-pressed="false">
+            <span style="font-size: 28px;">🚨</span>
+            <span>มีปัญหา / ผิดปกติ</span>
           </button>
         </div>
       </div>
 
-      <!-- Note / Speech-to-text -->
-      <div class="note-wrap">
-        <label class="lbl" for="sheetNote">บันทึกรายละเอียด / หมายเหตุ</label>
-        <textarea id="sheetNote" placeholder="พิมพ์ข้อความบันทึก หรือกดปุ่มไมค์เพื่อพูดบันทึกเสียง..."></textarea>
-        <button type="button" class="mic" id="micBtn" title="กดเพื่อพูดบันทึกเสียง (Speech-to-Text)">
-          🎙️
+      <!-- ข้อ 2: บันทึกข้อความ หรือ กดไมค์พูด -->
+      <div>
+        <label class="lbl" for="sheetNote">
+          📝 ขั้นที่ 2: บันทึกข้อความ (ถ้ามี):
+        </label>
+        <textarea id="sheetNote" placeholder="พิมพ์บันทึก หรือกดปุ่มด้านล่างเพื่อพูดแทนการพิมพ์..."></textarea>
+        
+        <!-- ตัวช่วยพูดแทนพิมพ์ -->
+        <div class="mic-helper-box">
+          <span style="font-size: 15px; font-weight: 600;">🎙️ พูดแทนการพิมพ์:</span>
+          <button type="button" class="btn-mic-big" id="micBtn">
+            <span>🎙️</span> กดเพื่อเริ่มพูด
+          </button>
+        </div>
+      </div>
+
+      <!-- ข้อ 3: แนบรูปถ่าย -->
+      <div>
+        <label class="lbl">📸 ขั้นที่ 3: ถ่ายรูปหลักฐาน (ถ้ามี):</label>
+        <input type="file" id="photoInput" accept="image/*" capture="environment" multiple style="display:none;">
+        <button type="button" class="btn ghost" id="takePhotoBtn" style="width: 100%; min-height: 52px; font-size: 17px;">
+          📷 กดตรงนี้เพื่อถ่ายภาพ / แนบรูป
         </button>
-      </div>
-
-      <!-- Photo Attachment -->
-      <div>
-        <label class="lbl">รูปถ่ายหลักฐานประกอบ</label>
-        <div style="display: flex; gap: 8px; margin-bottom: 10px;">
-          <input type="file" id="photoInput" accept="image/*" capture="environment" multiple style="display:none;">
-          <button type="button" class="btn ghost small" id="takePhotoBtn">
-            📷 ถ่ายภาพ / แนบรูป
-          </button>
-        </div>
         <div class="thumbs" id="photoThumbs"></div>
       </div>
 
-      <!-- Action Buttons -->
-      <div style="display: flex; gap: 10px; margin-top: 8px;">
-        <button type="button" class="btn" id="saveInspectionBtn" style="flex: 2;">
-          💾 ยืนยันบันทึกผลการตรวจ
+      <!-- ปุ่มยืนยันขนาดใหญ่ -->
+      <div style="display: flex; gap: 10px; margin-top: 10px;">
+        <button type="button" class="btn" id="saveInspectionBtn" style="flex: 2; min-height: 58px; font-size: 19px;">
+          💾 กดบันทึกข้อมูลเสร็จสิ้น
         </button>
         <button type="button" class="btn ghost" id="cancelInspectionBtn" style="flex: 1;">
           ยกเลิก
@@ -345,83 +309,80 @@
     </div>
   </div>
 
-  <!-- Sheet Modal: รายงานเหตุนอกจุดตรวจ / เหตุฉุกเฉิน -->
+  <!-- ==========================================
+       หน้าต่างที่ 2: แจ้งเหตุด่วนฉุกเฉิน / นอกจุดตรวจ
+       ========================================== -->
   <div class="veil" id="offCpVeil" hidden>
-    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="offCpSheetTitle">
-      <div class="sheet-header">
+    <div class="sheet" role="dialog" aria-modal="true" style="border-top: 6px solid #dc2626;">
+      <div class="sheet-head">
         <div>
-          <h2 id="offCpSheetTitle" style="font-size: 20px; color: #e11d48;">🚨 รายงานพบเหตุนอกจุดตรวจ</h2>
-          <small style="color:var(--muted); font-size:13px;">บันทึกเหตุการณ์ฉุกเฉินหรือความผิดปกตินอกเส้นทางเวียนตรวจปกติ</small>
+          <h2 style="font-size: 22px; color: #dc2626;">🚨 แจ้งเหตุด่วน / นอกจุดตรวจ</h2>
+          <div style="font-size: 14px; color: var(--muted); margin-top: 2px;">
+            สำหรับแจ้งเหตุฉุกเฉินทันทีเมื่อพบความผิดปกติ
+          </div>
         </div>
         <button type="button" class="sheet-close" id="offCpCloseBtn" aria-label="ปิด">✕</button>
       </div>
 
-      <!-- Live Timestamp & Guard -->
-      <div class="stamp" style="border-left: 4px solid #e11d48;">
+      <!-- สรุปเวลา -->
+      <div style="background: var(--alert-bg); border: 1.5px solid var(--alert-border); padding: 10px 14px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
         <div>
-          <b id="offCpStampTime" style="color: #e11d48;">--:--:--</b>
-          <small id="offCpStampDate">วันที่บันทึก</small>
+          <span style="font-size: 13px; color: var(--alert);">เวลาที่พบเหตุ:</span>
+          <div id="offCpStampTime" style="font-size: 20px; font-weight: 700; color: var(--alert);">--:-- น.</div>
         </div>
-        <div style="margin-left: auto; text-align: right;">
-          <span class="tag alert" id="offCpGuardTag">รปภ.</span>
+        <div style="text-align: right;">
+          <span style="font-size: 13px; color: var(--alert);">ผู้แจ้งเหตุ:</span>
+          <div id="offCpGuardTag" style="font-size: 16px; font-weight: 700; color: var(--alert);">รปภ.</div>
         </div>
       </div>
 
-      <!-- Location Input -->
+      <!-- 1. สถานที่เกิดเหตุ -->
       <div>
-        <label class="lbl" for="offCpLocation">สถานที่ / พิกัดที่พบเหตุ <span style="color:#e11d48;">*</span></label>
-        <input type="text" id="offCpLocation" placeholder="เช่น บริเวณลานจอดรถข้างโรงอาหาร, แนวกำแพงรั้วหลังแฟลตอาจารย์" required>
+        <label class="lbl" for="offCpLocation">📍 1. พิกัด / สถานที่ที่พบเหตุ (ต้องระบุ):</label>
+        <input type="text" id="offCpLocation" placeholder="เช่น ริมรั้วหลังแฟลต, ข้างโรงอาหาร, ลานจอดรถ" required>
       </div>
 
-      <!-- Incident Type & Urgency -->
-      <div class="two-col">
-        <div>
-          <label class="lbl" for="offCpType">ประเภทเหตุการณ์</label>
-          <select id="offCpType">
-            <option value="บุคคลภายนอกน่าสงสัย">👤 พบบุคคลภายนอกน่าสงสัย</option>
-            <option value="การงัดแงะ / ทรัพย์สินเสียหาย">🚪 งัดแงะ / ประตูหน้าต่างชำรุด</option>
-            <option value="กลุ่มควัน / ไฟไหม้ / อัคคีภัย">🔥 กลุ่มควัน / ส่อเกิดอัคคีภัย</option>
-            <option value="ไฟฟ้าดับ / อุปกรณ์ชำรุด">⚡ ไฟดับ / สายไฟชำรุด / ท่อน้ำแตก</option>
-            <option value="อุบัติเหตุ / สัตว์มีพิษ">🐍 สัตว์มีพิษ / ผู้บาดเจ็บ</option>
-            <option value="มั่วสุมยามวิกาล">👥 มั่วสุมยามวิกาล</option>
-            <option value="อื่นๆ">⚠️ อื่นๆ</option>
-          </select>
-        </div>
-        <div>
-          <label class="lbl" for="offCpUrgency">ระดับความเร่งด่วน</label>
-          <select id="offCpUrgency">
-            <option value="normal">ปานกลาง (ตรวจเช็คแล้วปลอดภัย)</option>
-            <option value="high" selected>เร่งด่วน (ต้องการการตรวจสอบ/เฝ้าระวัง)</option>
-            <option value="critical">ฉุกเฉินสูงสุด (แจ้งหัวหน้าเวรด่วน)</option>
-          </select>
-        </div>
-      </div>
-
-      <!-- Note / Speech-to-text -->
-      <div class="note-wrap">
-        <label class="lbl" for="offCpNote">รายละเอียดเหตุการณ์ที่พบ</label>
-        <textarea id="offCpNote" placeholder="ระบุสิ่งที่พบเห็น การปฏิบัติเบื้องต้น หรือกดไมค์เพื่อบันทึกเสียง..." style="min-height: 90px;"></textarea>
-        <button type="button" class="mic" id="offCpMicBtn" title="กดเพื่อพูดบันทึกเสียง (Speech-to-Text)">
-          🎙️
-        </button>
-      </div>
-
-      <!-- Photo Attachment -->
+      <!-- 2. ประเภทเหตุการณ์ -->
       <div>
-        <label class="lbl">รูปถ่ายหลักฐานประกอบ</label>
-        <div style="display: flex; gap: 8px; margin-bottom: 10px;">
-          <input type="file" id="offCpPhotoInput" accept="image/*" capture="environment" multiple style="display:none;">
-          <button type="button" class="btn ghost small" id="offCpTakePhotoBtn">
-            📷 ถ่ายภาพ / แนบรูป
+        <label class="lbl" for="offCpType">⚠️ 2. ประเภทเหตุการณ์ที่พบ:</label>
+        <select id="offCpType" style="font-size: 18px;">
+          <option value="พบบุคคลภายนอกน่าสงสัย">👤 พบบุคคลภายนอกน่าสงสัย / เดินวนเวียน</option>
+          <option value="การงัดแงะ / ประตูหน้าต่างชำรุด">🚪 การงัดแงะ / ทรัพย์สินเสียหาย / ประตูเปิดทิ้งไว้</option>
+          <option value="กลุ่มควัน / ไฟไหม้ / กลิ่นไหม้">🔥 กลุ่มควัน / กลิ่นไหม้ / ส่อเกิดอัคคีภัย</option>
+          <option value="ไฟฟ้าดับ / สายไฟชำรุด / น้ำท่วมขัง">⚡ ไฟทางเดินดับ / ไฟฟ้าลัดวงจร / ท่อน้ำแตก</option>
+          <option value="พบสัตว์มีพิษ / มีผู้บาดเจ็บ">🐍 พบสัตว์มีพิษ (งู) / มีผู้ประสบอุบัติเหตุ</option>
+          <option value="มั่วสุมยามวิกาล">👥 มีการมั่วสุมยามวิกาล</option>
+          <option value="เหตุผิดปกติอื่นๆ">⚠️ อื่นๆ</option>
+        </select>
+      </div>
+
+      <!-- 3. รายละเอียดเหตุการณ์ -->
+      <div>
+        <label class="lbl" for="offCpNote">📝 3. รายละเอียดเหตุการณ์ (พิมพ์หรือพูด):</label>
+        <textarea id="offCpNote" placeholder="บอกสิ่งที่พบเห็น หรือกดปุ่มไมค์ด้านล่างเพื่อพูด..."></textarea>
+        
+        <div class="mic-helper-box">
+          <span style="font-size: 15px; font-weight: 600;">🎙️ พูดแทนการพิมพ์:</span>
+          <button type="button" class="btn-mic-big" id="offCpMicBtn">
+            <span>🎙️</span> กดเพื่อเริ่มพูด
           </button>
         </div>
+      </div>
+
+      <!-- 4. ถ่ายภาพ -->
+      <div>
+        <label class="lbl">📸 4. ถ่ายภาพประกอบเหตุการณ์:</label>
+        <input type="file" id="offCpPhotoInput" accept="image/*" capture="environment" multiple style="display:none;">
+        <button type="button" class="btn ghost" id="offCpTakePhotoBtn" style="width: 100%; min-height: 52px; font-size: 17px;">
+          📷 กดตรงนี้เพื่อถ่ายภาพหลักฐาน
+        </button>
         <div class="thumbs" id="offCpPhotoThumbs"></div>
       </div>
 
-      <!-- Action Buttons -->
-      <div style="display: flex; gap: 10px; margin-top: 8px;">
-        <button type="button" class="btn emergency" id="saveOffCpBtn" style="flex: 2;">
-          🚨 บันทึกและแจ้งเตือนทันที
+      <!-- ปุ่มกดยืนยันแจ้งเหตุด่วน -->
+      <div style="display: flex; gap: 10px; margin-top: 10px;">
+        <button type="button" class="btn-emergency-main" id="saveOffCpBtn" style="flex: 2; font-size: 19px;">
+          🚨 กดยืนยันแจ้งเหตุด่วนทันที
         </button>
         <button type="button" class="btn ghost" id="cancelOffCpBtn" style="flex: 1;">
           ยกเลิก
@@ -430,10 +391,10 @@
     </div>
   </div>
 
-  <!-- Toast Notification -->
+  <!-- Toast แจ้งเตือนข้อความสั้นๆ -->
   <div class="toast" id="toast" hidden>
-    <span id="toastIcon">ℹ️</span>
-    <span id="toastMsg">ข้อความแจ้งเตือน</span>
+    <span id="toastIcon" style="font-size: 22px;">ℹ️</span>
+    <span id="toastMsg">ข้อความ</span>
   </div>
 
   <!-- Scripts -->

@@ -1,7 +1,7 @@
 /**
- * app.js - ระบบเวียนตรวจ รปภ. มรย. (Security Patrol System)
+ * app.js - ระบบเวียนตรวจ รปภ. มรย. (Senior & Non-tech Friendly Edition)
  * มหาวิทยาลัยราชภัฏยะลา (Yala Rajabhat University)
- * เวอร์ชัน 2.1: รองรับ รปภ. 9 นาย + ระบบพื้นที่เสี่ยง + แจ้งเหตุนอกจุดตรวจ
+ * ออกแบบเน้นความเรียบง่าย ปุ่มใหญ่ ตัวหนังสือใหญ่ เข้าใจได้ทันที
  */
 
 (function () {
@@ -34,18 +34,16 @@
     themeToggle: document.getElementById('themeToggle'),
     
     // Tabs
-    tabButtons: document.querySelectorAll('.tabs button'),
-    panels: {
-      guard: document.getElementById('panelGuard'),
-      supervisor: document.getElementById('panelSupervisor'),
-      checkpoints: document.getElementById('panelCheckpoints')
-    },
+    tabGuard: document.getElementById('tabGuard'),
+    tabSupervisor: document.getElementById('tabSupervisor'),
+    panelGuard: document.getElementById('panelGuard'),
+    panelSupervisor: document.getElementById('panelSupervisor'),
 
     // Guard panel
     guardSelect: document.getElementById('guardSelect'),
     roundSelect: document.getElementById('roundSelect'),
     shiftSegment: document.getElementById('shiftSegment'),
-    progressTag: document.getElementById('progressTag'),
+    progressText: document.getElementById('progressText'),
     progressBarFill: document.getElementById('progressBarFill'),
     progressPercent: document.getElementById('progressPercent'),
     checkpointList: document.getElementById('checkpointList'),
@@ -54,13 +52,12 @@
     filterRiskCpBtn: document.getElementById('filterRiskCpBtn'),
     openOffCpBtn: document.getElementById('openOffCpBtn'),
 
-    // Inspection Sheet (ปกติ / จุดตรวจ)
+    // Inspection Modal (ตรวจจุดปกติ)
     inspectionVeil: document.getElementById('inspectionVeil'),
     sheetTitle: document.getElementById('sheetTitle'),
     sheetSubtitle: document.getElementById('sheetSubtitle'),
     sheetCloseBtn: document.getElementById('sheetCloseBtn'),
     sheetStampTime: document.getElementById('sheetStampTime'),
-    sheetStampDate: document.getElementById('sheetStampDate'),
     sheetGuardTag: document.getElementById('sheetGuardTag'),
     statusOkBtn: document.getElementById('statusOkBtn'),
     statusAlertBtn: document.getElementById('statusAlertBtn'),
@@ -72,15 +69,13 @@
     saveInspectionBtn: document.getElementById('saveInspectionBtn'),
     cancelInspectionBtn: document.getElementById('cancelInspectionBtn'),
 
-    // Off-Checkpoint Incident Sheet (พบเหตุนอกจุดตรวจ)
+    // Off-Checkpoint Emergency Modal (เหตุด่วนนอกจุดตรวจ)
     offCpVeil: document.getElementById('offCpVeil'),
     offCpCloseBtn: document.getElementById('offCpCloseBtn'),
     offCpStampTime: document.getElementById('offCpStampTime'),
-    offCpStampDate: document.getElementById('offCpStampDate'),
     offCpGuardTag: document.getElementById('offCpGuardTag'),
     offCpLocation: document.getElementById('offCpLocation'),
     offCpType: document.getElementById('offCpType'),
-    offCpUrgency: document.getElementById('offCpUrgency'),
     offCpNote: document.getElementById('offCpNote'),
     offCpMicBtn: document.getElementById('offCpMicBtn'),
     offCpPhotoInput: document.getElementById('offCpPhotoInput'),
@@ -97,21 +92,10 @@
     filterDate: document.getElementById('filterDate'),
     filterShift: document.getElementById('filterShift'),
     filterStatus: document.getElementById('filterStatus'),
-    filterSearch: document.getElementById('filterSearch'),
     reportTableBody: document.getElementById('reportTableBody'),
     logCountTag: document.getElementById('logCountTag'),
     incidentList: document.getElementById('incidentList'),
     exportCsvBtn: document.getElementById('exportCsvBtn'),
-
-    // Checkpoint Manager panel
-    addCheckpointForm: document.getElementById('addCheckpointForm'),
-    newCpCode: document.getElementById('newCpCode'),
-    newCpZone: document.getElementById('newCpZone'),
-    newCpName: document.getElementById('newCpName'),
-    newCpDesc: document.getElementById('newCpDesc'),
-    newCpIsRisk: document.getElementById('newCpIsRisk'),
-    checkpointEditorList: document.getElementById('checkpointEditorList'),
-    resetCheckpointsBtn: document.getElementById('resetCheckpointsBtn'),
 
     // Toast
     toast: document.getElementById('toast'),
@@ -130,15 +114,14 @@
     renderCheckpoints();
     updateProgress();
     renderSupervisorDashboard();
-    renderCheckpointEditor();
 
     // Check URL Hash for initial tab
     const hash = window.location.hash.replace('#', '');
-    if (['guard', 'supervisor', 'checkpoints'].includes(hash)) {
-      switchTab(hash);
+    if (hash === 'supervisor') {
+      switchTab('supervisor');
     }
 
-    // Auto open checkpoint inspection if requested in URL
+    // Auto open inspection if requested in URL
     const urlParams = new URLSearchParams(window.location.search);
     const openCp = urlParams.get('open');
     if (openCp === 'off') {
@@ -153,7 +136,6 @@
     try {
       const storedVersion = localStorage.getItem('yru_sp_version');
       if (storedVersion !== DATA_VERSION) {
-        // อัปเดตข้อมูลรุ่นใหม่ (รายชื่อ รปภ. 9 นาย + จุดตรวจพื้นที่เสี่ยง)
         state.guards = DEFAULT_GUARDS;
         state.checkpoints = DEFAULT_CHECKPOINTS;
         state.history = DEFAULT_HISTORY;
@@ -203,20 +185,17 @@
       'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.',
       'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'
     ];
-    const thaiDays = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์'];
 
     function tick() {
       const now = new Date();
       const h = String(now.getHours()).padStart(2, '0');
       const m = String(now.getMinutes()).padStart(2, '0');
-      const s = String(now.getSeconds()).padStart(2, '0');
-      el.clockTime.textContent = `${h}:${m}:${s} น.`;
+      el.clockTime.textContent = `${h}:${m} น.`;
 
-      const dayName = thaiDays[now.getDay()];
       const d = now.getDate();
       const mon = thaiMonths[now.getMonth()];
-      const y = now.getFullYear() + 543;
-      el.clockDate.textContent = `วัน${dayName}ที่ ${d} ${mon} ${y}`;
+      const y = (now.getFullYear() + 543) % 100;
+      el.clockDate.textContent = `${d} ${mon} ${y}`;
     }
 
     tick();
@@ -255,11 +234,9 @@
 
       rec.onstart = () => {
         state.isRecordingVoice = true;
-        if (state.activeMicTarget === 'sheet') {
-          el.micBtn.classList.add('on');
-        } else {
-          el.offCpMicBtn.classList.add('on');
-        }
+        const activeBtn = state.activeMicTarget === 'sheet' ? el.micBtn : el.offCpMicBtn;
+        activeBtn.classList.add('on');
+        activeBtn.innerHTML = '<span>🎙️</span> กำลังฟังเสียง... พูดได้เลย';
         showToast('🎙️ กำลังฟังเสียงพูดภาษาไทย...');
       };
 
@@ -271,30 +248,29 @@
         } else {
           targetTextarea.value = transcript;
         }
-        showToast('✓ แปลงเสียงเป็นข้อความแล้ว');
+        showToast('✓ พิมพ์ข้อความจากเสียงให้แล้ว');
       };
 
       rec.onerror = (evt) => {
         console.warn('Speech recognition error:', evt.error);
-        showToast('⚠️ ไม่สามารถแปลงเสียงได้: ' + (evt.error || 'กรุณาลองใหม่'));
+        showToast('⚠️ ไม่สามารถแปลงเสียงได้ กรุณาลองใหม่');
       };
 
       rec.onend = () => {
         state.isRecordingVoice = false;
         el.micBtn.classList.remove('on');
+        el.micBtn.innerHTML = '<span>🎙️</span> กดเพื่อเริ่มพูด';
         el.offCpMicBtn.classList.remove('on');
+        el.offCpMicBtn.innerHTML = '<span>🎙️</span> กดเพื่อเริ่มพูด';
       };
 
       state.speechRecognition = rec;
-    } else {
-      el.micBtn.title = 'เบราว์เซอร์ไม่รองรับ Speech Recognition';
-      el.offCpMicBtn.title = 'เบราว์เซอร์ไม่รองรับ Speech Recognition';
     }
   }
 
   function toggleVoiceRecording(target) {
     if (!state.speechRecognition) {
-      showToast('⚠️ เบราว์เซอร์นี้ไม่รองรับการพิมพ์ด้วยเสียง (แนะนำ Chrome/Edge/Safari)');
+      showToast('⚠️ เบราว์เซอร์นี้ไม่รองรับการพูด (แนะนำเปิดผ่าน Chrome บนมือถือ)');
       return;
     }
     state.activeMicTarget = target;
@@ -311,16 +287,15 @@
 
   // --- EVENTS BINDING ---
   function bindEvents() {
-    // Tab switching
-    el.tabButtons.forEach(btn => {
-      btn.addEventListener('click', () => {
-        switchTab(btn.dataset.tab);
-      });
-    });
+    // 2 Tabs switching
+    el.tabGuard.addEventListener('click', () => switchTab('guard'));
+    el.tabSupervisor.addEventListener('click', () => switchTab('supervisor'));
 
     // Guard select change
     el.guardSelect.addEventListener('change', (e) => {
       state.currentGuardId = e.target.value;
+      const selectedGuard = state.guards.find(g => g.id === e.target.value);
+      showToast(`เลือก: ${selectedGuard ? selectedGuard.name : ''}`);
     });
 
     // Round select change
@@ -328,6 +303,7 @@
       state.currentRound = e.target.value;
       updateProgress();
       renderCheckpoints();
+      showToast(`เปลี่ยนเป็น: ${e.target.value}`);
     });
 
     // Shift segment
@@ -357,7 +333,7 @@
 
     // Reset round
     el.resetRoundBtn.addEventListener('click', () => {
-      if (confirm('คุณต้องการเริ่มรอบการตรวจใหม่หรือไม่? (ประวัติรอบเก่าจะยังคงถูกบันทึกไว้)')) {
+      if (confirm('คุณต้องการเริ่มรอบการตรวจใหม่หรือไม่? (ข้อมูลรอบเก่าจะยังคงถูกบันทึกไว้ในระบบ)')) {
         state.roundChecks = {};
         saveToLocalStorage();
         renderCheckpoints();
@@ -366,7 +342,7 @@
       }
     });
 
-    // Inspection Status picker buttons
+    // Inspection Status picker buttons (2 ปุ่มยักษ์)
     el.statusOkBtn.addEventListener('click', () => setStatusSelection('ok'));
     el.statusAlertBtn.addEventListener('click', () => setStatusSelection('alert'));
 
@@ -401,21 +377,7 @@
     el.filterDate.addEventListener('change', renderSupervisorDashboard);
     el.filterShift.addEventListener('change', renderSupervisorDashboard);
     el.filterStatus.addEventListener('change', renderSupervisorDashboard);
-    el.filterSearch.addEventListener('input', renderSupervisorDashboard);
     el.exportCsvBtn.addEventListener('click', exportToCsv);
-
-    // Checkpoint Form
-    el.addCheckpointForm.addEventListener('submit', handleAddCheckpoint);
-    el.resetCheckpointsBtn.addEventListener('click', () => {
-      if (confirm('ยืนยันคืนค่าจุดตรวจเริ่มต้นทั้งหมด (รวมพื้นที่เสี่ยง มรย.) หรือไม่?')) {
-        state.checkpoints = JSON.parse(JSON.stringify(DEFAULT_CHECKPOINTS));
-        saveToLocalStorage();
-        renderCheckpoints();
-        renderCheckpointEditor();
-        updateProgress();
-        showToast('คืนค่าจุดตรวจเริ่มต้นแล้ว');
-      }
-    });
   }
 
   // --- TAB SWITCHING ---
@@ -423,35 +385,26 @@
     if (history.replaceState) {
       history.replaceState(null, '', '#' + tabName);
     }
-    el.tabButtons.forEach(b => {
-      const selected = b.dataset.tab === tabName;
-      b.setAttribute('aria-selected', selected ? 'true' : 'false');
-    });
+    const isGuard = tabName === 'guard';
+    el.tabGuard.setAttribute('aria-selected', isGuard ? 'true' : 'false');
+    el.tabSupervisor.setAttribute('aria-selected', isGuard ? 'false' : 'true');
 
-    Object.keys(el.panels).forEach(key => {
-      if (key === tabName) {
-        el.panels[key].removeAttribute('hidden');
-      } else {
-        el.panels[key].setAttribute('hidden', '');
-      }
-    });
-
-    if (tabName === 'supervisor') {
+    if (isGuard) {
+      el.panelGuard.removeAttribute('hidden');
+      el.panelSupervisor.setAttribute('hidden', '');
+      document.body.classList.remove('wide');
+    } else {
+      el.panelGuard.setAttribute('hidden', '');
+      el.panelSupervisor.removeAttribute('hidden');
       document.body.classList.add('wide');
       renderSupervisorDashboard();
-    } else {
-      document.body.classList.remove('wide');
-    }
-
-    if (tabName === 'checkpoints') {
-      renderCheckpointEditor();
     }
   }
 
   // --- GUARDS & CHECKPOINTS RENDERING ---
   function renderGuardSelect() {
-    el.guardSelect.innerHTML = state.guards.map(g => `
-      <option value="${g.id}">${g.name} (${g.code}) - ${g.role}</option>
+    el.guardSelect.innerHTML = state.guards.map((g, idx) => `
+      <option value="${g.id}">${idx + 1}. ${g.name} (${g.code})</option>
     `).join('');
 
     if (state.currentGuardId) {
@@ -467,11 +420,7 @@
     }
 
     if (activeCps.length === 0) {
-      el.checkpointList.innerHTML = `
-        <div class="empty">
-          ${state.cpRiskFilter === 'risk' ? 'ไม่พบจุดตรวจที่ระบุเป็นพื้นที่เสี่ยง' : 'ยังไม่มีจุดตรวจที่เปิดใช้งาน'}
-        </div>
-      `;
+      el.checkpointList.innerHTML = `<div class="empty">ไม่พบจุดตรวจในตัวกรองนี้</div>`;
       return;
     }
 
@@ -479,43 +428,74 @@
       const check = state.roundChecks[cp.id];
       const isDone = !!check;
       const isAlert = check && check.status === 'alert';
+      const isRisk = !!cp.isRisk;
 
-      let statusBadge = `<span class="tag">ยังไม่ได้ตรวจ</span>`;
-      let cardClass = 'cp';
+      let cardClass = 'cp-card';
+      if (isRisk) cardClass += ' is-risk';
 
-      if (cp.isRisk) {
-        cardClass += ' is-risk';
-      }
-
-      if (isDone) {
-        if (isAlert) {
-          cardClass += ' alert';
-          statusBadge = `<span class="tag alert">⚠️ พบเหตุผิดปกติ (${check.time})</span>`;
-        } else {
-          cardClass += ' done';
-          statusBadge = `<span class="tag ok">✓ ปกติ (${check.time})</span>`;
-        }
-      }
-
-      const riskBadge = cp.isRisk ? `<span class="tag risk" title="${escapeHtml(cp.riskReason || '')}">⚠️ พื้นที่เสี่ยง</span>` : '';
-
-      return `
-        <div class="${cardClass}" data-cpid="${cp.id}">
-          <div class="cp-icon">${idx + 1}</div>
-          <div class="cp-main">
-            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-              <span class="cp-name">${escapeHtml(cp.name)}</span>
-              ${riskBadge}
+      if (!isDone) {
+        // ยังไม่ได้ตรวจ: แสดงปุ่มเขียวใหญ่กดบันทึกจุดนี้
+        return `
+          <div class="${cardClass}">
+            <div class="cp-card-top">
+              <div class="cp-num">${idx + 1}</div>
+              <div class="cp-card-info">
+                <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                  <div class="cp-card-title">${escapeHtml(cp.name)}</div>
+                  ${isRisk ? '<span class="tag risk">⚠️ จุดเสี่ยงพิเศษ</span>' : ''}
+                </div>
+                <div class="cp-card-zone">📍 ${escapeHtml(cp.zone)} • ${escapeHtml(cp.code)}</div>
+                <div class="cp-card-desc">🔍 สิ่งที่ต้องดู: ${escapeHtml(cp.desc)}</div>
+              </div>
             </div>
-            <div class="cp-meta">${escapeHtml(cp.zone)} • ${escapeHtml(cp.code)}</div>
-            ${cp.riskReason ? `<div style="font-size:12px; color:var(--alert); margin-top:2px;">🚨 จุดเฝ้าระวัง: ${escapeHtml(cp.riskReason)}</div>` : ''}
-            <div style="margin-top: 4px;">${statusBadge}</div>
+            <button type="button" class="btn-check-action" onclick="window.appOpenInspection('${cp.id}')">
+              👉 แตะเพื่อบันทึกจุดนี้
+            </button>
           </div>
-          <button type="button" class="btn small ${isDone ? 'ghost' : ''}" onclick="window.appOpenInspection('${cp.id}')">
-            ${isDone ? 'แก้ไข' : 'ตรวจ'}
-          </button>
-        </div>
-      `;
+        `;
+      } else if (isAlert) {
+        // ตรวจแล้ว: พบปัญหา (สีแดง)
+        cardClass += ' alert';
+        return `
+          <div class="${cardClass}">
+            <div class="cp-card-top">
+              <div class="cp-num">🚨</div>
+              <div class="cp-card-info">
+                <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                  <div class="cp-card-title">${escapeHtml(cp.name)}</div>
+                  <span class="tag alert">🚨 พบปัญหา (${check.time} น.)</span>
+                </div>
+                <div class="cp-card-zone">📍 ${escapeHtml(cp.zone)} • ตรวจโดย: ${escapeHtml(check.guardName)}</div>
+                ${check.note ? `<div style="font-size:15px; color:var(--alert); font-weight:700; margin-top:6px; background:rgba(220,38,38,0.08); padding:6px 10px; border-radius:8px;">⚠️ บันทึก: ${escapeHtml(check.note)}</div>` : ''}
+              </div>
+            </div>
+            <button type="button" class="btn-check-action edit" onclick="window.appOpenInspection('${cp.id}')">
+              ✏️ แตะเพื่อแก้ไขข้อมูลจุดนี้
+            </button>
+          </div>
+        `;
+      } else {
+        // ตรวจแล้ว: ปกติ (สีเขียว)
+        cardClass += ' done';
+        return `
+          <div class="${cardClass}">
+            <div class="cp-card-top">
+              <div class="cp-num">✅</div>
+              <div class="cp-card-info">
+                <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                  <div class="cp-card-title">${escapeHtml(cp.name)}</div>
+                  <span class="tag ok">✅ ปกติเรียบร้อย (${check.time} น.)</span>
+                </div>
+                <div class="cp-card-zone">📍 ${escapeHtml(cp.zone)} • ตรวจโดย: ${escapeHtml(check.guardName)}</div>
+                ${check.note ? `<div style="font-size:14px; margin-top:4px;">💬 บันทึก: ${escapeHtml(check.note)}</div>` : ''}
+              </div>
+            </div>
+            <button type="button" class="btn-check-action edit" onclick="window.appOpenInspection('${cp.id}')">
+              ✏️ แตะเพื่อแก้ไขข้อมูลจุดนี้
+            </button>
+          </div>
+        `;
+      }
     }).join('');
   }
 
@@ -530,15 +510,16 @@
       }
     });
 
+    const remaining = total - completed;
     const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+    
     el.progressBarFill.style.width = `${percent}%`;
     el.progressPercent.textContent = `${percent}%`;
-    el.progressTag.textContent = `${completed} / ${total} จุด`;
-
-    if (percent === 100) {
-      el.progressTag.className = 'tag ok';
+    
+    if (completed === total) {
+      el.progressText.innerHTML = `<span style="color:var(--ok); font-weight:700;">🎉 ตรวจครบทั้ง ${total} จุดแล้ว!</span>`;
     } else {
-      el.progressTag.className = 'tag';
+      el.progressText.textContent = `ตรวจเสร็จแล้ว ${completed} จาก ${total} จุด (เหลืออีก ${remaining} จุด)`;
     }
   }
 
@@ -554,16 +535,14 @@
     const existingCheck = state.roundChecks[cpId];
 
     const riskPrefix = cp.isRisk ? '⚠️ [พื้นที่เสี่ยง] ' : '';
-    el.sheetTitle.textContent = `${riskPrefix}${cp.code}: ${cp.name}`;
-    el.sheetSubtitle.textContent = `${cp.zone} — ${cp.desc || 'เดินตรวจความเรียบร้อยรอบพื้นที่'}`;
+    el.sheetTitle.textContent = `${riskPrefix}${cp.name}`;
+    el.sheetSubtitle.textContent = `พิกัด: ${cp.zone} • ${cp.desc || 'เดินตรวจความเรียบร้อยรอบพื้นที่'}`;
     el.sheetGuardTag.textContent = currentGuard ? currentGuard.name : 'รปภ.';
 
     const now = new Date();
-    const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
-    const dateStr = now.toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' });
+    const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
     
-    el.sheetStampTime.textContent = existingCheck ? existingCheck.time : timeStr;
-    el.sheetStampDate.textContent = existingCheck ? existingCheck.date : dateStr;
+    el.sheetStampTime.textContent = existingCheck ? `${existingCheck.time} น.` : `${timeStr} น.`;
 
     if (existingCheck) {
       setStatusSelection(existingCheck.status || 'ok');
@@ -618,7 +597,7 @@
     el.photoThumbs.innerHTML = state.attachedPhotos.map((src, index) => `
       <div class="thumb">
         <img src="${src}" alt="รูปหลักฐาน ${index + 1}">
-        <button type="button" onclick="window.appRemovePhoto(${index})" title="ลบภาพ">✕</button>
+        <button type="button" onclick="window.appRemovePhoto(${index})" title="ลบรูปนี้">✕</button>
       </div>
     `).join('');
   }
@@ -665,18 +644,16 @@
     renderSupervisorDashboard();
 
     const isAlert = record.status === 'alert';
-    showToast(isAlert ? '⚠️ บันทึกพบเหตุผิดปกติแล้ว' : '✓ บันทึกการตรวจปกติเรียบร้อย');
+    showToast(isAlert ? '🚨 บันทึกพบเหตุผิดปกติแล้ว' : '✅ บันทึกว่าปกติเรียบร้อย', isAlert ? '🚨' : '✅');
   }
 
-  // --- OFF-CHECKPOINT INCIDENT MODAL (พบเหตุนอกจุดตรวจ) ---
+  // --- OFF-CHECKPOINT INCIDENT MODAL (แจ้งเหตุด่วน) ---
   function openOffCheckpointModal() {
     const currentGuard = state.guards.find(g => g.id === state.currentGuardId) || state.guards[0];
     const now = new Date();
-    const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
-    const dateStr = now.toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' });
+    const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
-    el.offCpStampTime.textContent = timeStr;
-    el.offCpStampDate.textContent = dateStr;
+    el.offCpStampTime.textContent = `${timeStr} น.`;
     el.offCpGuardTag.textContent = currentGuard ? currentGuard.name : 'รปภ.';
     el.offCpLocation.value = '';
     el.offCpNote.value = '';
@@ -714,7 +691,7 @@
     el.offCpPhotoThumbs.innerHTML = state.offCpAttachedPhotos.map((src, index) => `
       <div class="thumb">
         <img src="${src}" alt="รูปหลักฐาน ${index + 1}">
-        <button type="button" onclick="window.appRemoveOffCpPhoto(${index})" title="ลบภาพ">✕</button>
+        <button type="button" onclick="window.appRemoveOffCpPhoto(${index})" title="ลบภาพนี้">✕</button>
       </div>
     `).join('');
   }
@@ -727,7 +704,7 @@
   function saveOffCheckpointIncident() {
     const locationVal = el.offCpLocation.value.trim();
     if (!locationVal) {
-      showToast('⚠️ กรุณาระบุสถานที่หรือพิกัดที่พบเหตุ');
+      showToast('⚠️ กรุณาระบุสถานที่หรือพิกัดที่พบเหตุก่อน');
       el.offCpLocation.focus();
       return;
     }
@@ -749,11 +726,10 @@
       cpCode: 'OFF-CP',
       cpName: `พบเหตุนอกจุดตรวจ: ${locationVal}`,
       incidentType: el.offCpType.value,
-      urgency: el.offCpUrgency.value,
       isRisk: true,
       isOffCheckpoint: true,
       status: 'alert',
-      note: `[ประเภท: ${el.offCpType.value}] ${el.offCpNote.value.trim()}`,
+      note: `[${el.offCpType.value}] ${el.offCpNote.value.trim()}`,
       images: [...state.offCpAttachedPhotos]
     };
 
@@ -762,7 +738,7 @@
     closeOffCheckpointModal();
     renderSupervisorDashboard();
 
-    showToast('🚨 บันทึกเหตุนอกจุดตรวจและแจ้งเตือนแล้ว', '🚨');
+    showToast('🚨 แจ้งเหตุด่วนเรียบร้อยแล้ว!', '🚨');
   }
 
   // --- SUPERVISOR DASHBOARD ---
@@ -780,7 +756,6 @@
     const dateVal = el.filterDate.value;
     const shiftVal = el.filterShift.value;
     const statusVal = el.filterStatus.value;
-    const searchVal = el.filterSearch.value.trim().toLowerCase();
 
     const filtered = state.history.filter(item => {
       if (dateVal && item.date !== dateVal) return false;
@@ -791,10 +766,6 @@
       if (statusVal === 'risk' && !item.isRisk) return false;
       if (statusVal === 'off' && !item.isOffCheckpoint) return false;
 
-      if (searchVal) {
-        const text = `${item.cpName} ${item.cpCode || ''} ${item.guardName} ${item.note || ''} ${item.incidentType || ''}`.toLowerCase();
-        if (!text.includes(searchVal)) return false;
-      }
       return true;
     });
 
@@ -806,43 +777,30 @@
       `;
     } else {
       const shiftMap = { morning: 'กะเช้า', afternoon: 'กะบ่าย', night: 'กะดึก' };
-      const shiftColor = { morning: 'var(--sm)', afternoon: 'var(--sa)', night: 'var(--sn)' };
 
       el.reportTableBody.innerHTML = filtered.map(item => {
         const isOk = item.status === 'ok';
         let statusBadge = isOk 
-          ? `<span class="tag ok">✓ ปกติ</span>` 
-          : `<span class="tag alert">⚠️ มีเหตุ</span>`;
+          ? `<span class="tag ok">✅ ปกติ</span>` 
+          : `<span class="tag alert">🚨 มีปัญหา</span>`;
         
         if (item.isOffCheckpoint) {
-          statusBadge = `<span class="tag alert" style="background:#e11d48; color:#fff;">🚨 นอกจุดตรวจ</span>`;
+          statusBadge = `<span class="tag alert" style="background:#dc2626;">🚨 เหตุด่วนนอกจุด</span>`;
         }
 
-        const riskIndicator = item.isRisk 
-          ? `<span class="tag risk" style="font-size:11px; padding:1px 6px;">พื้นที่เสี่ยง</span>` 
-          : '';
-
         const photoPreview = (item.images && item.images.length > 0)
-          ? `<span title="${item.images.length} รูป">📷 ${item.images.length}</span>`
+          ? `<span>📷 ${item.images.length} รูป</span>`
           : `<span style="color:var(--muted)">-</span>`;
 
         return `
           <tr>
+            <td><b>${item.time} น.</b><br><small style="color:var(--muted);">${item.date}</small></td>
             <td>
-              <b>${item.time} น.</b>
-              <small style="display:block; color:var(--muted);">${item.date}</small>
-            </td>
-            <td>
-              <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
-                <b>${escapeHtml(item.cpName)}</b>
-                ${riskIndicator}
-              </div>
+              <b>${escapeHtml(item.cpName)}</b>
+              ${item.isRisk ? '<br><span class="tag risk" style="font-size:11px;">จุดเสี่ยง</span>' : ''}
             </td>
             <td>${escapeHtml(item.guardName)}</td>
-            <td>
-              <span class="sdot" style="--c:${shiftColor[item.shift] || 'var(--accent)'}"></span>
-              ${shiftMap[item.shift] || item.shift} / ${item.round || '-'}
-            </td>
+            <td>${shiftMap[item.shift] || item.shift}<br><small style="color:var(--muted);">${item.round || ''}</small></td>
             <td>${statusBadge}</td>
             <td>${escapeHtml(item.note || '-')}</td>
             <td>${photoPreview}</td>
@@ -852,38 +810,27 @@
     }
 
     // Incident Feed
-    const incidents = state.history.filter(h => h.status === 'alert').slice(0, 15);
+    const incidents = state.history.filter(h => h.status === 'alert').slice(0, 10);
     if (incidents.length === 0) {
       el.incidentList.innerHTML = `<div class="empty">ไม่มีรายงานเหตุผิดปกติในขณะนี้ ทุกจุดเรียบร้อยดี</div>`;
     } else {
-      el.incidentList.innerHTML = incidents.map(inc => {
-        const isOff = !!inc.isOffCheckpoint;
-        const urgencyHtml = inc.urgency === 'critical' 
-          ? `<span class="urgency-badge critical">ฉุกเฉินสูงสุด</span>` 
-          : (inc.urgency === 'high' ? `<span class="urgency-badge high">เร่งด่วน</span>` : '');
-
-        return `
-          <div class="log" style="${isOff ? 'background:rgba(225,29,72,0.04); border-left:4px solid #e11d48; padding-left:12px;' : ''}">
-            <time>
-              ${inc.time} น.
-              <small>${inc.date}</small>
-            </time>
-            <div>
-              <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-                <b style="color:${isOff ? '#e11d48' : 'var(--alert)'};">${escapeHtml(inc.cpName)}</b>
-                ${urgencyHtml}
-                <span class="tag alert">ผู้แจ้ง: ${escapeHtml(inc.guardName)}</span>
-              </div>
-              <p>${escapeHtml(inc.note || 'ไม่มีรายละเอียดเพิ่มเติม')}</p>
-              ${inc.images && inc.images.length ? `
-                <div class="thumbs" style="margin-top:6px;">
-                  ${inc.images.map(img => `<div class="thumb"><img src="${img}"></div>`).join('')}
-                </div>
-              ` : ''}
-            </div>
+      el.incidentList.innerHTML = incidents.map(inc => `
+        <div style="background:var(--alert-bg); border:1.5px solid var(--alert-border); border-radius:12px; padding:12px;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <b style="color:var(--alert); font-size:17px;">${escapeHtml(inc.cpName)}</b>
+            <span class="tag alert">${inc.time} น.</span>
           </div>
-        `;
-      }).join('');
+          <div style="font-size:14px; color:var(--muted); margin-top:2px;">
+            ผู้แจ้ง: <b>${escapeHtml(inc.guardName)}</b> (${inc.date})
+          </div>
+          <p style="margin:6px 0 0; font-size:15px; font-weight:600;">${escapeHtml(inc.note || 'ไม่มีรายละเอียด')}</p>
+          ${inc.images && inc.images.length ? `
+            <div class="thumbs">
+              ${inc.images.map(img => `<div class="thumb"><img src="${img}"></div>`).join('')}
+            </div>
+          ` : ''}
+        </div>
+      `).join('');
     }
   }
 
@@ -894,21 +841,18 @@
       return;
     }
 
-    const headers = ['ลำดับ', 'วันที่', 'เวลา', 'กะ', 'รอบ', 'รหัสจุดตรวจ', 'ชื่อจุดตรวจ/สถานที่', 'พื้นที่เสี่ยง', 'เหตุนอกจุดตรวจ', 'รปภ. ผู้ตรวจ', 'สถานะ', 'หมายเหตุ'];
+    const headers = ['ลำดับ', 'วันที่', 'เวลา', 'กะ', 'รอบ', 'จุดตรวจหรือสถานที่', 'รปภ. ผู้ตรวจ', 'สถานะ', 'รายละเอียด'];
     const shiftMap = { morning: 'กะเช้า', afternoon: 'กะบ่าย', night: 'กะดึก' };
 
     const rows = state.history.map((h, i) => [
       i + 1,
       `"${h.date}"`,
-      `"${h.time}"`,
+      `"${h.time} น."`,
       `"${shiftMap[h.shift] || h.shift}"`,
       `"${h.round || ''}"`,
-      `"${h.cpCode || ''}"`,
       `"${(h.cpName || '').replace(/"/g, '""')}"`,
-      `"${h.isRisk ? 'ใช่' : 'ไม่ใช่'}"`,
-      `"${h.isOffCheckpoint ? 'ใช่' : 'ไม่ใช่'}"`,
       `"${(h.guardName || '').replace(/"/g, '""')}"`,
-      `"${h.status === 'ok' ? 'ปกติ' : 'ผิดปกติ'}"`,
+      `"${h.status === 'ok' ? 'ปกติ' : 'มีปัญหา'}"`,
       `"${(h.note || '').replace(/"/g, '""')}"`
     ]);
 
@@ -921,107 +865,8 @@
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    showToast('📥 ดาวน์โหลดไฟล์ CSV เรียบร้อยแล้ว');
+    showToast('📥 ดาวน์โหลดไฟล์ Excel เรียบร้อยแล้ว');
   }
-
-  // --- CHECKPOINT MANAGER ---
-  function renderCheckpointEditor() {
-    el.checkpointEditorList.innerHTML = state.checkpoints.map((cp, idx) => `
-      <div class="edrow" data-id="${cp.id}">
-        <div class="line">
-          <b>จุดที่ ${idx + 1}</b>
-          <input type="text" value="${escapeHtml(cp.code)}" style="width:100px;" onchange="window.appUpdateCpField('${cp.id}', 'code', this.value)" placeholder="รหัส">
-          <input type="text" value="${escapeHtml(cp.name)}" style="flex:2;" onchange="window.appUpdateCpField('${cp.id}', 'name', this.value)" placeholder="ชื่อจุดตรวจ">
-          <input type="text" value="${escapeHtml(cp.zone)}" style="flex:1;" onchange="window.appUpdateCpField('${cp.id}', 'zone', this.value)" placeholder="โซน">
-          <label class="chk" style="color: ${cp.isRisk ? '#e11d48' : 'inherit'};">
-            <input type="checkbox" ${cp.isRisk ? 'checked' : ''} onchange="window.appToggleCpRisk('${cp.id}', this.checked)">
-            ⚠️ พื้นที่เสี่ยง
-          </label>
-          <label class="chk">
-            <input type="checkbox" ${cp.active !== false ? 'checked' : ''} onchange="window.appToggleCpActive('${cp.id}', this.checked)">
-            เปิดใช้งาน
-          </label>
-          <button type="button" class="btn danger small" onclick="window.appDeleteCp('${cp.id}')" title="ลบ">🗑️</button>
-        </div>
-      </div>
-    `).join('');
-  }
-
-  function handleAddCheckpoint(e) {
-    e.preventDefault();
-    const code = el.newCpCode.value.trim();
-    const zone = el.newCpZone.value.trim();
-    const name = el.newCpName.value.trim();
-    const desc = el.newCpDesc.value.trim();
-    const isRisk = el.newCpIsRisk ? el.newCpIsRisk.checked : false;
-
-    if (!code || !name) {
-      showToast('⚠️ กรุณากรอกรหัสและชื่อจุดตรวจ');
-      return;
-    }
-
-    const newCp = {
-      id: 'cp-' + Date.now(),
-      code,
-      name,
-      zone: zone || 'ทั่วไป',
-      desc,
-      isRisk,
-      active: true
-    };
-
-    state.checkpoints.push(newCp);
-    saveToLocalStorage();
-    renderCheckpoints();
-    renderCheckpointEditor();
-    updateProgress();
-
-    el.addCheckpointForm.reset();
-    showToast(`✓ เพิ่มจุดตรวจ "${name}" เรียบร้อย`);
-  }
-
-  window.appUpdateCpField = function (cpId, field, value) {
-    const cp = state.checkpoints.find(c => c.id === cpId);
-    if (cp) {
-      cp[field] = value.trim();
-      saveToLocalStorage();
-      renderCheckpoints();
-      showToast('บันทึกการแก้ไขแล้ว');
-    }
-  };
-
-  window.appToggleCpRisk = function (cpId, isRisk) {
-    const cp = state.checkpoints.find(c => c.id === cpId);
-    if (cp) {
-      cp.isRisk = isRisk;
-      saveToLocalStorage();
-      renderCheckpoints();
-      showToast(isRisk ? 'กำหนดเป็นพื้นที่เสี่ยงแล้ว' : 'ยกเลิกสถานะพื้นที่เสี่ยงแล้ว');
-    }
-  };
-
-  window.appToggleCpActive = function (cpId, active) {
-    const cp = state.checkpoints.find(c => c.id === cpId);
-    if (cp) {
-      cp.active = active;
-      saveToLocalStorage();
-      renderCheckpoints();
-      updateProgress();
-      renderSupervisorDashboard();
-      showToast(active ? 'เปิดใช้งานจุดตรวจแล้ว' : 'ปิดการใช้งานจุดตรวจชั่วคราว');
-    }
-  };
-
-  window.appDeleteCp = function (cpId) {
-    if (confirm('คุณแน่ใจว่าต้องการลบจุดตรวจนี้ใช่หรือไม่?')) {
-      state.checkpoints = state.checkpoints.filter(c => c.id !== cpId);
-      saveToLocalStorage();
-      renderCheckpoints();
-      renderCheckpointEditor();
-      updateProgress();
-      showToast('ลบจุดตรวจเรียบร้อย');
-    }
-  };
 
   // --- TOAST HELPER ---
   let toastTimer = null;

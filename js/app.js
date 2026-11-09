@@ -9,6 +9,8 @@
 
   // --- STATE ---
   let state = {
+    accounts: DEFAULT_ACCOUNTS,
+    currentUser: null, // { username, name, role, roleName }
     guards: [],
     checkpoints: [],
     history: [],
@@ -23,7 +25,9 @@
     offCpAttachedPhotos: [],
     speechRecognition: null,
     isRecordingVoice: false,
-    activeMicTarget: 'sheet' // 'sheet' | 'offCp'
+    activeMicTarget: 'sheet', // 'sheet' | 'offCp'
+    selectedAdminEditStatus: 'ok',
+    adminEditPhotos: []
   };
 
   // --- DOM ELEMENTS ---
@@ -32,6 +36,13 @@
     clockTime: document.getElementById('clockTime'),
     clockDate: document.getElementById('clockDate'),
     themeToggle: document.getElementById('themeToggle'),
+
+    // User & Auth Header
+    userPill: document.getElementById('userPill'),
+    userRoleBadge: document.getElementById('userRoleBadge'),
+    userNameTag: document.getElementById('userNameTag'),
+    logoutBtn: document.getElementById('logoutBtn'),
+    navTabsWrap: document.getElementById('navTabsWrap'),
     
     // Tabs
     tabGuard: document.getElementById('tabGuard'),
@@ -92,10 +103,29 @@
     filterDate: document.getElementById('filterDate'),
     filterShift: document.getElementById('filterShift'),
     filterStatus: document.getElementById('filterStatus'),
+    resetFilterBtn: document.getElementById('resetFilterBtn'),
     reportTableBody: document.getElementById('reportTableBody'),
     logCountTag: document.getElementById('logCountTag'),
     incidentList: document.getElementById('incidentList'),
     exportCsvBtn: document.getElementById('exportCsvBtn'),
+
+    // Admin Edit Modal
+    adminEditVeil: document.getElementById('adminEditVeil'),
+    adminEditCloseBtn: document.getElementById('adminEditCloseBtn'),
+    adminEditRecordId: document.getElementById('adminEditRecordId'),
+    adminEditDate: document.getElementById('adminEditDate'),
+    adminEditTime: document.getElementById('adminEditTime'),
+    adminEditCpName: document.getElementById('adminEditCpName'),
+    adminEditGuardName: document.getElementById('adminEditGuardName'),
+    adminEditShift: document.getElementById('adminEditShift'),
+    adminEditRound: document.getElementById('adminEditRound'),
+    adminStatusOkBtn: document.getElementById('adminStatusOkBtn'),
+    adminStatusAlertBtn: document.getElementById('adminStatusAlertBtn'),
+    adminEditNote: document.getElementById('adminEditNote'),
+    adminEditPhotoThumbs: document.getElementById('adminEditPhotoThumbs'),
+    adminSaveEditBtn: document.getElementById('adminSaveEditBtn'),
+    adminDeleteRecordBtn: document.getElementById('adminDeleteRecordBtn'),
+    adminCancelEditBtn: document.getElementById('adminCancelEditBtn'),
 
     // Toast
     toast: document.getElementById('toast'),
@@ -105,29 +135,37 @@
 
   // --- INITIALIZATION ---
   function init() {
+    const savedSession = localStorage.getItem('yru_sp_session');
+    if (!savedSession) {
+      window.location.replace('login.html');
+      return;
+    }
+
     loadFromLocalStorage();
     setupClock();
     setupTheme();
     setupSpeechRecognition();
+    setupAuth();
     bindEvents();
     renderGuardSelect();
     renderCheckpoints();
     updateProgress();
     renderSupervisorDashboard();
+    applyAuthUI();
 
-    // Check URL Hash for initial tab
-    const hash = window.location.hash.replace('#', '');
-    if (hash === 'supervisor') {
+    // กำหนดหน้าเริ่มต้นตามบทบาทของผู้ใช้งาน
+    if (state.currentUser && state.currentUser.role === 'admin') {
       switchTab('supervisor');
-    }
-
-    // Auto open inspection if requested in URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const openCp = urlParams.get('open');
-    if (openCp === 'off') {
-      setTimeout(() => openOffCheckpointModal(), 200);
-    } else if (openCp) {
-      setTimeout(() => window.appOpenInspection(openCp), 200);
+    } else {
+      switchTab('guard');
+      // ตรวจสอบ URL query สำหรับเปิดหน้าบันทึก (สำหรับ รปภ. เท่านั้น)
+      const urlParams = new URLSearchParams(window.location.search);
+      const openCp = urlParams.get('open');
+      if (openCp === 'off') {
+        setTimeout(() => openOffCheckpointModal(), 200);
+      } else if (openCp) {
+        setTimeout(() => window.appOpenInspection(openCp), 200);
+      }
     }
   }
 
@@ -157,6 +195,18 @@
       }
 
       state.currentGuardId = state.guards[0]?.id || '';
+
+      // Load session
+      const savedSession = localStorage.getItem('yru_sp_session');
+      if (savedSession) {
+        try {
+          state.currentUser = JSON.parse(savedSession);
+        } catch (e) {
+          state.currentUser = null;
+        }
+      } else {
+        state.currentUser = null;
+      }
     } catch (err) {
       console.warn('Storage read error, using defaults:', err);
       state.guards = DEFAULT_GUARDS;
@@ -164,6 +214,7 @@
       state.history = DEFAULT_HISTORY;
       state.roundChecks = {};
       state.currentGuardId = DEFAULT_GUARDS[0]?.id || '';
+      state.currentUser = null;
     }
   }
 
@@ -204,23 +255,20 @@
 
   // --- THEME ---
   function setupTheme() {
-    const saved = localStorage.getItem('yru_sp_theme');
-    if (saved) {
-      document.documentElement.setAttribute('data-theme', saved);
-      el.themeToggle.textContent = saved === 'dark' ? '☀️' : '🌙';
-    } else {
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      el.themeToggle.textContent = prefersDark ? '☀️' : '🌙';
+    const saved = localStorage.getItem('yru_sp_theme_v2');
+    const theme = saved || 'light'; // ค่าเริ่มต้นเป็นโหมดสว่างสบายตาสำหรับผู้ใหญ่
+    document.documentElement.setAttribute('data-theme', theme);
+    if (el.themeToggle) {
+      el.themeToggle.textContent = theme === 'dark' ? '☀️' : '🌙';
+      el.themeToggle.addEventListener('click', () => {
+        const current = document.documentElement.getAttribute('data-theme');
+        const next = current === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', next);
+        localStorage.setItem('yru_sp_theme_v2', next);
+        el.themeToggle.textContent = next === 'dark' ? '☀️' : '🌙';
+        showToast(`เปลี่ยนเป็นโหมด${next === 'dark' ? 'กลางคืน (มืด)' : 'กลางวัน (สว่างสบายตา)'}`);
+      });
     }
-
-    el.themeToggle.addEventListener('click', () => {
-      const current = document.documentElement.getAttribute('data-theme');
-      const next = current === 'dark' ? 'light' : 'dark';
-      document.documentElement.setAttribute('data-theme', next);
-      localStorage.setItem('yru_sp_theme', next);
-      el.themeToggle.textContent = next === 'dark' ? '☀️' : '🌙';
-      showToast(`เปลี่ยนเป็นโหมด ${next === 'dark' ? 'มืด' : 'สว่าง'}`);
-    });
   }
 
   // --- SPEECH RECOGNITION ---
@@ -287,6 +335,29 @@
 
   // --- EVENTS BINDING ---
   function bindEvents() {
+    // Auth & Header Logout
+    if (el.logoutBtn) {
+      el.logoutBtn.addEventListener('click', logout);
+    }
+
+    // Admin Edit Modal events
+    if (el.adminEditCloseBtn) el.adminEditCloseBtn.addEventListener('click', closeAdminEditModal);
+    if (el.adminCancelEditBtn) el.adminCancelEditBtn.addEventListener('click', closeAdminEditModal);
+    if (el.adminEditVeil) {
+      el.adminEditVeil.addEventListener('click', (e) => {
+        if (e.target === el.adminEditVeil) closeAdminEditModal();
+      });
+    }
+    if (el.adminStatusOkBtn) el.adminStatusOkBtn.addEventListener('click', () => setAdminStatusSelection('ok'));
+    if (el.adminStatusAlertBtn) el.adminStatusAlertBtn.addEventListener('click', () => setAdminStatusSelection('alert'));
+    if (el.adminSaveEditBtn) el.adminSaveEditBtn.addEventListener('click', saveAdminEditRecord);
+    if (el.adminDeleteRecordBtn) {
+      el.adminDeleteRecordBtn.addEventListener('click', () => {
+        const id = el.adminEditRecordId.value;
+        if (id) deleteAdminRecord(id);
+      });
+    }
+
     // 2 Tabs switching
     el.tabGuard.addEventListener('click', () => switchTab('guard'));
     el.tabSupervisor.addEventListener('click', () => switchTab('supervisor'));
@@ -377,17 +448,76 @@
     el.filterDate.addEventListener('change', renderSupervisorDashboard);
     el.filterShift.addEventListener('change', renderSupervisorDashboard);
     el.filterStatus.addEventListener('change', renderSupervisorDashboard);
+    if (el.resetFilterBtn) {
+      el.resetFilterBtn.addEventListener('click', () => {
+        el.filterDate.value = '';
+        el.filterShift.value = 'all';
+        el.filterStatus.value = 'all';
+        renderSupervisorDashboard();
+        showToast('🔄 แสดงข้อมูลทั้งหมดเรียบร้อยแล้ว');
+      });
+    }
     el.exportCsvBtn.addEventListener('click', exportToCsv);
+  }
+
+  // --- AUTHENTICATION & ACCESS CONTROL ---
+  function setupAuth() {
+    // Session loaded in loadFromLocalStorage
+  }
+
+  function applyAuthUI() {
+    if (!state.currentUser) {
+      window.location.replace('login.html');
+      return;
+    }
+
+    if (el.userPill) el.userPill.style.display = 'inline-flex';
+
+    const isAdmin = state.currentUser.role === 'admin';
+    if (el.userRoleBadge) {
+      el.userRoleBadge.textContent = isAdmin ? '👑 แอดมิน' : '🚶 รปภ.';
+    }
+    if (el.userNameTag) {
+      el.userNameTag.textContent = state.currentUser.name || state.currentUser.username;
+    }
+
+    // ซ่อนแถบแท็บด้านบนทั้งหมด เพราะแต่ละบทบาทมีหน้าเฉพาะเป็นของตัวเอง
+    if (el.navTabsWrap) {
+      el.navTabsWrap.style.display = 'none';
+    }
+
+    if (isAdmin) {
+      // แอดมิน: แสดงเฉพาะหน้าแดชบอร์ดสรุปผลของหัวหน้าเวร (ซ่อนหน้าสำหรับ รปภ. โดยสิ้นเชิง)
+      switchTab('supervisor');
+    } else {
+      // รปภ.: แสดงเฉพาะหน้าบันทึกการเดินตรวจ (ซ่อนหน้าแดชบอร์ดสรุปผลโดยสิ้นเชิง)
+      switchTab('guard');
+      renderCheckpoints();
+    }
+  }
+
+  function logout() {
+    if (confirm('คุณต้องการออกจากระบบหรือไม่?')) {
+      state.currentUser = null;
+      localStorage.removeItem('yru_sp_session');
+      window.location.replace('login.html');
+    }
   }
 
   // --- TAB SWITCHING ---
   function switchTab(tabName) {
-    if (history.replaceState) {
-      history.replaceState(null, '', '#' + tabName);
+    const isAdmin = state.currentUser && state.currentUser.role === 'admin';
+
+    // บังคับแยกตามสิทธิ์ชัดเจน:
+    // แอดมินดูได้เฉพาะหน้า supervisor (แดชบอร์ดสรุปผล)
+    // รปภ. ดูได้เฉพาะหน้า guard (เดินตรวจบันทึกจุดตรวจ)
+    const effectiveTab = isAdmin ? 'supervisor' : 'guard';
+
+    if (window.history && window.history.replaceState) {
+      window.history.replaceState(null, '', '#' + effectiveTab);
     }
-    const isGuard = tabName === 'guard';
-    el.tabGuard.setAttribute('aria-selected', isGuard ? 'true' : 'false');
-    el.tabSupervisor.setAttribute('aria-selected', isGuard ? 'false' : 'true');
+
+    const isGuard = effectiveTab === 'guard';
 
     if (isGuard) {
       el.panelGuard.removeAttribute('hidden');
@@ -424,6 +554,8 @@
       return;
     }
 
+    const isAdmin = state.currentUser && state.currentUser.role === 'admin';
+
     el.checkpointList.innerHTML = activeCps.map((cp, idx) => {
       const check = state.roundChecks[cp.id];
       const isDone = !!check;
@@ -434,22 +566,23 @@
       if (isRisk) cardClass += ' is-risk';
 
       if (!isDone) {
-        // ยังไม่ได้ตรวจ: แสดงปุ่มเขียวใหญ่กดบันทึกจุดนี้
+        // ยังไม่ได้ตรวจ: แสดงปุ่มใหญ่กดบันทึกจุดนี้ชัดเจน
         return `
           <div class="${cardClass}">
             <div class="cp-card-top">
               <div class="cp-num">${idx + 1}</div>
               <div class="cp-card-info">
-                <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
-                  <div class="cp-card-title">${escapeHtml(cp.name)}</div>
-                  ${isRisk ? '<span class="tag risk">⚠️ จุดเสี่ยงพิเศษ</span>' : ''}
+                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                  <div class="cp-card-title">จุดที่ ${idx + 1}: ${escapeHtml(cp.name)}</div>
+                  ${isRisk ? '<span class="tag risk">⚠️ พื้นที่เฝ้าระวังพิเศษ</span>' : '<span class="tag" style="background:#e2e8f0; color:#475569;">⏳ รอการตรวจ</span>'}
                 </div>
-                <div class="cp-card-zone">📍 ${escapeHtml(cp.zone)} • ${escapeHtml(cp.code)}</div>
-                <div class="cp-card-desc">🔍 สิ่งที่ต้องดู: ${escapeHtml(cp.desc)}</div>
+                <div class="cp-card-zone">📍 พิกัด: ${escapeHtml(cp.zone)} (${escapeHtml(cp.code)})</div>
+                <div class="cp-card-desc">🔍 <b>สิ่งที่ต้องตรวจดู:</b> ${escapeHtml(cp.desc)}</div>
+                ${isRisk && cp.riskReason ? `<div style="margin-top:6px; font-size:14px; color:var(--risk); font-weight:600;">💡 หมายเหตุจุดเสี่ยง: ${escapeHtml(cp.riskReason)}</div>` : ''}
               </div>
             </div>
             <button type="button" class="btn-check-action" onclick="window.appOpenInspection('${cp.id}')">
-              👉 แตะเพื่อบันทึกจุดนี้
+              👉 แตะปุ่มนี้เพื่อบันทึกผลการตรวจ (จุดที่ ${idx + 1})
             </button>
           </div>
         `;
@@ -461,17 +594,23 @@
             <div class="cp-card-top">
               <div class="cp-num">🚨</div>
               <div class="cp-card-info">
-                <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
-                  <div class="cp-card-title">${escapeHtml(cp.name)}</div>
-                  <span class="tag alert">🚨 พบปัญหา (${check.time} น.)</span>
+                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                  <div class="cp-card-title">จุดที่ ${idx + 1}: ${escapeHtml(cp.name)}</div>
+                  <span class="tag alert">🚨 แจ้งพบปัญหาแล้ว (เวลา ${check.time} น.)</span>
                 </div>
-                <div class="cp-card-zone">📍 ${escapeHtml(cp.zone)} • ตรวจโดย: ${escapeHtml(check.guardName)}</div>
-                ${check.note ? `<div style="font-size:15px; color:var(--alert); font-weight:700; margin-top:6px; background:rgba(220,38,38,0.08); padding:6px 10px; border-radius:8px;">⚠️ บันทึก: ${escapeHtml(check.note)}</div>` : ''}
+                <div class="cp-card-zone">📍 พิกัด: ${escapeHtml(cp.zone)} • ผู้ตรวจ: <b>${escapeHtml(check.guardName)}</b></div>
+                ${check.note ? `<div style="font-size:16px; color:var(--alert); font-weight:700; margin-top:8px; background:#ffffff; border:1px solid var(--alert-border); padding:8px 12px; border-radius:8px;">⚠️ รายละเอียดที่แจ้ง: ${escapeHtml(check.note)}</div>` : ''}
               </div>
             </div>
-            <button type="button" class="btn-check-action edit" onclick="window.appOpenInspection('${cp.id}')">
-              ✏️ แตะเพื่อแก้ไขข้อมูลจุดนี้
-            </button>
+            ${isAdmin ? `
+              <button type="button" class="btn-check-action edit" onclick="window.appOpenInspection('${cp.id}')">
+                ✏️ แตะเพื่อแก้ไขข้อมูลจุดนี้ (สำหรับหัวหน้าเวร)
+              </button>
+            ` : `
+              <div class="badge-locked-status">
+                🔒 บันทึกผลเรียบร้อยแล้วเมื่อเวลา ${check.time} น. (หากต้องการแก้ไข กรุณาแจ้งหัวหน้าเวร)
+              </div>
+            `}
           </div>
         `;
       } else {
@@ -482,17 +621,23 @@
             <div class="cp-card-top">
               <div class="cp-num">✅</div>
               <div class="cp-card-info">
-                <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
-                  <div class="cp-card-title">${escapeHtml(cp.name)}</div>
-                  <span class="tag ok">✅ ปกติเรียบร้อย (${check.time} น.)</span>
+                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                  <div class="cp-card-title">จุดที่ ${idx + 1}: ${escapeHtml(cp.name)}</div>
+                  <span class="tag ok">✅ ตรวจแล้ว: ปกติเรียบร้อย (เวลา ${check.time} น.)</span>
                 </div>
-                <div class="cp-card-zone">📍 ${escapeHtml(cp.zone)} • ตรวจโดย: ${escapeHtml(check.guardName)}</div>
-                ${check.note ? `<div style="font-size:14px; margin-top:4px;">💬 บันทึก: ${escapeHtml(check.note)}</div>` : ''}
+                <div class="cp-card-zone">📍 พิกัด: ${escapeHtml(cp.zone)} • ผู้ตรวจ: <b>${escapeHtml(check.guardName)}</b></div>
+                ${check.note ? `<div style="font-size:15px; margin-top:6px; background:#ffffff; padding:6px 10px; border-radius:8px; border:1px solid var(--ok-border);">💬 บันทึกเพิ่มเติม: ${escapeHtml(check.note)}</div>` : ''}
               </div>
             </div>
-            <button type="button" class="btn-check-action edit" onclick="window.appOpenInspection('${cp.id}')">
-              ✏️ แตะเพื่อแก้ไขข้อมูลจุดนี้
-            </button>
+            ${isAdmin ? `
+              <button type="button" class="btn-check-action edit" onclick="window.appOpenInspection('${cp.id}')">
+                ✏️ แตะเพื่อแก้ไขข้อมูลจุดนี้ (สำหรับหัวหน้าเวร)
+              </button>
+            ` : `
+              <div class="badge-locked-status">
+                🔒 บันทึกผลเรียบร้อยแล้วเมื่อเวลา ${check.time} น. (หากต้องการแก้ไข กรุณาแจ้งหัวหน้าเวร)
+              </div>
+            `}
           </div>
         `;
       }
@@ -528,11 +673,19 @@
     const cp = state.checkpoints.find(c => c.id === cpId);
     if (!cp) return;
 
+    const existingCheck = state.roundChecks[cpId];
+    const isAdmin = state.currentUser && state.currentUser.role === 'admin';
+
+    // ถ้าตรวจไปแล้ว และไม่ใช่แอดมิน -> ห้ามเปิดแก้ไข
+    if (existingCheck && !isAdmin) {
+      showToast('🔒 จุดนี้บันทึกข้อมูลแล้ว เฉพาะแอดมินเท่านั้นที่สามารถแก้ไขได้', '⚠️');
+      return;
+    }
+
     state.activeCpForInspection = cp;
     state.attachedPhotos = [];
 
     const currentGuard = state.guards.find(g => g.id === state.currentGuardId) || state.guards[0];
-    const existingCheck = state.roundChecks[cpId];
 
     const riskPrefix = cp.isRisk ? '⚠️ [พื้นที่เสี่ยง] ' : '';
     el.sheetTitle.textContent = `${riskPrefix}${cp.name}`;
@@ -773,7 +926,7 @@
 
     if (filtered.length === 0) {
       el.reportTableBody.innerHTML = `
-        <tr><td colspan="7" class="empty">ไม่พบข้อมูลตามตัวกรองที่เลือก</td></tr>
+        <tr><td colspan="8" class="empty">ไม่พบข้อมูลตามตัวกรองที่เลือก</td></tr>
       `;
     } else {
       const shiftMap = { morning: 'กะเช้า', afternoon: 'กะบ่าย', night: 'กะดึก' };
@@ -804,6 +957,16 @@
             <td>${statusBadge}</td>
             <td>${escapeHtml(item.note || '-')}</td>
             <td>${photoPreview}</td>
+            <td style="text-align: center;">
+              <div class="admin-action-group">
+                <button type="button" class="btn-action-edit" onclick="window.appOpenAdminEdit('${item.id}')" title="คลิกเพื่อตรวจสอบหรือแก้ไขข้อมูลรายการนี้">
+                  ✏️ แก้ไขข้อมูล
+                </button>
+                <button type="button" class="btn-action-delete" onclick="window.appDeleteRecord('${item.id}')" title="คลิกเพื่อลบข้อมูลรายการนี้">
+                  🗑️ ลบ
+                </button>
+              </div>
+            </td>
           </tr>
         `;
       }).join('');
@@ -829,9 +992,149 @@
               ${inc.images.map(img => `<div class="thumb"><img src="${img}"></div>`).join('')}
             </div>
           ` : ''}
+          <div style="margin-top: 10px; display: flex; gap: 8px;">
+            <button type="button" class="btn-action-edit" onclick="window.appOpenAdminEdit('${inc.id}')">
+              ✏️ ตรวจสอบ / แก้ไขข้อมูลเหตุการณ์นี้ (แอดมิน)
+            </button>
+          </div>
         </div>
       `).join('');
     }
+  }
+
+  // --- ADMIN EDIT & INSPECT MODAL ---
+  window.appOpenAdminEdit = function (recordId) {
+    if (!state.currentUser || state.currentUser.role !== 'admin') {
+      showToast('⚠️ สิทธิ์ไม่เพียงพอ เฉพาะแอดมินเท่านั้น', '🔒');
+      return;
+    }
+
+    const record = state.history.find(h => h.id === recordId);
+    if (!record) {
+      showToast('⚠️ ไม่พบข้อมูลรายการนี้', '⚠️');
+      return;
+    }
+
+    el.adminEditRecordId.value = record.id;
+    el.adminEditDate.value = record.date || '';
+    el.adminEditTime.value = record.time || '';
+    el.adminEditCpName.value = record.cpName || '';
+    el.adminEditGuardName.value = record.guardName || '';
+    el.adminEditShift.value = record.shift || 'morning';
+    el.adminEditRound.value = record.round || '';
+    el.adminEditNote.value = record.note || '';
+
+    setAdminStatusSelection(record.status || 'ok');
+
+    state.adminEditPhotos = record.images ? [...record.images] : [];
+    renderAdminEditPhotos();
+
+    el.adminEditVeil.removeAttribute('hidden');
+    document.body.style.overflow = 'hidden';
+  };
+
+  function closeAdminEditModal() {
+    el.adminEditVeil.setAttribute('hidden', '');
+    document.body.style.overflow = '';
+  }
+
+  function setAdminStatusSelection(status) {
+    state.selectedAdminEditStatus = status;
+    if (status === 'ok') {
+      el.adminStatusOkBtn.setAttribute('aria-pressed', 'true');
+      el.adminStatusAlertBtn.setAttribute('aria-pressed', 'false');
+    } else {
+      el.adminStatusOkBtn.setAttribute('aria-pressed', 'false');
+      el.adminStatusAlertBtn.setAttribute('aria-pressed', 'true');
+    }
+  }
+
+  function renderAdminEditPhotos() {
+    if (!state.adminEditPhotos.length) {
+      el.adminEditPhotoThumbs.innerHTML = '<span style="font-size:14px; color:var(--muted)">ไม่มีรูปถ่ายแนบ</span>';
+      return;
+    }
+
+    el.adminEditPhotoThumbs.innerHTML = state.adminEditPhotos.map((src, index) => `
+      <div class="thumb">
+        <img src="${src}" alt="รูปหลักฐาน ${index + 1}">
+        <button type="button" onclick="window.appRemoveAdminEditPhoto(${index})" title="ลบภาพนี้">✕</button>
+      </div>
+    `).join('');
+  }
+
+  window.appRemoveAdminEditPhoto = function (index) {
+    state.adminEditPhotos.splice(index, 1);
+    renderAdminEditPhotos();
+  };
+
+  function saveAdminEditRecord() {
+    const id = el.adminEditRecordId.value;
+    const index = state.history.findIndex(h => h.id === id);
+    if (index === -1) return;
+
+    const oldRecord = state.history[index];
+    const updatedRecord = {
+      ...oldRecord,
+      date: el.adminEditDate.value,
+      time: el.adminEditTime.value,
+      cpName: el.adminEditCpName.value.trim(),
+      guardName: el.adminEditGuardName.value.trim(),
+      shift: el.adminEditShift.value,
+      round: el.adminEditRound.value.trim(),
+      status: state.selectedAdminEditStatus,
+      note: el.adminEditNote.value.trim(),
+      images: [...state.adminEditPhotos]
+    };
+
+    state.history[index] = updatedRecord;
+
+    // อัปเดตในรอบตรวจปัจจุบันถ้าตรงกัน
+    if (updatedRecord.cpId && state.roundChecks[updatedRecord.cpId]) {
+      state.roundChecks[updatedRecord.cpId] = {
+        ...state.roundChecks[updatedRecord.cpId],
+        time: updatedRecord.time,
+        status: updatedRecord.status,
+        note: updatedRecord.note,
+        guardName: updatedRecord.guardName,
+        images: [...updatedRecord.images]
+      };
+    }
+
+    saveToLocalStorage();
+    closeAdminEditModal();
+    renderSupervisorDashboard();
+    renderCheckpoints();
+    showToast('💾 แอดมินบันทึกการแก้ไขข้อมูลเรียบร้อยแล้ว', '✅');
+  }
+
+  window.appDeleteRecord = function (recordId) {
+    if (!state.currentUser || state.currentUser.role !== 'admin') {
+      showToast('⚠️ สิทธิ์ไม่เพียงพอ เฉพาะแอดมินเท่านั้น', '🔒');
+      return;
+    }
+
+    deleteAdminRecord(recordId);
+  };
+
+  function deleteAdminRecord(recordId) {
+    if (!confirm('คุณแน่ใจหรือไม่ว่าต้องการลบบันทึกรายการนี้ออกจากระบบอย่างถาวร?')) {
+      return;
+    }
+
+    const rec = state.history.find(h => h.id === recordId);
+    if (rec && rec.cpId && state.roundChecks[rec.cpId]) {
+      delete state.roundChecks[rec.cpId];
+    }
+
+    state.history = state.history.filter(h => h.id !== recordId);
+    saveToLocalStorage();
+
+    closeAdminEditModal();
+    renderSupervisorDashboard();
+    renderCheckpoints();
+    updateProgress();
+    showToast('🗑️ ลบบันทึกข้อมูลเรียบร้อยแล้ว', '✅');
   }
 
   // --- EXPORT TO CSV ---

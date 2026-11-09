@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="th" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>เข้าสู่ระบบ - ระบบเวียนตรวจรักษาความปลอดภัย มหาวิทยาลัยราชภัฏยะลา</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bai+Jamjuree:wght@500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap">
+  
+  <!-- Main CSS -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="login-body">
+
+  <!-- แถบสีประจำสถาบันด้านบนสุด -->
+  <div class="uni-top-ribbon"></div>
+
+  <div class="login-wrapper">
+    <!-- ส่วนหัวตราสัญลักษณ์มหาวิทยาลัย -->
+    <div class="login-uni-header">
+      <div class="uni-crest-badge" aria-hidden="true">🛡️</div>
+      <div class="uni-title-group">
+        <span class="uni-ministry-tag">งานรักษาความปลอดภัย สำนักงานอธิการบดี</span>
+        <h1>ระบบเวียนตรวจรักษาความปลอดภัย</h1>
+        <p>มหาวิทยาลัยราชภัฏยะลา (Yala Rajabhat University)</p>
+      </div>
+    </div>
+
+    <!-- การ์ดกล่องเข้าสู่ระบบ (ออกแบบให้อ่านง่าย สบายตา) -->
+    <div class="login-card">
+      <div class="login-card-title-box">
+        <h2>🔐 ลงชื่อเข้าใช้งานระบบ</h2>
+        <p>กรุณากรอกชื่อผู้ใช้งานและรหัสผ่านของท่านเพื่อเข้าสู่ระบบ</p>
+      </div>
+
+      <form id="loginForm" onsubmit="return false;" class="login-form-clean">
+        <div id="loginAlertBox" class="login-alert-banner" style="display:none;"></div>
+
+        <!-- ช่องที่ 1: ชื่อผู้ใช้งาน -->
+        <div class="login-field-group">
+          <label for="usernameInput" class="login-field-label">
+            <span class="step-circle">1</span> ชื่อผู้ใช้งาน (Username)
+          </label>
+          <input
+            type="text"
+            id="usernameInput"
+            class="login-input-large"
+            placeholder="พิมพ์ชื่อผู้ใช้งานที่นี่..."
+            autocomplete="username"
+            required
+          >
+        </div>
+
+        <!-- ช่องที่ 2: รหัสผ่าน -->
+        <div class="login-field-group">
+          <label for="passwordInput" class="login-field-label">
+            <span class="step-circle">2</span> รหัสผ่าน (Password)
+          </label>
+          <div class="login-pw-wrapper">
+            <input
+              type="password"
+              id="passwordInput"
+              class="login-input-large pw-padding"
+              placeholder="พิมพ์รหัสผ่านที่นี่..."
+              autocomplete="current-password"
+              required
+            >
+            <button type="button" id="togglePwBtn" class="btn-show-pw" title="กดเพื่อดูหรือซ่อนรหัสผ่าน">
+              👁️ <span id="togglePwText">แสดงรหัส</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- ปุ่มกดเข้าสู่ระบบขนาดใหญ่ -->
+        <button type="submit" class="btn-login-primary" id="submitLoginBtn">
+          <span>เข้าสู่ระบบ</span>
+          <span class="btn-arrow">➔</span>
+        </button>
+      </form>
+
+      <div class="login-help-box">
+        <span>ℹ️</span>
+        <div>
+          <b>คำแนะนำสำหรับเจ้าหน้าที่:</b> หากท่านไม่ทราบรหัสผ่านหรือเข้าสู่ระบบไม่ได้ กรุณาติดต่อหัวหน้าเวรรักษาความปลอดภัย
+        </div>
+      </div>
+    </div>
+
+    <!-- ส่วนท้ายหน้าเว็บทางการ -->
+    <footer class="login-uni-footer">
+      <div>ระบบสารสนเทศเพื่อการบริหารงานรักษาความปลอดภัย มหาวิทยาลัยราชภัฏยะลา</div>
+      <small>อำเภอเมืองยะลา จังหวัดยะลา • โทรศัพท์สายด่วนป้อมยามกลาง มรย.</small>
+    </footer>
+  </div>
+
+  <script src="js/data.js"></script>
+  <script>
+    (function () {
+      'use strict';
+
+      const usernameInput = document.getElementById('usernameInput');
+      const passwordInput = document.getElementById('passwordInput');
+      const togglePwBtn = document.getElementById('togglePwBtn');
+      const togglePwText = document.getElementById('togglePwText');
+      const loginForm = document.getElementById('loginForm');
+      const submitLoginBtn = document.getElementById('submitLoginBtn');
+      const loginAlertBox = document.getElementById('loginAlertBox');
+
+      // ตั้งค่าโหมดสีเริ่มต้นให้เป็นโหมดสว่างสบายตาเสมอ (ยกเว้นผู้ใช้เคยเลือกไว้เอง)
+      const savedTheme = localStorage.getItem('yru_sp_theme_v2') || 'light';
+      document.documentElement.setAttribute('data-theme', savedTheme);
+
+      // ตรวจสอบว่ามี session เดิมอยู่แล้วหรือไม่ ถ้ามีให้ส่งต่อไปหน้า index.html ทันที
+      try {
+        const savedSession = localStorage.getItem('yru_sp_session');
+        if (savedSession) {
+          const parsed = JSON.parse(savedSession);
+          if (parsed && parsed.role) {
+            window.location.replace('index.html');
+            return;
+          }
+        }
+      } catch (e) {}
+
+      // ปุ่มแสดง/ซ่อนรหัสผ่าน พร้อมข้อความเข้าใจง่าย
+      togglePwBtn.addEventListener('click', function () {
+        const isPw = passwordInput.type === 'password';
+        passwordInput.type = isPw ? 'text' : 'password';
+        if (togglePwText) {
+          togglePwText.textContent = isPw ? 'ซ่อนรหัส' : 'แสดงรหัส';
+        }
+      });
+
+      // เมื่อกดปุ่มเข้าสู่ระบบ
+      loginForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        executeLogin(usernameInput.value, passwordInput.value);
+      });
+
+      function executeLogin(username, password) {
+        username = (username || '').trim().toLowerCase();
+        password = (password || '').trim();
+
+        if (!username || !password) {
+          showError('กรุณากรอกชื่อผู้ใช้งานและรหัสผ่านให้ครบทั้ง 2 ช่อง');
+          return;
+        }
+
+        const accounts = (typeof DEFAULT_ACCOUNTS !== 'undefined') ? DEFAULT_ACCOUNTS : [
+          { username: 'admin', password: 'admin1234', name: 'หัวหน้าเวร (ผู้ดูแลระบบ)', role: 'admin', roleName: 'แอดมิน / หัวหน้าเวร' },
+          { username: 'guard', password: 'guard1234', name: 'เจ้าหน้าที่ รปภ.', role: 'user', roleName: 'เจ้าหน้าที่ รปภ. (ผู้ตรวจ)' },
+          { username: 'user', password: 'user1234', name: 'เจ้าหน้าที่ทั่วไป', role: 'user', roleName: 'ผู้ใช้งานทั่วไป' }
+        ];
+
+        const matched = accounts.find(function (acc) {
+          return acc.username.toLowerCase() === username && acc.password === password;
+        });
+
+        if (matched) {
+          loginAlertBox.style.display = 'none';
+          submitLoginBtn.disabled = true;
+          submitLoginBtn.innerHTML = '<span>⏳ กำลังเข้าสู่ระบบ กรุณารอสักครู่...</span>';
+
+          const sessionData = {
+            id: matched.id || ('acc-' + matched.username),
+            username: matched.username,
+            name: matched.name,
+            role: matched.role,
+            roleName: matched.roleName
+          };
+
+          try {
+            localStorage.setItem('yru_sp_session', JSON.stringify(sessionData));
+          } catch (err) {
+            console.error('Storage error:', err);
+          }
+
+          setTimeout(function () {
+            window.location.replace('index.html');
+          }, 250);
+        } else {
+          showError('ชื่อผู้ใช้งาน หรือ รหัสผ่านไม่ถูกต้อง กรุณาตรวจสอบแล้วลองใหม่อีกครั้ง');
+        }
+      }
+
+      function showError(msg) {
+        loginAlertBox.textContent = '⚠️ ' + msg;
+        loginAlertBox.style.display = 'block';
+      }
+    })();
+  </script>
+</body>
+</html>

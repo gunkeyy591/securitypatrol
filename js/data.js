@@ -3,7 +3,35 @@
  * อัปเดตรายชื่อ รปภ. 9 นาย + เพิ่มพื้นที่เสี่ยง + เพิ่มประเภทเหตุนอกจุดตรวจ
  */
 
-const DATA_VERSION = '2.1';
+const DATA_VERSION = '2.2';
+
+// บัญชีผู้ใช้งานระบบ (สิทธิ์ Admin และ User ธรรมดา)
+const DEFAULT_ACCOUNTS = [
+  {
+    id: 'acc-admin',
+    username: 'admin',
+    password: 'admin1234',
+    name: 'หัวหน้าเวร (ผู้ดูแลระบบ)',
+    role: 'admin', // แอดมิน: ดูรายงาน, แก้ไข, ตรวจสอบ, ลบข้อมูลได้
+    roleName: 'แอดมิน / หัวหน้าเวร'
+  },
+  {
+    id: 'acc-guard',
+    username: 'guard',
+    password: 'guard1234',
+    name: 'เจ้าหน้าที่ รปภ.',
+    role: 'user', // user ธรรมดา: เพิ่มรายงานได้อย่างเดียว ไม่สามารถแก้ไขอะไรได้
+    roleName: 'เจ้าหน้าที่ รปภ. (ผู้ตรวจ)'
+  },
+  {
+    id: 'acc-user',
+    username: 'user',
+    password: 'user1234',
+    name: 'เจ้าหน้าที่ทั่วไป',
+    role: 'user', // user ธรรมดา
+    roleName: 'ผู้ใช้งานทั่วไป'
+  }
+];
 
 const DEFAULT_SHIFTS = [
   { id: 'morning', name: 'กะเช้า', time: '07:00 - 15:00', color: 'var(--sm)' },

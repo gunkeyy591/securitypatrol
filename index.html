@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>เวียนตรวจ รปภ. มรย. - มหาวิทยาลัยราชภัฏยะลา</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bai+Jamjuree:wght@500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600&display=swap">
+  
+  <!-- CSS -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!-- Sticky App Bar -->
+  <header class="bar">
+    <div class="bar-in">
+      <div class="brand">
+        <div class="brand-icon">🛡️</div>
+        <div class="brand-info">
+          <h1>เวียนตรวจ รปภ. มรย.</h1>
+          <small>มหาวิทยาลัยราชภัฏยะลา (YRU Patrol)</small>
+        </div>
+      </div>
+      <div class="header-right">
+        <div class="clock" id="appClock">
+          <span id="clockTime">--:--:--</span>
+          <small id="clockDate">กำลังโหลดวันที่...</small>
+        </div>
+        <button class="theme-toggle" id="themeToggle" title="สลับโหมดมืด/สว่าง" aria-label="Toggle Theme">🌙</button>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <nav class="tabs" role="tablist">
+        <button type="button" role="tab" id="tabGuard" aria-selected="true" data-tab="guard">
+          <span>🚶‍♂️</span> เดินตรวจเวร
+        </button>
+        <button type="button" role="tab" id="tabSupervisor" aria-selected="false" data-tab="supervisor">
+          <span>📊</span> รายงาน / ผู้ตรวจการ
+        </button>
+        <button type="button" role="tab" id="tabCheckpoints" aria-selected="false" data-tab="checkpoints">
+          <span>📍</span> จุดตรวจ
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <main>
+      <!-- TAB 1: เจ้าหน้าที่ รปภ. เดินตรวจเวร (Guard View) -->
+      <section id="panelGuard" class="tab-panel" role="tabpanel" aria-labelledby="tabGuard">
+        <!-- Duty Setup Card -->
+        <div class="card row">
+          <div class="two-col">
+            <div>
+              <label class="lbl" for="guardSelect">เจ้าหน้าที่ รปภ. ผู้ปฏิบัติหน้าที่</label>
+              <select id="guardSelect"></select>
+            </div>
+            <div>
+              <label class="lbl" for="roundSelect">รอบการเดินตรวจ</label>
+              <select id="roundSelect">
+                <option value="รอบที่ 1">รอบที่ 1</option>
+                <option value="รอบที่ 2">รอบที่ 2</option>
+                <option value="รอบที่ 3">รอบที่ 3</option>
+                <option value="รอบที่ 4">รอบที่ 4</option>
+                <option value="รอบพิเศษ / สุ่มตรวจ">รอบพิเศษ / สุ่มตรวจ</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label class="lbl">กะการปฏิบัติงาน</label>
+            <div class="seg" id="shiftSegment">
+              <button type="button" aria-pressed="true" style="--c:var(--sm)" data-shift="morning">
+                <b>กะเช้า</b>
+                <small>07:00 - 15:00</small>
+              </button>
+              <button type="button" aria-pressed="false" style="--c:var(--sa)" data-shift="afternoon">
+                <b>กะบ่าย</b>
+                <small>15:00 - 23:00</small>
+              </button>
+              <button type="button" aria-pressed="false" style="--c:var(--sn)" data-shift="night">
+                <b>กะดึก</b>
+                <small>23:00 - 07:00</small>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Progress Card -->
+        <div class="card">
+          <div class="sec-head" style="margin-bottom: 10px;">
+            <h2>ความคืบหน้ารอบปัจจุบัน</h2>
+            <span class="tag ok" id="progressTag">0 / 0 จุด</span>
+          </div>
+          <div class="prog">
+            <div class="prog-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+              <i id="progressBarFill" style="width: 0%;"></i>
+            </div>
+            <b id="progressPercent">0%</b>
+          </div>
+        </div>
+
+        <!-- Emergency Incident Button -->
+        <div>
+          <button type="button" class="btn emergency" id="openOffCpBtn" style="width: 100%; min-height: 54px; font-size: 16px;">
+            🚨 พบเหตุนอกจุดตรวจ / แจ้งเหตุด่วนฉุกเฉิน
+          </button>
+        </div>
+
+        <!-- Checkpoints List Card -->
+        <div class="card">
+          <div class="sec-head" style="margin-bottom: 14px;">
+            <div>
+              <h2>รายการจุดตรวจ (Checkpoints)</h2>
+              <small style="color:var(--muted); font-size:13px;">รวมจุดตรวจทั่วไปและจุดเฝ้าระวังพื้นที่เสี่ยง มรย.</small>
+            </div>
+            <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+              <button type="button" class="risk-filter-btn active" id="filterAllCpBtn">ทั้งหมด</button>
+              <button type="button" class="risk-filter-btn" id="filterRiskCpBtn">⚠️ เฉพาะพื้นที่เสี่ยง</button>
+              <button type="button" class="btn ghost small" id="resetRoundBtn">🔄 เริ่มรอบใหม่</button>
+            </div>
+          </div>
+          <p class="hint" style="margin-bottom: 12px;">แตะที่จุดตรวจเพื่อลงเวลาและบันทึกผลการตรวจสอบ</p>
+          </div>
+          <p class="hint" style="margin-bottom: 12px;">แตะที่จุดตรวจเพื่อลงเวลาและบันทึกผลการตรวจสอบ</p>
+
+          <div class="cp-list" id="checkpointList">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 2: ผู้ตรวจการ / แดชบอร์ดรายงาน (Supervisor View) -->
+      <section id="panelSupervisor" class="tab-panel" role="tabpanel" aria-labelledby="tabSupervisor" hidden>
+        <!-- KPI Stats -->
+        <div class="stat-grid">
+          <div class="stat-box">
+            <small>บันทึกการตรวจทั้งหมด</small>
+            <b id="statTotal">0</b>
+          </div>
+          <div class="stat-box ok">
+            <small>สถานะปกติ</small>
+            <b id="statOk">0</b>
+          </div>
+          <div class="stat-box alert">
+            <small>พบเหตุผิดปกติ</small>
+            <b id="statAlert">0</b>
+          </div>
+          <div class="stat-box">
+            <small>จุดตรวจที่เปิดใช้งาน</small>
+            <b id="statActiveCp">0</b>
+          </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="card">
+          <div class="sec-head" style="margin-bottom: 12px;">
+            <h2>ตัวกรองรายงาน</h2>
+            <button type="button" class="btn ghost small" id="exportCsvBtn">📥 ส่งออก CSV</button>
+          </div>
+          <div class="filters">
+            <div>
+              <label class="lbl" for="filterDate">วันที่</label>
+              <input type="date" id="filterDate">
+            </div>
+            <div>
+              <label class="lbl" for="filterShift">กะการทำงาน</label>
+              <select id="filterShift">
+                <option value="all">ทุุกกะ</option>
+                <option value="morning">กะเช้า</option>
+                <option value="afternoon">กะบ่าย</option>
+                <option value="night">กะดึก</option>
+              </select>
+            </div>
+            <div>
+              <label class="lbl" for="filterStatus">สถานะ</label>
+              <select id="filterStatus">
+                <option value="all">ทั้งหมด</option>
+                <option value="ok">เฉพาะปกติ</option>
+                <option value="alert">เฉพาะพบเหตุผิดปกติ</option>
+                <option value="risk">เฉพาะในพื้นที่เสี่ยง</option>
+                <option value="off">เฉพาะเหตุนอกจุดตรวจ</option>
+              </select>
+            </div>
+            <div>
+              <label class="lbl" for="filterSearch">ค้นหาข้อความ</label>
+              <input type="text" id="filterSearch" placeholder="พิมพ์จุดตรวจ, ชื่อ รปภ.">
+            </div>
+          </div>
+        </div>
+
+        <!-- Report Table -->
+        <div class="card">
+          <div class="sec-head" style="margin-bottom: 12px;">
+            <h2>บันทึกการเวียนตรวจล่าสุด</h2>
+            <span class="tag" id="logCountTag">0 รายการ</span>
+          </div>
+          <div class="tbl">
+            <table>
+              <thead>
+                <tr>
+                  <th>เวลา / วันที่</th>
+                  <th>จุดตรวจ</th>
+                  <th>ผู้ตรวจ (รปภ.)</th>
+                  <th>กะ / รอบ</th>
+                  <th>สถานะ</th>
+                  <th>หมายเหตุ / รายละเอียด</th>
+                  <th>รูปถ่าย</th>
+                </tr>
+              </thead>
+              <tbody id="reportTableBody">
+                <!-- Rendered by JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Incident Feed -->
+        <div class="card">
+          <div class="sec-head" style="margin-bottom: 12px;">
+            <h2>⚠️ บันทึกเหตุการณ์ผิดปกติ (Incidents Log)</h2>
+          </div>
+          <div class="logs" id="incidentList">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 3: จัดการจุดตรวจ (Manage Checkpoints) -->
+      <section id="panelCheckpoints" class="tab-panel" role="tabpanel" aria-labelledby="tabCheckpoints" hidden>
+        <div class="card">
+          <div class="sec-head" style="margin-bottom: 14px;">
+            <h2>เพิ่มจุดตรวจใหม่</h2>
+          </div>
+          <form id="addCheckpointForm" class="row">
+            <div class="two-col">
+              <div>
+                <label class="lbl" for="newCpCode">รหัสจุดตรวจ (Code)</label>
+                <input type="text" id="newCpCode" placeholder="เช่น CP-11" required>
+              </div>
+              <div>
+                <label class="lbl" for="newCpZone">โซน / พื้นที่</label>
+                <input type="text" id="newCpZone" placeholder="เช่น อาคารเรียนรวม, ประตูรอบนอก" required>
+              </div>
+            </div>
+            <div>
+              <label class="lbl" for="newCpName">ชื่อจุดตรวจ</label>
+              <input type="text" id="newCpName" placeholder="เช่น อาคารศูนย์ภาษาและการเรียนรู้" required>
+            </div>
+            <div>
+              <label class="lbl" for="newCpDesc">คำอธิบายสิ่งที่ต้องตรวจ</label>
+              <textarea id="newCpDesc" style="min-height: 80px;" placeholder="ระบุสิ่งที่ต้องสังเกต เช่น ประตูหน้าต่าง, สายตรวจไฟ, สวิตช์เบรกเกอร์"></textarea>
+            </div>
+            <div>
+              <label class="chk">
+                <input type="checkbox" id="newCpIsRisk">
+                <b>⚠️ กำหนดให้เป็น "พื้นที่เสี่ยงพิเศษ"</b> (แสดงแถบเตือนสีแดงในหน้ารายการจุดตรวจ)
+              </label>
+            </div>
+            <button type="submit" class="btn">➕ เพิ่มจุดตรวจ</button>
+          </form>
+        </div>
+
+        <div class="card">
+          <div class="sec-head" style="margin-bottom: 14px;">
+            <h2>รายการจุดตรวจทั้งหมดในระบบ</h2>
+            <button type="button" class="btn ghost small" id="resetCheckpointsBtn">คืนค่าเริ่มต้น</button>
+          </div>
+          <div id="checkpointEditorList">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Sheet Modal: บันทึกการตรวจ (Inspection Bottom Sheet) -->
+  <div class="veil" id="inspectionVeil" hidden>
+    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+      <div class="sheet-header">
+        <div>
+          <h2 id="sheetTitle" style="font-size: 20px;">บันทึกผลการตรวจ</h2>
+          <small id="sheetSubtitle" style="color:var(--muted); font-size:13px;"></small>
+        </div>
+        <button type="button" class="sheet-close" id="sheetCloseBtn" aria-label="ปิด">✕</button>
+      </div>
+
+      <!-- Live Timestamp -->
+      <div class="stamp">
+        <div>
+          <b id="sheetStampTime">--:--:--</b>
+          <small id="sheetStampDate">วันที่บันทึก</small>
+        </div>
+        <div style="margin-left: auto; text-align: right;">
+          <span class="tag" id="sheetGuardTag">รปภ.</span>
+        </div>
+      </div>
+
+      <!-- Status Picker -->
+      <div>
+        <label class="lbl">สถานะจุดตรวจ</label>
+        <div class="two">
+          <button type="button" class="pick ok" id="statusOkBtn" aria-pressed="true">
+            ✓ ปกติเรียบร้อย
+          </button>
+          <button type="button" class="pick alert" id="statusAlertBtn" aria-pressed="false">
+            ⚠️ พบเหตุผิดปกติ
+          </button>
+        </div>
+      </div>
+
+      <!-- Note / Speech-to-text -->
+      <div class="note-wrap">
+        <label class="lbl" for="sheetNote">บันทึกรายละเอียด / หมายเหตุ</label>
+        <textarea id="sheetNote" placeholder="พิมพ์ข้อความบันทึก หรือกดปุ่มไมค์เพื่อพูดบันทึกเสียง..."></textarea>
+        <button type="button" class="mic" id="micBtn" title="กดเพื่อพูดบันทึกเสียง (Speech-to-Text)">
+          🎙️
+        </button>
+      </div>
+
+      <!-- Photo Attachment -->
+      <div>
+        <label class="lbl">รูปถ่ายหลักฐานประกอบ</label>
+        <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+          <input type="file" id="photoInput" accept="image/*" capture="environment" multiple style="display:none;">
+          <button type="button" class="btn ghost small" id="takePhotoBtn">
+            📷 ถ่ายภาพ / แนบรูป
+          </button>
+        </div>
+        <div class="thumbs" id="photoThumbs"></div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div style="display: flex; gap: 10px; margin-top: 8px;">
+        <button type="button" class="btn" id="saveInspectionBtn" style="flex: 2;">
+          💾 ยืนยันบันทึกผลการตรวจ
+        </button>
+        <button type="button" class="btn ghost" id="cancelInspectionBtn" style="flex: 1;">
+          ยกเลิก
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sheet Modal: รายงานเหตุนอกจุดตรวจ / เหตุฉุกเฉิน -->
+  <div class="veil" id="offCpVeil" hidden>
+    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="offCpSheetTitle">
+      <div class="sheet-header">
+        <div>
+          <h2 id="offCpSheetTitle" style="font-size: 20px; color: #e11d48;">🚨 รายงานพบเหตุนอกจุดตรวจ</h2>
+          <small style="color:var(--muted); font-size:13px;">บันทึกเหตุการณ์ฉุกเฉินหรือความผิดปกตินอกเส้นทางเวียนตรวจปกติ</small>
+        </div>
+        <button type="button" class="sheet-close" id="offCpCloseBtn" aria-label="ปิด">✕</button>
+      </div>
+
+      <!-- Live Timestamp & Guard -->
+      <div class="stamp" style="border-left: 4px solid #e11d48;">
+        <div>
+          <b id="offCpStampTime" style="color: #e11d48;">--:--:--</b>
+          <small id="offCpStampDate">วันที่บันทึก</small>
+        </div>
+        <div style="margin-left: auto; text-align: right;">
+          <span class="tag alert" id="offCpGuardTag">รปภ.</span>
+        </div>
+      </div>
+
+      <!-- Location Input -->
+      <div>
+        <label class="lbl" for="offCpLocation">สถานที่ / พิกัดที่พบเหตุ <span style="color:#e11d48;">*</span></label>
+        <input type="text" id="offCpLocation" placeholder="เช่น บริเวณลานจอดรถข้างโรงอาหาร, แนวกำแพงรั้วหลังแฟลตอาจารย์" required>
+      </div>
+
+      <!-- Incident Type & Urgency -->
+      <div class="two-col">
+        <div>
+          <label class="lbl" for="offCpType">ประเภทเหตุการณ์</label>
+          <select id="offCpType">
+            <option value="บุคคลภายนอกน่าสงสัย">👤 พบบุคคลภายนอกน่าสงสัย</option>
+            <option value="การงัดแงะ / ทรัพย์สินเสียหาย">🚪 งัดแงะ / ประตูหน้าต่างชำรุด</option>
+            <option value="กลุ่มควัน / ไฟไหม้ / อัคคีภัย">🔥 กลุ่มควัน / ส่อเกิดอัคคีภัย</option>
+            <option value="ไฟฟ้าดับ / อุปกรณ์ชำรุด">⚡ ไฟดับ / สายไฟชำรุด / ท่อน้ำแตก</option>
+            <option value="อุบัติเหตุ / สัตว์มีพิษ">🐍 สัตว์มีพิษ / ผู้บาดเจ็บ</option>
+            <option value="มั่วสุมยามวิกาล">👥 มั่วสุมยามวิกาล</option>
+            <option value="อื่นๆ">⚠️ อื่นๆ</option>
+          </select>
+        </div>
+        <div>
+          <label class="lbl" for="offCpUrgency">ระดับความเร่งด่วน</label>
+          <select id="offCpUrgency">
+            <option value="normal">ปานกลาง (ตรวจเช็คแล้วปลอดภัย)</option>
+            <option value="high" selected>เร่งด่วน (ต้องการการตรวจสอบ/เฝ้าระวัง)</option>
+            <option value="critical">ฉุกเฉินสูงสุด (แจ้งหัวหน้าเวรด่วน)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Note / Speech-to-text -->
+      <div class="note-wrap">
+        <label class="lbl" for="offCpNote">รายละเอียดเหตุการณ์ที่พบ</label>
+        <textarea id="offCpNote" placeholder="ระบุสิ่งที่พบเห็น การปฏิบัติเบื้องต้น หรือกดไมค์เพื่อบันทึกเสียง..." style="min-height: 90px;"></textarea>
+        <button type="button" class="mic" id="offCpMicBtn" title="กดเพื่อพูดบันทึกเสียง (Speech-to-Text)">
+          🎙️
+        </button>
+      </div>
+
+      <!-- Photo Attachment -->
+      <div>
+        <label class="lbl">รูปถ่ายหลักฐานประกอบ</label>
+        <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+          <input type="file" id="offCpPhotoInput" accept="image/*" capture="environment" multiple style="display:none;">
+          <button type="button" class="btn ghost small" id="offCpTakePhotoBtn">
+            📷 ถ่ายภาพ / แนบรูป
+          </button>
+        </div>
+        <div class="thumbs" id="offCpPhotoThumbs"></div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div style="display: flex; gap: 10px; margin-top: 8px;">
+        <button type="button" class="btn emergency" id="saveOffCpBtn" style="flex: 2;">
+          🚨 บันทึกและแจ้งเตือนทันที
+        </button>
+        <button type="button" class="btn ghost" id="cancelOffCpBtn" style="flex: 1;">
+          ยกเลิก
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="toast" id="toast" hidden>
+    <span id="toastIcon">ℹ️</span>
+    <span id="toastMsg">ข้อความแจ้งเตือน</span>
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

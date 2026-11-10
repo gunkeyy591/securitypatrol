@@ -273,16 +273,29 @@
 
             <!-- 3.1 ถ่ายภาพ -->
             <div class="field-container">
-              <label class="lbl-modern">📸 ภาพถ่ายขณะปฏิบัติหน้าที่ (บีบอัดขนาดภาพอัตโนมัติ):</label>
+              <div class="photo-header-row">
+                <label class="lbl-modern" style="margin-bottom:0;">📸 ภาพถ่ายขณะปฏิบัติหน้าที่ (บังคับอย่างน้อย 2 รูปขึ้นไป):</label>
+                <span class="photo-req-badge photo-req-warn" id="photoCountBadge">⚠️ ยังไม่ได้ถ่ายรูป (0/2 รูป)</span>
+              </div>
+              
+              <!-- กล้องมือถือ (เปิดกล้องหลังโดยตรง) -->
               <input type="file" accept="image/*" capture="environment" id="camPatrolInput" style="display:none">
+              <!-- เลือกรูปจากอัลบั้ม / แกลเลอรี -->
+              <input type="file" accept="image/*" multiple id="galleryPatrolInput" style="display:none">
               
               <button type="button" class="photo-dropzone-btn" id="triggerCamBtn">
                 <div class="photo-dropzone-icon">📷</div>
                 <div class="photo-dropzone-text">
-                  <b>แตะที่นี่เพื่อถ่ายภาพหน้างาน หรือเลือกรูปจากมือถือ</b>
-                  <small>ระบบจะบีบอัดภาพให้อัตโนมัติ เพื่อประหยัดพื้นที่และความเร็ว</small>
+                  <b id="camBtnMainText">แตะที่นี่เพื่อเปิดกล้องมือถือถ่ายภาพหน้างาน</b>
+                  <small id="camBtnSubText">ระบบจะประทับเวลาถ่ายอัตโนมัติ (บังคับถ่าย 2 รูปขึ้นไป)</small>
                 </div>
               </button>
+
+              <div class="photo-actions-row">
+                <button type="button" class="btn-sub-photo" id="triggerGalleryBtn">
+                  <span>📁</span> หรือแตะเพื่อเลือกรูปจากอัลบั้ม / แกลเลอรีในมือถือ
+                </button>
+              </div>
 
               <div class="thumbs-modern" id="thumbPatrolContainer"></div>
             </div>

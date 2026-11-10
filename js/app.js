@@ -19,6 +19,7 @@
     currentGuardId: '',
     currentGuardName: '',
     capturedImageBase64: null,
+    capturedImages: [], // array of { dataUrl, timeStr, fullStamp, timestamp }
     speechRecognition: null,
     isRecordingVoice: false,
     selectedAdminEditStatus: 'ok',
@@ -53,7 +54,12 @@
     customLocPatrolInput: document.getElementById('customLocPatrolInput'),
     toggleCustomLocBtn: document.getElementById('toggleCustomLocBtn'),
     camPatrolInput: document.getElementById('camPatrolInput'),
+    galleryPatrolInput: document.getElementById('galleryPatrolInput'),
     triggerCamBtn: document.getElementById('triggerCamBtn'),
+    triggerGalleryBtn: document.getElementById('triggerGalleryBtn'),
+    photoCountBadge: document.getElementById('photoCountBadge'),
+    camBtnMainText: document.getElementById('camBtnMainText'),
+    camBtnSubText: document.getElementById('camBtnSubText'),
     thumbPatrolContainer: document.getElementById('thumbPatrolContainer'),
     notePatrolInput: document.getElementById('notePatrolInput'),
     micPatrolBtn: document.getElementById('micPatrolBtn'),
@@ -504,11 +510,22 @@
       });
     });
 
-    // 4. Camera & Image Compression (Canvas Max 600px, JPEG 60%)
+    // 4. Camera & Image Compression with Watermark Timestamp & Multi-photo support
     if (el.triggerCamBtn && el.camPatrolInput) {
-      el.triggerCamBtn.addEventListener('click', () => el.camPatrolInput.click());
-      el.camPatrolInput.addEventListener('change', handlePatrolImageUpload);
+      el.triggerCamBtn.addEventListener('click', () => {
+        el.camPatrolInput.click();
+      });
+      el.camPatrolInput.addEventListener('change', handlePatrolCameraUpload);
     }
+
+    if (el.triggerGalleryBtn && el.galleryPatrolInput) {
+      el.triggerGalleryBtn.addEventListener('click', () => {
+        el.galleryPatrolInput.click();
+      });
+      el.galleryPatrolInput.addEventListener('change', handlePatrolGalleryUpload);
+    }
+
+    renderPatrolThumbnails();
 
     // 5. Speech recognition
     setupPatrolSpeechRecognition();
@@ -524,57 +541,218 @@
     }
   }
 
-  function handlePatrolImageUpload(event) {
-    const file = event.target.files && event.target.files[0];
-    if (!file) return;
+  // --- CAMERA & PHOTO PROCESSING (กล้องมือถือ + ประทับเวลาอัตโนมัติ + บังคับ 2 รูปขึ้นไป) ---
+  async function handlePatrolCameraUpload(event) {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
 
-    const reader = new FileReader();
-    reader.onload = function (e) {
-      const img = new Image();
-      img.onload = function () {
-        const canvas = document.createElement('canvas');
-        const MAX_SIZE = 600;
-        let width = img.width;
-        let height = img.height;
+    try {
+      showToast('⏳ กำลังประมวลผลและประทับเวลาภาพถ่าย...', '📸');
+      for (let i = 0; i < files.length; i++) {
+        const photoObj = await processPatrolImageFile(files[i]);
+        state.capturedImages.push(photoObj);
+      }
+      state.capturedImageBase64 = state.capturedImages[0] ? state.capturedImages[0].dataUrl : null;
+      renderPatrolThumbnails();
 
-        if (width > height && width > MAX_SIZE) {
-          height *= MAX_SIZE / width;
-          width = MAX_SIZE;
-        } else if (height > MAX_SIZE) {
-          width *= MAX_SIZE / height;
-          height = MAX_SIZE;
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, width, height);
-
-        state.capturedImageBase64 = canvas.toDataURL('image/jpeg', 0.6);
-
-        if (el.thumbPatrolContainer) {
-          el.thumbPatrolContainer.innerHTML = `
-            <div class="thumb">
-              <img src="${state.capturedImageBase64}" alt="รูปถ่ายขณะตรวจ">
-              <button type="button" id="removePatrolImgBtn" title="ลบรูป">✖</button>
-            </div>
-          `;
-          const removeBtn = document.getElementById('removePatrolImgBtn');
-          if (removeBtn) {
-            removeBtn.addEventListener('click', removePatrolImage);
-          }
-        }
-        showToast('📷 แนบรูปภาพเรียบร้อยแล้ว');
-      };
-      img.src = e.target.result;
-    };
-    reader.readAsDataURL(file);
+      const total = state.capturedImages.length;
+      if (total === 1) {
+        showToast('📸 ถ่ายภาพที่ 1 สำเร็จ! กรุณาแตะถ่ายเพิ่มอีกอย่างน้อย 1 รูป', '📷');
+      } else {
+        showToast(`✅ ถ่ายภาพสำเร็จเรียบร้อย (รวม ${total} รูป)`, '✅');
+      }
+    } catch (err) {
+      console.error('Camera processing error:', err);
+      showToast('❌ เกิดข้อผิดพลาดในการประมวลผลรูปภาพ', '❌');
+    } finally {
+      if (el.camPatrolInput) el.camPatrolInput.value = '';
+    }
   }
 
-  function removePatrolImage() {
-    state.capturedImageBase64 = null;
+  async function handlePatrolGalleryUpload(event) {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    try {
+      showToast('⏳ กำลังนำเข้าและประทับเวลาภาพถ่าย...', '📁');
+      for (let i = 0; i < files.length; i++) {
+        const photoObj = await processPatrolImageFile(files[i]);
+        state.capturedImages.push(photoObj);
+      }
+      state.capturedImageBase64 = state.capturedImages[0] ? state.capturedImages[0].dataUrl : null;
+      renderPatrolThumbnails();
+
+      const total = state.capturedImages.length;
+      showToast(`✅ นำเข้ารูปภาพสำเร็จ (รวม ${total} รูป)`, '✅');
+    } catch (err) {
+      console.error('Gallery processing error:', err);
+      showToast('❌ เกิดข้อผิดพลาดในการนำเข้ารูปภาพ', '❌');
+    } finally {
+      if (el.galleryPatrolInput) el.galleryPatrolInput.value = '';
+    }
+  }
+
+  function processPatrolImageFile(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        const img = new Image();
+        img.onload = function () {
+          try {
+            const canvas = document.createElement('canvas');
+            const MAX_SIZE = 900;
+            let width = img.width;
+            let height = img.height;
+
+            if (width > height && width > MAX_SIZE) {
+              height = Math.round(height * (MAX_SIZE / width));
+              width = MAX_SIZE;
+            } else if (height > MAX_SIZE) {
+              width = Math.round(width * (MAX_SIZE / height));
+              height = MAX_SIZE;
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+
+            // คำนวณวันที่และเวลาปัจจุบัน (ภาษาไทย)
+            const now = new Date();
+            const thaiMonths = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+            const thaiYear = (now.getFullYear() + 543).toString().slice(-2);
+            const d = now.getDate();
+            const m = thaiMonths[now.getMonth()];
+            const hh = String(now.getHours()).padStart(2, '0');
+            const mm = String(now.getMinutes()).padStart(2, '0');
+            const ss = String(now.getSeconds()).padStart(2, '0');
+
+            const timeOnlyStr = `${hh}:${mm} น.`;
+            const fullStamp = `${d} ${m} ${thaiYear} ${hh}:${mm}:${ss} น.`;
+
+            // วาดลายน้ำระบุเวลาลงบนมุมล่างขวาของรูปภาพโดยตรง
+            const fontSize = Math.max(13, Math.round(width * 0.026));
+            ctx.font = `600 ${fontSize}px 'Sarabun', 'Prompt', sans-serif`;
+            const stampText = `🕒 ${fullStamp}`;
+            const metrics = ctx.measureText(stampText);
+            const padX = 10;
+            const padY = 6;
+            const boxW = metrics.width + (padX * 2);
+            const boxH = fontSize + (padY * 2);
+            const boxX = width - boxW - 12;
+            const boxY = height - boxH - 12;
+
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.72)';
+            ctx.beginPath();
+            if (ctx.roundRect) {
+              ctx.roundRect(boxX, boxY, boxW, boxH, 6);
+            } else {
+              ctx.rect(boxX, boxY, boxW, boxH);
+            }
+            ctx.fill();
+
+            ctx.fillStyle = '#ffffff';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(stampText, boxX + padX, boxY + (boxH / 2));
+
+            const base64 = canvas.toDataURL('image/jpeg', 0.65);
+            resolve({
+              dataUrl: base64,
+              timeStr: timeOnlyStr,
+              fullStamp: fullStamp,
+              timestamp: Date.now()
+            });
+          } catch (err) {
+            reject(err);
+          }
+        };
+        img.onerror = reject;
+        img.src = e.target.result;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function renderPatrolThumbnails() {
+    if (!state.capturedImages) {
+      state.capturedImages = [];
+    }
+
+    const count = state.capturedImages.length;
+    state.capturedImageBase64 = count > 0 ? state.capturedImages[0].dataUrl : null;
+
+    // อัปเดตแถบป้ายเตือนจำนวนรูปภาพ
+    if (el.photoCountBadge) {
+      if (count === 0) {
+        el.photoCountBadge.className = 'photo-req-badge photo-req-warn';
+        el.photoCountBadge.innerHTML = '⚠️ ยังไม่ได้ถ่ายรูป (0/2 รูป)';
+      } else if (count === 1) {
+        el.photoCountBadge.className = 'photo-req-badge photo-req-warn';
+        el.photoCountBadge.innerHTML = '⚠️ ถ่ายแล้ว 1 รูป (ต้องถ่ายเพิ่มอีก 1 รูป)';
+      } else {
+        el.photoCountBadge.className = 'photo-req-badge photo-req-ok';
+        el.photoCountBadge.innerHTML = `✅ ถ่ายแล้ว ${count} รูป (ครบตามเกณฑ์ 2+ รูป)`;
+      }
+    }
+
+    // อัปเดตข้อความบนปุ่มกล้องให้เข้าใจง่าย
+    if (el.camBtnMainText && el.camBtnSubText) {
+      if (count === 0) {
+        el.camBtnMainText.textContent = 'แตะที่นี่เพื่อเปิดกล้องมือถือถ่ายภาพหน้างาน';
+        el.camBtnSubText.textContent = 'ระบบจะประทับเวลาถ่ายอัตโนมัติ (บังคับถ่าย 2 รูปขึ้นไป)';
+      } else if (count === 1) {
+        el.camBtnMainText.textContent = '📸 แตะเพื่อเปิดกล้องถ่ายรูปที่ 2 เพิ่มเติม';
+        el.camBtnSubText.textContent = 'ถ่ายแล้ว 1 รูป — กรุณาถ่ายอีกอย่างน้อย 1 รูปจึงจะบันทึกได้';
+      } else {
+        el.camBtnMainText.textContent = `📸 แตะเพื่อเปิดกล้องถ่ายรูปเพิ่มเติม (ถ่ายแล้ว ${count} รูป)`;
+        el.camBtnSubText.textContent = 'ครบตามเกณฑ์ 2 รูปแล้ว สามารถแตะถ่ายรูปเพิ่มได้ตามต้องการ';
+      }
+    }
+
+    // แสดงพรีวิวรูปภาพ พร้อมเวลาถ่ายตัวเล็กๆ
+    if (el.thumbPatrolContainer) {
+      if (count === 0) {
+        el.thumbPatrolContainer.innerHTML = '';
+        return;
+      }
+
+      el.thumbPatrolContainer.innerHTML = state.capturedImages.map((imgObj, idx) => `
+        <div class="thumb-card">
+          <div class="thumb">
+            <img src="${imgObj.dataUrl}" alt="รูปถ่ายหลักฐานที่ ${idx + 1}">
+            <button type="button" class="remove-single-patrol-img" data-index="${idx}" title="ลบรูปที่ ${idx + 1}">✖</button>
+            <span class="thumb-idx-badge">#${idx + 1}</span>
+          </div>
+          <div class="thumb-caption">
+            <span class="thumb-time-text">🕒 ถ่ายเวลา ${imgObj.timeStr}</span>
+          </div>
+        </div>
+      `).join('');
+
+      // เพิ่ม Event Listener สำหรับปุ่มลบรูปแต่ละใบ
+      const removeBtns = el.thumbPatrolContainer.querySelectorAll('.remove-single-patrol-img');
+      removeBtns.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const idx = parseInt(btn.dataset.index, 10);
+          removePatrolImage(idx);
+        });
+      });
+    }
+  }
+
+  function removePatrolImage(index) {
+    if (typeof index === 'number') {
+      state.capturedImages.splice(index, 1);
+      showToast('🗑️ ลบรูปภาพเรียบร้อยแล้ว');
+    } else {
+      state.capturedImages = [];
+    }
+    state.capturedImageBase64 = state.capturedImages[0] ? state.capturedImages[0].dataUrl : null;
     if (el.camPatrolInput) el.camPatrolInput.value = '';
-    if (el.thumbPatrolContainer) el.thumbPatrolContainer.innerHTML = '';
+    if (el.galleryPatrolInput) el.galleryPatrolInput.value = '';
+    renderPatrolThumbnails();
   }
 
   // --- SPEECH RECOGNITION (พิมพ์ด้วยเสียงภาษาไทย) ---
@@ -784,6 +962,18 @@
       return;
     }
 
+    // Validation: บังคับถ่ายรูป 2 รูปขึ้นไปเพื่อเป็นหลักฐาน
+    const photoCount = (state.capturedImages && state.capturedImages.length) || 0;
+    if (!isSOS && photoCount < 2) {
+      showToast(`⚠️ บังคับถ่ายภาพอย่างน้อย 2 รูปขึ้นไปเพื่อเป็นหลักฐาน (ขณะนี้มี ${photoCount}/2 รูป)`, '⚠️');
+      if (el.triggerCamBtn) {
+        el.triggerCamBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.triggerCamBtn.classList.add('shake-highlight');
+        setTimeout(() => el.triggerCamBtn.classList.remove('shake-highlight'), 1200);
+      }
+      return;
+    }
+
     // If SOS
     if (isSOS) {
       isRisk = true;
@@ -839,7 +1029,9 @@
       isOffCheckpoint: isCustomLoc,
       status: isSOS ? 'alert' : (isRisk ? 'alert' : 'ok'),
       note: notes || (isSOS ? '🚨 แจ้งเหตุฉุกเฉิน' : 'ปกติ เรียบร้อยดี'),
-      images: state.capturedImageBase64 ? [state.capturedImageBase64] : []
+      images: (state.capturedImages && state.capturedImages.length > 0)
+        ? state.capturedImages.map(img => img.dataUrl)
+        : (state.capturedImageBase64 ? [state.capturedImageBase64] : [])
     };
 
     // Save record to history
@@ -923,9 +1115,13 @@
       let imgHtml = '';
       if (item.images && item.images.length > 0) {
         imgHtml = `
-          <a href="${item.images[0]}" target="_blank" class="recent-log-img-link" title="แตะเพื่อดูภาพขนาดเต็ม">
-            <img src="${item.images[0]}" alt="ภาพหลักฐาน">
-          </a>
+          <div class="recent-log-photos" style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;">
+            ${item.images.map((img, i) => `
+              <a href="${img}" target="_blank" class="recent-log-img-link" title="แตะเพื่อดูภาพขนาดเต็ม (รูปที่ ${i + 1})">
+                <img src="${img}" alt="ภาพหลักฐานที่ ${i + 1}" style="width:72px; height:72px; object-fit:cover; border-radius:10px; border:1.5px solid var(--line); box-shadow:0 2px 6px rgba(0,0,0,0.08);">
+              </a>
+            `).join('')}
+          </div>
         `;
       }
 

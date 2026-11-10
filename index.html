@@ -12,14 +12,17 @@
   
   <!-- CSS -->
   <link rel="stylesheet" href="css/style.css?v=3.2">
-  <!-- Auth Guard: หากยังไม่ล็อกอิน ให้ส่งไปหน้า login.html ทันที -->
+  <!-- Auth Guard: บังคับให้เข้าสู่หน้า login.html ทุกครั้งที่มีการเปิดเข้าดูเว็บ -->
   <script>
     (function () {
       try {
         var savedTheme = localStorage.getItem('yru_sp_theme') || 'light';
         document.documentElement.setAttribute('data-theme', savedTheme);
-        var session = localStorage.getItem('yru_sp_session');
+        
+        // ตรวจสอบเซสชันในแท็บปัจจุบัน (sessionStorage) เพื่อบังคับให้ล็อกอินใหม่ทุกครั้งที่เปิดเข้าเว็บ
+        var session = sessionStorage.getItem('yru_sp_session');
         if (!session) {
+          localStorage.removeItem('yru_sp_session');
           window.location.replace('login.html');
         }
       } catch (e) {
@@ -711,7 +714,7 @@
   <!-- =========================================================
        หน้าต่างป๊อปอัปที่ 3: สำหรับแอดมิน ตรวจสอบและแก้ไขรายงาน
        ========================================================= -->
-  <div class="veil" id="adminEditVeil" hidden>
+  <div class="veil" id="adminEditVeil" hidden style="display: none;">
     <div class="sheet admin-sheet" role="dialog" aria-modal="true">
       <div class="sheet-head">
         <div>
@@ -801,7 +804,7 @@
   </div>
 
   <!-- Modal แสดงประวัติคำสั่ง SQL (SQL Query Log Console) -->
-  <div class="veil" id="sqlLogsModal" hidden>
+  <div class="veil" id="sqlLogsModal" hidden style="display: none;">
     <div class="sheet" style="max-width: 760px;">
       <div class="sheet-head">
         <div>
@@ -822,7 +825,7 @@
   </div>
 
   <!-- Toast แจ้งเตือนข้อความสั้นๆ -->
-  <div class="toast" id="toast" hidden>
+  <div class="toast" id="toast" hidden style="display: none;">
     <span id="toastIcon" style="font-size: 24px;">ℹ️</span>
     <span id="toastMsg">ข้อความ</span>
   </div>

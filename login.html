@@ -36,7 +36,7 @@
         <p>กรุณากรอกชื่อผู้ใช้งานและรหัสผ่านของท่านเพื่อเข้าสู่ระบบ</p>
       </div>
 
-      <form id="loginForm" onsubmit="return false;" class="login-form-clean">
+      <form id="loginForm" class="login-form-clean">
         <div id="loginAlertBox" class="login-alert-banner" style="display:none;"></div>
 
         <!-- ช่องที่ 1: ชื่อผู้ใช้งาน -->
@@ -48,7 +48,7 @@
             type="text"
             id="usernameInput"
             class="login-input-large"
-            placeholder="พิมพ์ชื่อผู้ใช้งานที่นี่..."
+            placeholder="พิมพ์ชื่อผู้ใช้งานที่นี่ (admin หรือ guard)..."
             autocomplete="username"
             required
           >
@@ -72,6 +72,16 @@
               👁️ <span id="togglePwText">แสดงรหัส</span>
             </button>
           </div>
+        </div>
+
+        <!-- ปุ่มลัดเข้าสู่ระบบด่วนสำหรับทดสอบ -->
+        <div class="login-quick-roles" style="display: flex; gap: 10px; margin-top: 4px;">
+          <button type="button" class="btn-quick-login" id="btnQuickAdmin" style="flex: 1; min-height: 44px; padding: 8px 12px; border-radius: 12px; border: 1.5px solid var(--line); background: var(--surface-alt); font-size: 14.5px; font-weight: 700; color: var(--ink); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+            👑 แอดมิน (admin)
+          </button>
+          <button type="button" class="btn-quick-login" id="btnQuickGuard" style="flex: 1; min-height: 44px; padding: 8px 12px; border-radius: 12px; border: 1.5px solid var(--line); background: var(--surface-alt); font-size: 14.5px; font-weight: 700; color: var(--ink); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+            🚶 รปภ. (guard)
+          </button>
         </div>
 
         <!-- ปุ่มกดเข้าสู่ระบบขนาดใหญ่ -->
@@ -108,37 +118,62 @@
       const loginForm = document.getElementById('loginForm');
       const submitLoginBtn = document.getElementById('submitLoginBtn');
       const loginAlertBox = document.getElementById('loginAlertBox');
+      const btnQuickAdmin = document.getElementById('btnQuickAdmin');
+      const btnQuickGuard = document.getElementById('btnQuickGuard');
 
-      // ตั้งค่าโหมดสีเริ่มต้นให้เป็นโหมดสว่างสบายตาเสมอ (ยกเว้นผู้ใช้เคยเลือกไว้เอง)
+      // ตั้งค่าโหมดสีเริ่มต้นให้เป็นโหมดสว่างสบายตาเสมอ
       const savedTheme = localStorage.getItem('yru_sp_theme_v2') || 'light';
       document.documentElement.setAttribute('data-theme', savedTheme);
 
-      // ตรวจสอบว่ามี session เดิมอยู่แล้วหรือไม่ ถ้ามีให้ส่งต่อไปหน้า index.html ทันที
+      // ล้างเซสชันเก่าทุกครั้งที่เปิดเข้าหน้า login.html เพื่อบังคับให้เข้าหน้าล็อกอินเสมอตามความต้องการ
       try {
-        const savedSession = localStorage.getItem('yru_sp_session');
-        if (savedSession) {
-          const parsed = JSON.parse(savedSession);
-          if (parsed && parsed.role) {
-            window.location.replace('index.html');
-            return;
-          }
-        }
+        sessionStorage.removeItem('yru_sp_session');
+        localStorage.removeItem('yru_sp_session');
       } catch (e) {}
 
-      // ปุ่มแสดง/ซ่อนรหัสผ่าน พร้อมข้อความเข้าใจง่าย
-      togglePwBtn.addEventListener('click', function () {
-        const isPw = passwordInput.type === 'password';
-        passwordInput.type = isPw ? 'text' : 'password';
-        if (togglePwText) {
-          togglePwText.textContent = isPw ? 'ซ่อนรหัส' : 'แสดงรหัส';
-        }
-      });
+      // ปุ่มแสดง/ซ่อนรหัสผ่าน
+      if (togglePwBtn) {
+        togglePwBtn.addEventListener('click', function () {
+          const isPw = passwordInput.type === 'password';
+          passwordInput.type = isPw ? 'text' : 'password';
+          if (togglePwText) {
+            togglePwText.textContent = isPw ? 'ซ่อนรหัส' : 'แสดงรหัส';
+          }
+        });
+      }
 
-      // เมื่อกดปุ่มเข้าสู่ระบบ
-      loginForm.addEventListener('submit', function (e) {
-        e.preventDefault();
-        executeLogin(usernameInput.value, passwordInput.value);
-      });
+      // ปุ่มลัดเข้าสู่ระบบด่วน
+      if (btnQuickAdmin) {
+        btnQuickAdmin.addEventListener('click', function () {
+          usernameInput.value = 'admin';
+          passwordInput.value = 'admin1234';
+          executeLogin('admin', 'admin1234');
+        });
+      }
+
+      if (btnQuickGuard) {
+        btnQuickGuard.addEventListener('click', function () {
+          usernameInput.value = 'guard';
+          passwordInput.value = 'guard1234';
+          executeLogin('guard', 'guard1234');
+        });
+      }
+
+      // รองรับการคลิกปุ่มเข้าสู่ระบบโดยตรง
+      if (submitLoginBtn) {
+        submitLoginBtn.addEventListener('click', function (e) {
+          e.preventDefault();
+          executeLogin(usernameInput.value, passwordInput.value);
+        });
+      }
+
+      // รองรับการกด Enter ในฟอร์ม
+      if (loginForm) {
+        loginForm.addEventListener('submit', function (e) {
+          e.preventDefault();
+          executeLogin(usernameInput.value, passwordInput.value);
+        });
+      }
 
       function executeLogin(username, password) {
         username = (username || '').trim().toLowerCase();
@@ -173,6 +208,7 @@
           };
 
           try {
+            sessionStorage.setItem('yru_sp_session', JSON.stringify(sessionData));
             localStorage.setItem('yru_sp_session', JSON.stringify(sessionData));
           } catch (err) {
             console.error('Storage error:', err);

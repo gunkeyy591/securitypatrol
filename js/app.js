@@ -115,8 +115,11 @@
 
   // --- INITIALIZATION ---
   async function init() {
-    const savedSession = localStorage.getItem('yru_sp_session');
+    // บังคับตรวจสอบ sessionStorage ในแท็บปัจจุบัน เพื่อให้เข้าหน้าล็อกอินทุกครั้งที่เปิดเข้าเว็บใหม่
+    const savedSession = sessionStorage.getItem('yru_sp_session');
     if (!savedSession) {
+      sessionStorage.removeItem('yru_sp_session');
+      localStorage.removeItem('yru_sp_session');
       window.location.replace('login.html');
       return;
     }
@@ -172,8 +175,8 @@
 
       state.currentGuardId = state.guards[0]?.id || '';
 
-      // Load session
-      const savedSession = localStorage.getItem('yru_sp_session');
+      // Load session from sessionStorage (บังคับเข้าสู่หน้าล็อกอินเสมอเมื่อเปิดเบราว์เซอร์ใหม่)
+      const savedSession = sessionStorage.getItem('yru_sp_session');
       if (savedSession) {
         try {
           state.currentUser = JSON.parse(savedSession);
@@ -368,8 +371,11 @@
     }
 
     if (el.closeSqlLogsBtn) {
-      el.closeSqlLogsBtn.addEventListener('click', () => {
-        if (el.sqlLogsModal) el.sqlLogsModal.setAttribute('hidden', '');
+      el.closeSqlLogsBtn.addEventListener('click', closeSqlLogsModal);
+    }
+    if (el.sqlLogsModal) {
+      el.sqlLogsModal.addEventListener('click', (e) => {
+        if (e.target === el.sqlLogsModal) closeSqlLogsModal();
       });
     }
 
@@ -422,6 +428,7 @@
   function logout() {
     if (confirm('คุณต้องการออกจากระบบหรือไม่?')) {
       state.currentUser = null;
+      sessionStorage.removeItem('yru_sp_session');
       localStorage.removeItem('yru_sp_session');
       window.location.replace('login.html');
     }
@@ -1334,11 +1341,13 @@
     renderAdminEditPhotos();
 
     el.adminEditVeil.removeAttribute('hidden');
+    el.adminEditVeil.style.display = 'flex';
     document.body.style.overflow = 'hidden';
   };
 
   function closeAdminEditModal() {
     el.adminEditVeil.setAttribute('hidden', '');
+    el.adminEditVeil.style.display = 'none';
     document.body.style.overflow = '';
   }
 
@@ -1372,7 +1381,7 @@
     renderAdminEditPhotos();
   };
 
-  function saveAdminEditRecord() {
+  async function saveAdminEditRecord() {
     const id = el.adminEditRecordId.value;
     const index = state.history.findIndex(h => h.id === id);
     if (index === -1) return;
@@ -1416,7 +1425,7 @@
     saveToLocalStorage();
     closeAdminEditModal();
     renderSupervisorDashboard();
-    renderCheckpoints();
+    renderGuardRecentLogs();
     showToast('💾 แอดมินบันทึกการแก้ไขข้อมูลเรียบร้อยแล้ว', '✅');
   }
 
@@ -1429,7 +1438,7 @@
     deleteAdminRecord(recordId);
   };
 
-  function deleteAdminRecord(recordId) {
+  async function deleteAdminRecord(recordId) {
     if (!confirm('คุณแน่ใจหรือไม่ว่าต้องการลบบันทึกรายการนี้ออกจากระบบอย่างถาวร?')) {
       return;
     }
@@ -1450,8 +1459,7 @@
 
     closeAdminEditModal();
     renderSupervisorDashboard();
-    renderCheckpoints();
-    updateProgress();
+    renderGuardRecentLogs();
     showToast('🗑️ ลบบันทึกข้อมูลเรียบร้อยแล้ว', '✅');
   }
 
@@ -1470,6 +1478,17 @@
       `).join('');
     }
     el.sqlLogsModal.removeAttribute('hidden');
+    el.sqlLogsModal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeSqlLogsModal() {
+    if (el.sqlLogsModal) {
+      el.sqlLogsModal.setAttribute('hidden', '');
+      el.sqlLogsModal.style.display = 'none';
+      document.body.style.overflow = '';
+    }
+  }
   }
 
   // --- EXPORT TO CSV ---

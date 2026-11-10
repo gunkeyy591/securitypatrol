@@ -1452,15 +1452,21 @@ tbody tr:hover {
   inset: 0;
   background: rgba(15, 23, 42, 0.72);
   backdrop-filter: blur(4px);
-  z-index: 50;
+  z-index: 100;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 16px;
 }
 
-.veil[hidden] {
+.veil[hidden],
+.veil[style*="display: none"],
+.veil[style*="display:none"],
+[hidden] {
   display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  opacity: 0 !important;
 }
 
 .sheet {

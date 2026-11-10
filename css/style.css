@@ -2548,28 +2548,35 @@ tbody tr:hover {
 }
 
 .photo-actions-row {
-  margin-top: 8px;
+  margin-top: 10px;
   display: flex;
-  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 .btn-sub-photo {
-  background: transparent;
-  border: 1.5px dashed var(--line);
-  color: var(--muted);
-  padding: 6px 14px;
-  border-radius: 10px;
-  font-size: 14px;
+  background: var(--surface-alt);
+  border: 1.5px solid var(--line-strong);
+  color: var(--ink);
+  padding: 8px 16px;
+  border-radius: 12px;
+  font-size: 14.5px;
+  font-weight: 600;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 6px;
   transition: all 0.15s ease;
   font-family: inherit;
+  text-decoration: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
-.btn-sub-photo:hover {
-  background: var(--surface-alt);
-  color: var(--ink);
+.btn-sub-photo:hover, .btn-sub-photo:active {
+  background: var(--navy-light);
   border-color: var(--accent);
+  color: var(--accent);
+  transform: translateY(-1px);
 }
 
 /* พรีวิวรูปภาพ */

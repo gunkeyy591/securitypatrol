@@ -439,13 +439,14 @@
   }
 
   function logout() {
-    if (confirm('คุณต้องการออกจากระบบหรือไม่?')) {
-      state.currentUser = null;
-      sessionStorage.removeItem('yru_sp_session');
+    state.currentUser = null;
+    try {
+      sessionStorage.clear();
       localStorage.removeItem('yru_sp_session');
-      window.location.replace('login.html');
-    }
+    } catch (e) {}
+    window.location.replace('login.html');
   }
+  window.appLogout = logout;
 
   // --- TAB SWITCHING ---
   function switchTab(tabName) {
@@ -626,30 +627,31 @@
   let liveWatermarkInterval = null;
 
   async function openCameraModal() {
+    if (el.cameraModal) {
+      el.cameraModal.removeAttribute('hidden');
+      el.cameraModal.style.display = 'flex';
+      document.body.style.overflow = 'hidden';
+    }
+
+    const fallbackBox = document.getElementById('cameraFallbackMsg');
+    if (fallbackBox) fallbackBox.style.display = 'none';
+
     // ตรวจสอบความพร้อมของ WebRTC getUserMedia
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
       try {
-        if (el.cameraModal) {
-          el.cameraModal.removeAttribute('hidden');
-          el.cameraModal.style.display = 'flex';
-          document.body.style.overflow = 'hidden';
-        }
         await startCameraStream();
         renderCameraModalStrip();
         return;
       } catch (err) {
-        console.warn('getUserMedia failed or rejected, falling back to file picker:', err);
-        closeCameraModal();
+        console.warn('getUserMedia failed or rejected:', err);
       }
     }
 
-    // Fallback: ถ้าอุปกรณ์/เบราว์เซอร์ไม่รองรับกล้องสด ให้เปิดตัวเลือกกล้อง/ไฟล์ระบบทันที
-    showToast('📷 กำลังเปิดกล้อง/ไฟล์ภาพของอุปกรณ์...', '📸');
-    if (el.camPatrolInput) {
-      el.camPatrolInput.click();
-    } else if (el.galleryPatrolInput) {
-      el.galleryPatrolInput.click();
+    // ถ้าไม่สามารถเปิดสตรีมกล้องสดได้ ให้แสดงตัวเลือกถ่ายด้วยกล้องมือถือ/แกลเลอรีใน modal ทันที
+    if (fallbackBox) {
+      fallbackBox.style.display = 'flex';
     }
+    renderCameraModalStrip();
   }
 
   function closeCameraModal() {
@@ -661,6 +663,12 @@
     document.body.style.overflow = '';
     renderPatrolThumbnails();
   }
+
+  // ผูกตัวแปรเข้ากับ window ให้เรียกใช้งานได้โดยตรง 100%
+  window.appOpenCameraModal = openCameraModal;
+  window.appCloseCameraModal = closeCameraModal;
+  window.appTakeCameraSnapshot = takeCameraSnapshot;
+  window.appSwitchCamera = switchCamera;
 
   async function startCameraStream() {
     stopCameraStream();
@@ -901,12 +909,13 @@
       }
       state.capturedImageBase64 = state.capturedImages[0] ? state.capturedImages[0].dataUrl : null;
       renderPatrolThumbnails();
+      renderCameraModalStrip();
 
       const total = state.capturedImages.length;
       if (total === 1) {
         showToast('📸 ถ่ายภาพที่ 1 สำเร็จ! กรุณาแตะถ่ายเพิ่มอีกอย่างน้อย 1 รูป', '📷');
       } else {
-        showToast(`✅ ถ่ายภาพสำเร็จเรียบร้อย (รวม ${total} รูป)`, '✅');
+        showToast(`✅ ถ่ายภาพสำเร็จเรียบร้อย (รวม ${total} รูป ครบเกณฑ์)`, '✅');
       }
     } catch (err) {
       console.error('Camera processing error:', err);
@@ -928,6 +937,7 @@
       }
       state.capturedImageBase64 = state.capturedImages[0] ? state.capturedImages[0].dataUrl : null;
       renderPatrolThumbnails();
+      renderCameraModalStrip();
 
       const total = state.capturedImages.length;
       showToast(`✅ นำเข้ารูปภาพสำเร็จ (รวม ${total} รูป)`, '✅');

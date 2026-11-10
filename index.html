@@ -11,9 +11,18 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sarabun:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,600&display=swap">
   
   <!-- CSS -->
-  <link rel="stylesheet" href="css/style.css?v=3.2">
+  <link rel="stylesheet" href="css/style.css?v=3.6">
   <!-- Auth Guard: บังคับให้เข้าสู่หน้า login.html ทุกครั้งที่มีการเปิดเข้าดูเว็บ -->
   <script>
+    // กำหนดฟังก์ชันออกจากระบบแบบสากลไว้ล่วงหน้า เพื่อให้กดปุ่มออกจากระบบได้ทันที 100%
+    window.appLogout = function () {
+      try {
+        sessionStorage.clear();
+        localStorage.removeItem('yru_sp_session');
+      } catch (e) {}
+      window.location.replace('login.html');
+    };
+
     (function () {
       try {
         var savedTheme = localStorage.getItem('yru_sp_theme') || 'light';
@@ -63,7 +72,7 @@
             <span class="user-role-tag" id="userRoleBadge">👑 แอดมิน</span>
             <span class="user-name" id="userNameTag">หัวหน้าเวร</span>
           </div>
-          <button type="button" class="btn-logout-main" id="logoutBtn" title="กดเพื่อออกจากระบบ">
+          <button type="button" class="btn-logout-main" id="logoutBtn" onclick="window.appLogout()" title="กดเพื่อออกจากระบบ">
             🚪 <span>ออกจากระบบ</span>
           </button>
         </div>
@@ -281,11 +290,11 @@
                 <span class="photo-req-badge photo-req-warn" id="photoCountBadge">⚠️ ยังไม่ได้ถ่ายรูป (0/2 รูป)</span>
               </div>
               
-              <!-- ช่องทางเลือกไฟล์/กล้องสำรองแบบ Hidden ที่เข้าถึงได้โดยเบราว์เซอร์ทุกตัว -->
+              <!-- ช่องทางเลือกไฟล์/กล้องระบบแบบ Hidden ที่เชื่อมต่อกับ label โดยตรง -->
               <input type="file" accept="image/*" capture="environment" id="camPatrolInput" class="visually-hidden-file-input">
               <input type="file" accept="image/*" multiple id="galleryPatrolInput" class="visually-hidden-file-input">
               
-              <button type="button" class="photo-dropzone-btn" id="triggerCamBtn">
+              <button type="button" class="photo-dropzone-btn" id="triggerCamBtn" onclick="window.appOpenCameraModal()">
                 <div class="photo-dropzone-icon">📷</div>
                 <div class="photo-dropzone-text">
                   <b id="camBtnMainText">แตะที่นี่เพื่อเปิดกล้องถ่ายภาพหน้างาน</b>
@@ -294,9 +303,14 @@
               </button>
 
               <div class="photo-actions-row">
-                <button type="button" class="btn-sub-photo" id="triggerGalleryBtn">
-                  <span>📁</span> หรือแตะเพื่อเลือกรูปจากอัลบั้ม / แกลเลอรีในมือถือ
-                </button>
+                <!-- แตะเพื่อเปิดกล้องมือถือถ่ายภาพได้โดยตรง 100% -->
+                <label for="camPatrolInput" class="btn-sub-photo" id="directCamLabel" style="cursor: pointer;">
+                  <span>📸</span> เปิดกล้องมือถือถ่ายภาพโดยตรง
+                </label>
+                <!-- แตะเพื่อเลือกภาพจากอัลบั้ม/แกลเลอรี -->
+                <label for="galleryPatrolInput" class="btn-sub-photo" id="directGalleryLabel" style="cursor: pointer;">
+                  <span>📁</span> เลือกรูปจากอัลบั้ม / แกลเลอรี
+                </label>
               </div>
 
               <div class="thumbs-modern" id="thumbPatrolContainer"></div>
@@ -831,7 +845,7 @@
           <span class="camera-live-dot"></span>
           <b>📷 กล้องถ่ายภาพตรวจความปลอดภัย (มรย.)</b>
         </div>
-        <button type="button" class="sheet-close" id="closeCameraModalBtn" aria-label="ปิดกล้อง">✕ ปิด</button>
+        <button type="button" class="sheet-close" id="closeCameraModalBtn" onclick="window.appCloseCameraModal()" aria-label="ปิดกล้อง">✕ ปิด</button>
       </div>
 
       <!-- ช่องเล็งภาพจากกล้อง (Video Viewfinder) -->
@@ -842,6 +856,23 @@
         <!-- แสดงวันที่และเวลาเรียลไทม์จำลองมุมมองภาพถ่ายจริง -->
         <div class="camera-watermark-overlay" id="cameraLiveWatermark">
           🕒 กำลังโหลดเวลา...
+        </div>
+
+        <!-- กล่องแจ้งเตือนและปุ่มทางเลือกเมื่ออุปกรณ์ไม่รองรับการเปิดสตรีมกล้องสด -->
+        <div class="camera-fallback-msg" id="cameraFallbackMsg" style="display:none; position:absolute; inset:0; background:rgba(11,19,41,0.96); z-index:8; flex-direction:column; align-items:center; justify-content:center; padding:20px; text-align:center; gap:12px;">
+          <span style="font-size: 38px;">📸</span>
+          <b style="font-size:16px; color:#38bdf8;">เปิดกล้องสดในเว็บไม่สำเร็จ หรือยังไม่ได้รับสิทธิ์กล้อง</b>
+          <p style="font-size:13.5px; color:#94a3b8; margin:0; max-width:320px;">
+            ท่านสามารถแตะปุ่มด้านล่างเพื่อถ่ายภาพด้วยกล้องมือถือโดยตรง หรือเลือกรูปจากแกลเลอรีได้ทันที
+          </p>
+          <div style="display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 280px; margin-top: 6px;">
+            <label for="camPatrolInput" class="btn btn-save-giant" style="cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; font-size:16px; padding:12px;">
+              📷 ถ่ายภาพด้วยกล้องมือถือ
+            </label>
+            <label for="galleryPatrolInput" class="btn ghost" style="cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; font-size:15px; padding:10px; color:#f8fafc; border-color:#475569;">
+              📁 เลือกรูปจากแกลเลอรี
+            </label>
+          </div>
         </div>
 
         <!-- กรอบเล็งถ่ายภาพ (Target Viewfinder Guides) -->
@@ -866,12 +897,12 @@
 
       <!-- แผงควบคุมกล้อง (สลับกล้อง / กดชัตเตอร์ / เลือกจากแกลเลอรี) -->
       <div class="camera-controls-bar">
-        <button type="button" class="btn-cam-action" id="switchCameraBtn" title="สลับกล้องหน้า/กล้องหลัง">
+        <button type="button" class="btn-cam-action" id="switchCameraBtn" onclick="window.appSwitchCamera()" title="สลับกล้องหน้า/กล้องหลัง">
           <span style="font-size: 20px;">🔄</span>
           <span>สลับกล้อง</span>
         </button>
 
-        <button type="button" class="btn-cam-shutter" id="shutterBtn" aria-label="กดถ่ายภาพ">
+        <button type="button" class="btn-cam-shutter" id="shutterBtn" onclick="window.appTakeCameraSnapshot()" aria-label="กดถ่ายภาพ">
           <div class="shutter-inner">
             <span class="shutter-icon">📸</span>
           </div>
@@ -886,7 +917,7 @@
 
       <!-- ปุ่มเสร็จสิ้นการถ่ายภาพ -->
       <div class="camera-modal-footer">
-        <button type="button" class="btn btn-save-giant" id="doneCameraBtn" style="width: 100%; font-size: 17px;">
+        <button type="button" class="btn btn-save-giant" id="doneCameraBtn" onclick="window.appCloseCameraModal()" style="width: 100%; font-size: 17px;">
           ✅ เสร็จสิ้นการถ่ายภาพ (นำรูปไปใช้)
         </button>
       </div>
@@ -899,9 +930,9 @@
     <span id="toastMsg">ข้อความ</span>
   </div>
 
-  <!-- Scripts -->
-  <script src="js/data.js?v=3.2"></script>
-  <script src="js/db.js?v=3.2"></script>
-  <script src="js/app.js?v=3.2"></script>
+  <!-- Scripts (พร้อม Cache Buster เพื่อบังคับให้โหลดโค้ดใหม่ล่าสุดเสมอ) -->
+  <script src="js/data.js?v=3.6"></script>
+  <script src="js/db.js?v=3.6"></script>
+  <script src="js/app.js?v=3.6"></script>
 </body>
 </html>

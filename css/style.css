@@ -34,6 +34,12 @@
 
   /* สีสถานะ (ปรับความอิ่มตัวให้ผู้ใหญ่มองสบายตา แต่แยกแยะชัดเจน) */
   --ok: #15803d;
+
+  /* iOS & Mobile Safe Area Insets (iPhone Notch, Dynamic Island, iPad Home Bar) */
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+  --sar: env(safe-area-inset-right, 0px);
   --ok-bg: #ecfdf3;
   --ok-border: #86efac;
 
@@ -121,7 +127,9 @@ html, body {
 }
 
 body {
-  padding-bottom: 60px;
+  padding-bottom: max(60px, calc(40px + var(--sab)));
+  padding-left: var(--sal);
+  padding-right: var(--sar);
 }
 
 h1, h2, h3, h4 {
@@ -190,7 +198,10 @@ body.login-body {
   display: flex;
   flex-direction: column;
   background: linear-gradient(180deg, #e4ebf3 0%, var(--bg) 45%, #e8eef3 100%);
-  padding-bottom: 0;
+  padding-top: var(--sat);
+  padding-bottom: max(20px, var(--sab));
+  padding-left: var(--sal);
+  padding-right: var(--sar);
 }
 
 :root[data-theme="dark"] body.login-body {
@@ -448,6 +459,9 @@ body.login-body {
   border-bottom: 2px solid var(--line);
   box-shadow: var(--shadow-sm);
   padding: 12px 16px;
+  padding-top: max(12px, var(--sat));
+  padding-left: max(16px, var(--sal));
+  padding-right: max(16px, var(--sar));
 }
 
 .bar-in {
@@ -3067,6 +3081,467 @@ tbody tr:hover {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+/* ==========================================================================
+   10. การปรับขนาดหน้าจออย่างสมบูรณ์แบบ (Full Responsive Design for Mobile & iPad)
+   ========================================================================== */
+
+/* --- แท็บเล็ตและไอแพด (iPad / iPad Mini / iPad Air / iPad Pro: 641px - 1024px) --- */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .wrap {
+    max-width: 100%;
+    padding: 0 20px;
+  }
+  body.wide .wrap {
+    max-width: 100%;
+    padding: 0 20px;
+  }
+  .bar-in {
+    gap: 12px;
+  }
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+  }
+  .filter-controls-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+  .seg-shifts-modern {
+    max-width: 100%;
+    gap: 12px;
+  }
+  .shift-btn {
+    min-height: 120px;
+    padding: 22px 6px 14px;
+  }
+  .shift-name-title {
+    font-size: 19px;
+  }
+  .shift-time-badge {
+    font-size: 13px;
+  }
+  .thumbs-modern {
+    gap: 14px;
+  }
+  .thumb-card {
+    width: 140px;
+  }
+  .tbl {
+    -webkit-overflow-scrolling: touch;
+  }
+  .sheet {
+    max-width: 90vw;
+    padding: 24px;
+  }
+}
+
+/* --- โทรศัพท์มือถือทุกรุ่น (Mobile Smartphones: <= 640px) --- */
+@media (max-width: 640px) {
+  html, body {
+    font-size: 18px;
+  }
+  .wrap {
+    padding: 0 10px;
+  }
+  body.wide .wrap {
+    padding: 0 10px;
+  }
+
+  /* Header Bar บนมือถือ */
+  .bar {
+    padding: 8px 10px;
+    padding-top: max(8px, var(--sat));
+    padding-left: max(10px, var(--sal));
+    padding-right: max(10px, var(--sar));
+  }
+  .bar-in {
+    gap: 6px;
+  }
+  .brand {
+    gap: 8px;
+  }
+  .brand-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+    border-radius: 10px;
+  }
+  .brand-dept {
+    font-size: 11px;
+    line-height: 1.2;
+  }
+  .brand h1 {
+    font-size: 17px;
+    line-height: 1.2;
+  }
+  .brand small {
+    display: none; /* ซ่อนชื่อภาษาอังกฤษเพื่อให้หัวข้อกระชับบนจอมือถือ */
+  }
+
+  .header-right {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 4px;
+    margin-top: 2px;
+    padding-top: 6px;
+    border-top: 1px solid var(--line);
+  }
+  .clock-box {
+    padding: 3px 8px;
+    border-radius: 8px;
+  }
+  .clock-label {
+    display: none; /* ซ่อนวันเดือนปีขนาดยาวบนหน้าจอมือถือ */
+  }
+  .clock-time {
+    font-size: 15px;
+  }
+  .user-pill {
+    padding: 3px 8px;
+    border-radius: 8px;
+    gap: 6px;
+  }
+  .user-role-tag {
+    font-size: 10.5px;
+  }
+  .user-name {
+    font-size: 13.5px;
+    max-width: 110px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .btn-logout-main {
+    min-height: 34px;
+    padding: 3px 9px;
+    font-size: 13.5px;
+    border-radius: 8px;
+    gap: 4px;
+  }
+  .theme-toggle {
+    width: 34px;
+    height: 34px;
+    font-size: 16px;
+    border-radius: 8px;
+  }
+
+  /* แบนเนอร์หัวเรื่อง */
+  .guard-banner-modern, .role-welcome-banner {
+    padding: 14px 12px;
+    gap: 10px;
+    border-radius: 16px;
+  }
+  .banner-icon-modern, .banner-icon {
+    width: 44px;
+    height: 44px;
+    font-size: 22px;
+    border-radius: 12px;
+  }
+  .guard-banner-modern h2, .role-welcome-banner h2 {
+    font-size: 18px;
+  }
+  .guard-banner-modern p, .role-welcome-banner p {
+    font-size: 13.5px;
+  }
+
+  /* กล่องแจ้งเหตุ SOS */
+  .sos-banner-card {
+    padding: 14px 12px;
+    gap: 12px;
+    border-radius: 16px;
+    margin-top: 12px;
+  }
+  .sos-banner-info h3 {
+    font-size: 17px;
+  }
+  .sos-banner-info p {
+    font-size: 13px;
+  }
+  .btn-sos-modern {
+    width: 100%;
+    min-height: 52px;
+    font-size: 17px;
+    border-radius: 14px;
+    justify-content: center;
+  }
+
+  /* กล่องแบบฟอร์ม */
+  .card, .patrol-card-form {
+    padding: 16px 12px;
+    border-radius: 16px;
+  }
+  .form-section-block {
+    padding: 12px 10px;
+    border-radius: 14px;
+  }
+  .step-num-badge {
+    width: 28px;
+    height: 28px;
+    font-size: 14px;
+  }
+  .form-section-header h3 {
+    font-size: 17px;
+  }
+  .form-section-header p {
+    font-size: 13px;
+  }
+
+  /* ปุ่มเลือกกะ 3 กะบนมือถือ */
+  .shift-field-centered {
+    padding: 14px 6px 16px;
+    border-radius: 14px;
+  }
+  .shift-title-pill {
+    padding: 4px 12px;
+    font-size: 14px;
+  }
+  .shift-hint-text {
+    font-size: 13px;
+  }
+  .seg-shifts-modern {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+  }
+  .shift-btn {
+    min-height: 104px;
+    padding: 20px 2px 10px;
+    border-radius: 14px;
+  }
+  .shift-icon-circle {
+    width: 38px;
+    height: 38px;
+    margin-bottom: 4px;
+  }
+  .shift-emoji {
+    font-size: 20px;
+  }
+  .shift-name-title {
+    font-size: 15px;
+    margin-bottom: 2px;
+  }
+  .shift-time-badge {
+    font-size: 9.5px;
+    padding: 2px 4px;
+    border-radius: 6px;
+  }
+  .shift-badge-check {
+    font-size: 9px;
+    padding: 1px 5px;
+    top: 4px;
+  }
+
+  /* กล่องถ่ายภาพ & พรีวิว */
+  .photo-header-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+  .photo-req-badge {
+    font-size: 12.5px;
+    padding: 3px 10px;
+  }
+  .photo-dropzone-btn {
+    padding: 14px 10px;
+    gap: 10px;
+    border-radius: 14px;
+  }
+  .photo-dropzone-icon {
+    width: 44px;
+    height: 44px;
+    font-size: 26px;
+    border-radius: 12px;
+  }
+  .photo-dropzone-text b {
+    font-size: 15px;
+  }
+  .photo-dropzone-text small {
+    font-size: 12.5px;
+  }
+  .photo-actions-row {
+    margin-top: 6px;
+  }
+  .btn-sub-photo {
+    width: 100%;
+    justify-content: center;
+    font-size: 13px;
+    padding: 7px 10px;
+  }
+  .thumbs-modern {
+    gap: 8px;
+  }
+  .thumb-card {
+    width: calc(50% - 4px);
+  }
+  .thumb-card .thumb {
+    width: 100%;
+    height: 125px;
+  }
+  .thumb-time-text {
+    font-size: 11px;
+    padding: 2px 6px;
+  }
+
+  /* กล่องข้อความและไมค์ */
+  .quick-chips-bar {
+    gap: 4px;
+  }
+  .quick-chips-lbl {
+    font-size: 13px;
+  }
+  .chip-quick-note {
+    font-size: 12.5px;
+    padding: 4px 8px;
+  }
+  .textarea-modern {
+    font-size: 16px;
+    padding: 12px;
+    min-height: 95px;
+  }
+  .mic-modern {
+    width: 42px;
+    height: 42px;
+    font-size: 19px;
+    right: 10px;
+    bottom: 10px;
+  }
+
+  /* ปุ่มบันทึก */
+  .btn-submit-patrol {
+    min-height: 54px;
+    font-size: 18px;
+    border-radius: 14px;
+  }
+
+  /* แดชบอร์ดหัวหน้าเวร */
+  .stats-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .stat-card {
+    padding: 12px 8px;
+    gap: 8px;
+    border-radius: 12px;
+  }
+  .stat-icon {
+    width: 38px;
+    height: 38px;
+    font-size: 20px;
+    border-radius: 10px;
+  }
+  .stat-value {
+    font-size: 24px;
+  }
+  .stat-label {
+    font-size: 12px;
+  }
+  .stat-meta small {
+    font-size: 11px;
+  }
+  .filter-controls-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 12px;
+  }
+  .section-title-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .btn-excel {
+    width: 100%;
+    justify-content: center;
+    min-height: 48px;
+  }
+  .tbl {
+    -webkit-overflow-scrolling: touch;
+    border-radius: 12px;
+  }
+  table {
+    min-width: 680px;
+    font-size: 15px;
+  }
+  th, td {
+    padding: 10px 8px;
+  }
+
+  /* หน้าต่าง Modal */
+  .veil {
+    padding: 10px;
+  }
+  .sheet {
+    padding: 16px 12px;
+    border-radius: 18px;
+    max-height: 90vh;
+    gap: 14px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .decision-two {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .btn-decision {
+    min-height: 64px;
+    border-radius: 12px;
+  }
+  .admin-form-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+}
+
+/* --- หน้าล็อกอินบนมือถือ (login.html) --- */
+@media (max-width: 480px) {
+  .login-wrapper {
+    padding: 24px 12px 32px;
+    gap: 16px;
+  }
+  .uni-crest-badge {
+    width: 66px;
+    height: 66px;
+    font-size: 32px;
+    border-radius: 18px;
+  }
+  .uni-title-group h1 {
+    font-size: 22px;
+  }
+  .uni-title-group p {
+    font-size: 14.5px;
+  }
+  .login-card {
+    padding: 18px 14px;
+    border-radius: 18px;
+    gap: 16px;
+  }
+  .login-card-title-box h2 {
+    font-size: 19px;
+  }
+  .login-card-title-box p {
+    font-size: 13.5px;
+  }
+  .login-field-label {
+    font-size: 16px;
+  }
+  .login-input-large {
+    min-height: 52px;
+    font-size: 16px;
+    padding: 10px 14px;
+  }
+  .btn-login-submit {
+    min-height: 52px;
+    font-size: 18px;
+    border-radius: 14px;
+  }
+  .role-hint-card {
+    padding: 10px;
+    border-radius: 10px;
+  }
+  .role-hint-card p {
+    font-size: 13.5px;
+  }
 }
 
 

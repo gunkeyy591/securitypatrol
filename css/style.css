@@ -1,27 +1,36 @@
 /* ==========================================================================
-   ระบบเวียนตรวจรักษาความปลอดภัย มหาวิทยาลัยราชภัฏยะลา (YRU Official & Senior-Friendly UI)
-   ออกแบบเพื่อผู้ใช้งานทุกวัย: สีสบายตา ไม่แสบตา ตัวอักษรใหญ่ ปุ่มกดชัดเจน เป็นทางการระดับมหาวิทยาลัย
+   ระบบเวียนตรวจรักษาความปลอดภัย มหาวิทยาลัยราชภัฏยะลา (YRU Official UI)
+   เอกลักษณ์สีประจำมหาวิทยาลัยราชภัฏยะลา: สีชมพู (Pink) และ สีเทา (Slate Gray)
+   ออกแบบให้อ่านง่าย สบายตา ไม่แสบตา ตัวอักษรใหญ่ ปุ่มกดชัดเจน สง่างามระดับมหาวิทยาลัย
    ========================================================================== */
 
 :root {
-  /* โทนสีหลัก: โหมดสว่างนวลสบายตา (Warm Porcelain & Official University Navy/Teal/Gold) */
-  --bg: #eef2f6;
+  /* โทนสีหลัก: ชมพู-เทา มหาวิทยาลัยราชภัฏยะลา (YRU Official Pink & Slate Gray) */
+  --bg: #f8fafc;
   --surface: #ffffff;
-  --surface-alt: #f8fafc;
+  --surface-alt: #f1f5f9;
   --ink: #1e293b;
   --muted: #475569;
   --line: #cbd5e1;
   --line-strong: #94a3b8;
 
-  /* สีประจำสถาบันและความเป็นทางการ (Royal Navy + Heritage Teal + Crest Gold) */
-  --navy: #1b365d;
-  --navy-light: #e8eef7;
-  --accent: #0f5e56;
-  --accent-hover: #0b4741;
+  /* สีประจำมหาวิทยาลัยราชภัฏยะลา (YRU Pink & Slate Gray) */
+  --yru-pink: #d92662;
+  --yru-pink-hover: #be185d;
+  --yru-pink-light: #fff1f5;
+  --yru-pink-border: #fbcfe8;
+  --yru-gray: #334155;
+  --yru-gray-light: #e2e8f0;
+  --yru-gray-border: #cbd5e1;
+
+  --navy: #334155; /* สีเทาเข้มเกียรติยศ มรย. (Slate/Charcoal Gray) */
+  --navy-light: #fff1f5; /* ผสมผสานสีชมพูอ่อนระเรื่อ */
+  --accent: #d92662; /* สีเน้นหลัก: ชมพูสดใส มรย. */
+  --accent-hover: #be185d;
   --accent-ink: #ffffff;
-  --gold: #c68a12;
-  --gold-bg: #fef9e7;
-  --gold-border: #f3d17c;
+  --gold: #64748b; /* สีเทาเงินหรูหรา (Silver Slate) */
+  --gold-bg: #f8fafc;
+  --gold-border: #cbd5e1;
 
   /* สีสถานะ (ปรับความอิ่มตัวให้ผู้ใหญ่มองสบายตา แต่แยกแยะชัดเจน) */
   --ok: #15803d;
@@ -41,32 +50,40 @@
   --sa: #0369a1; /* กะบ่าย */
   --sn: #3730a3; /* กะดึก */
 
-  --shadow-sm: 0 2px 6px rgba(27, 54, 93, 0.06);
-  --shadow: 0 4px 16px rgba(27, 54, 93, 0.08);
+  --shadow-sm: 0 2px 6px rgba(51, 65, 85, 0.06);
+  --shadow: 0 4px 16px rgba(51, 65, 85, 0.08);
   --shadow-lg: 0 12px 32px rgba(15, 23, 42, 0.16);
 
   --f-head: "Bai Jamjuree", "IBM Plex Sans Thai", sans-serif;
   --f-body: "IBM Plex Sans Thai", sans-serif;
 }
 
-/* โหมดกลางคืน (สำหรับเดินเวรกะดึก จะเปิดก็ต่อเมื่อผู้ใช้กดปุ่มสลับเองเท่านั้น) */
+/* โหมดกลางคืน (Dark Mode) สไตล์ Cyber Pink & Slate Gray */
 :root[data-theme="dark"] {
-  --bg: #0f172a;
-  --surface: #1e293b;
-  --surface-alt: #162032;
+  --bg: #0b0f17;
+  --surface: #151d2a;
+  --surface-alt: #1a2332;
   --ink: #f1f5f9;
-  --muted: #cbd5e1;
-  --line: #334155;
-  --line-strong: #475569;
+  --muted: #94a3b8;
+  --line: #2d3748;
+  --line-strong: #4a5568;
 
-  --navy: #1e3a8a;
-  --navy-light: #1e293b;
-  --accent: #14b8a6;
-  --accent-hover: #0d9488;
-  --accent-ink: #042f2e;
-  --gold: #fbbf24;
-  --gold-bg: #312509;
-  --gold-border: #78350f;
+  --yru-pink: #f43f5e;
+  --yru-pink-hover: #fb7185;
+  --yru-pink-light: #2d121c;
+  --yru-pink-border: #881337;
+  --yru-gray: #64748b;
+  --yru-gray-light: #1e293b;
+  --yru-gray-border: #475569;
+
+  --navy: #64748b;
+  --navy-light: #25121b;
+  --accent: #f43f5e;
+  --accent-hover: #fb7185;
+  --accent-ink: #ffffff;
+  --gold: #94a3b8;
+  --gold-bg: #1e293b;
+  --gold-border: #475569;
 
   --ok: #4ade80;
   --ok-bg: #132f20;
@@ -116,10 +133,10 @@ button, select, input, textarea {
   color: inherit;
 }
 
-/* แถบสีทอง-กรมท่าด้านบนสุดของหน้าเว็บระดับมหาวิทยาลัย */
+/* แถบสีชมพู-เทา มหาวิทยาลัยราชภัฏยะลา ด้านบนสุดของหน้าเว็บ */
 .uni-top-ribbon {
   height: 6px;
-  background: linear-gradient(90deg, var(--navy) 0%, var(--accent) 50%, var(--gold) 100%);
+  background: linear-gradient(90deg, #d92662 0%, #334155 40%, #f43f5e 75%, #64748b 100%);
   width: 100%;
 }
 
@@ -171,23 +188,24 @@ body.login-body {
 .uni-crest-badge {
   width: 84px;
   height: 84px;
-  background: linear-gradient(135deg, var(--navy) 0%, var(--accent) 100%);
-  border: 3px solid var(--gold);
+  background: linear-gradient(135deg, var(--yru-pink) 0%, var(--yru-gray) 100%);
+  border: 3px solid var(--yru-pink-border);
   border-radius: 24px;
   display: grid;
   place-items: center;
   font-size: 44px;
-  box-shadow: 0 8px 20px rgba(27, 54, 93, 0.22);
+  box-shadow: 0 8px 24px rgba(217, 38, 98, 0.25);
 }
 
 .uni-ministry-tag {
   display: inline-block;
-  background: var(--navy);
+  background: var(--yru-gray);
   color: #ffffff;
   font-size: 14px;
   font-weight: 600;
   padding: 4px 14px;
   border-radius: 99px;
+  border: 1px solid rgba(217, 38, 98, 0.4);
   margin-bottom: 6px;
 }
 
@@ -287,9 +305,9 @@ body.login-body {
 
 .login-input-large:focus {
   outline: none;
-  border-color: var(--navy);
+  border-color: var(--accent);
   background: var(--surface);
-  box-shadow: 0 0 0 4px rgba(27, 54, 93, 0.15);
+  box-shadow: 0 0 0 4px rgba(217, 38, 98, 0.2);
 }
 
 .login-pw-wrapper {
@@ -320,8 +338,9 @@ body.login-body {
 }
 
 .btn-show-pw:hover {
-  border-color: var(--navy);
+  border-color: var(--accent);
   background: var(--navy-light);
+  color: var(--accent);
 }
 
 .btn-login-primary {
@@ -329,7 +348,7 @@ body.login-body {
   min-height: 64px;
   border-radius: 16px;
   border: none;
-  background: linear-gradient(135deg, var(--navy) 0%, var(--accent) 100%);
+  background: linear-gradient(135deg, var(--yru-pink) 0%, var(--yru-pink-hover) 100%);
   color: #ffffff;
   font-size: 21px;
   font-weight: 700;
@@ -338,14 +357,15 @@ body.login-body {
   align-items: center;
   justify-content: center;
   gap: 12px;
-  box-shadow: 0 6px 18px rgba(15, 94, 86, 0.3);
+  box-shadow: 0 6px 20px rgba(217, 38, 98, 0.35);
   transition: all 0.15s ease;
   margin-top: 4px;
 }
 
 .btn-login-primary:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 8px 22px rgba(15, 94, 86, 0.4);
+  background: linear-gradient(135deg, var(--yru-pink-hover) 0%, #9d174d 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(217, 38, 98, 0.45);
 }
 
 .login-alert-banner {
@@ -416,12 +436,13 @@ body.login-body {
   width: 52px;
   height: 52px;
   border-radius: 14px;
-  background: linear-gradient(135deg, var(--navy) 0%, var(--accent) 100%);
-  border: 2px solid var(--gold);
+  background: linear-gradient(135deg, var(--yru-pink) 0%, var(--yru-gray) 100%);
+  border: 2px solid var(--yru-pink-border);
   display: grid;
   place-items: center;
   font-size: 28px;
   flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(217, 38, 98, 0.25);
 }
 
 .brand-dept {
@@ -572,7 +593,7 @@ body.login-body {
 }
 
 .role-welcome-banner {
-  background: linear-gradient(135deg, var(--navy) 0%, #154c57 100%);
+  background: linear-gradient(135deg, #334155 0%, #1e293b 100%);
   color: #ffffff;
   border-radius: 18px;
   padding: 20px 22px;
@@ -580,7 +601,7 @@ body.login-body {
   align-items: center;
   gap: 16px;
   box-shadow: var(--shadow);
-  border-left: 6px solid var(--gold);
+  border-left: 6px solid var(--yru-pink);
   flex-wrap: wrap;
 }
 
@@ -588,7 +609,8 @@ body.login-body {
   width: 58px;
   height: 58px;
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.14);
+  background: rgba(217, 38, 98, 0.2);
+  border: 1px solid rgba(217, 38, 98, 0.35);
   display: grid;
   place-items: center;
   font-size: 32px;
@@ -613,13 +635,14 @@ body.login-body {
 }
 
 .banner-badge {
-  background: var(--gold);
-  color: #1e293b;
+  background: linear-gradient(135deg, var(--yru-pink) 0%, var(--yru-pink-hover) 100%);
+  color: #ffffff;
   font-size: 15px;
   font-weight: 700;
   padding: 6px 14px;
   border-radius: 99px;
   white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(217, 38, 98, 0.35);
 }
 
 /* ==========================================================================
@@ -1864,7 +1887,7 @@ tbody tr:hover {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--navy) 0%, var(--accent) 100%);
+  background: linear-gradient(135deg, var(--yru-pink) 0%, var(--yru-gray) 100%);
   color: #ffffff;
   display: grid;
   place-items: center;
@@ -1872,7 +1895,7 @@ tbody tr:hover {
   font-weight: 700;
   flex-shrink: 0;
   margin-top: 2px;
-  box-shadow: 0 2px 6px rgba(15, 94, 86, 0.25);
+  box-shadow: 0 2px 8px rgba(217, 38, 98, 0.3);
 }
 .form-section-header h3 {
   font-size: 19px;
@@ -1932,15 +1955,15 @@ tbody tr:hover {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: linear-gradient(135deg, rgba(15, 94, 86, 0.08) 0%, rgba(13, 83, 75, 0.03) 100%);
-  border: 1.5px solid rgba(15, 94, 86, 0.25);
+  background: linear-gradient(135deg, rgba(217, 38, 98, 0.08) 0%, rgba(51, 65, 85, 0.04) 100%);
+  border: 1.5px solid rgba(217, 38, 98, 0.3);
   padding: 8px 20px;
   border-radius: 30px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 :root[data-theme="dark"] .shift-title-pill {
-  background: rgba(45, 212, 191, 0.1);
-  border-color: rgba(45, 212, 191, 0.3);
+  background: rgba(244, 63, 94, 0.12);
+  border-color: rgba(244, 63, 94, 0.35);
 }
 
 .shift-clock-emoji {
@@ -2335,7 +2358,7 @@ tbody tr:hover {
 .select-modern:focus, .input-modern:focus {
   border-color: var(--accent);
   background: var(--surface);
-  box-shadow: 0 0 0 3px rgba(15, 94, 86, 0.15);
+  box-shadow: 0 0 0 3px rgba(217, 38, 98, 0.2);
   outline: none;
 }
 .select-modern optgroup {
@@ -2525,7 +2548,7 @@ tbody tr:hover {
 .textarea-modern:focus {
   border-color: var(--accent);
   background: var(--surface);
-  box-shadow: 0 0 0 3px rgba(15, 94, 86, 0.15);
+  box-shadow: 0 0 0 3px rgba(217, 38, 98, 0.2);
   outline: none;
 }
 
@@ -2635,13 +2658,13 @@ tbody tr:hover {
   height: 48px;
   border-radius: 50%;
   border: none;
-  background: linear-gradient(135deg, var(--accent) 0%, #0c4842 100%);
+  background: linear-gradient(135deg, var(--yru-pink) 0%, var(--yru-pink-hover) 100%);
   color: #ffffff;
   cursor: pointer;
   display: grid;
   place-items: center;
   font-size: 22px;
-  box-shadow: 0 4px 12px rgba(15, 94, 86, 0.35);
+  box-shadow: 0 4px 14px rgba(217, 38, 98, 0.35);
   transition: all 0.2s ease;
 }
 .mic-modern:hover {
@@ -2731,7 +2754,7 @@ tbody tr:hover {
   min-height: 62px;
   border-radius: 18px;
   border: none;
-  background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+  background: linear-gradient(135deg, var(--yru-pink) 0%, var(--yru-pink-hover) 100%);
   color: #ffffff;
   font-size: 20px;
   font-weight: 700;
@@ -2741,13 +2764,13 @@ tbody tr:hover {
   align-items: center;
   justify-content: center;
   gap: 12px;
-  box-shadow: 0 8px 24px rgba(22, 163, 74, 0.35);
+  box-shadow: 0 8px 24px rgba(217, 38, 98, 0.35);
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   letter-spacing: 0.01em;
 }
 .btn-submit-patrol:hover {
-  background: linear-gradient(135deg, #15803d 0%, #166534 100%);
-  box-shadow: 0 10px 28px rgba(22, 163, 74, 0.45);
+  background: linear-gradient(135deg, var(--yru-pink-hover) 0%, #9d174d 100%);
+  box-shadow: 0 10px 28px rgba(217, 38, 98, 0.45);
   transform: translateY(-2px);
 }
 .btn-submit-patrol:active {

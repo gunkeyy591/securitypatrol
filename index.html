@@ -455,11 +455,19 @@
           <div class="section-title-row" style="margin-bottom: 16px;">
             <div>
               <h2 class="section-title">🔍 ค้นหาและกรองดูประวัติการเดินตรวจ</h2>
-              <p class="section-subtitle">เลือกวันที่ กะเวลา หรือสถานะที่ต้องการตรวจสอบ หรือกดปุ่มดาวน์โหลดเป็นไฟล์ Excel</p>
+              <p class="section-subtitle">เลือกวันที่ กะเวลา หรือสถานะที่ต้องการตรวจสอบ ส่งออกไฟล์ Excel หรือดาวน์โหลดฐานข้อมูล SQL</p>
             </div>
-            <button type="button" class="btn btn-excel" id="exportCsvBtn">
-              📥 ดาวน์โหลดไฟล์รายงาน Excel (CSV)
-            </button>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+              <button type="button" class="btn btn-excel" id="exportCsvBtn">
+                📥 ดาวน์โหลดไฟล์ Excel (CSV)
+              </button>
+              <button type="button" class="btn" id="exportSqlBtn" style="background:var(--yru-gray); color:#ffffff; border-color:var(--yru-gray);" title="ดาวน์โหลดคำสั่ง SQL INSERT/CREATE TABLE ทั้งหมด">
+                💾 ส่งออกฐานข้อมูล SQL (.sql)
+              </button>
+              <button type="button" class="btn ghost" id="viewSqlLogsBtn" title="เปิดดูประวัติคำสั่ง SQL ที่รัน">
+                📋 ดูคำสั่ง SQL ล่าสุด
+              </button>
+            </div>
           </div>
 
           <div class="filter-controls-grid">
@@ -792,6 +800,27 @@
     </div>
   </div>
 
+  <!-- Modal แสดงประวัติคำสั่ง SQL (SQL Query Log Console) -->
+  <div class="veil" id="sqlLogsModal" hidden>
+    <div class="sheet" style="max-width: 760px;">
+      <div class="sheet-head">
+        <div>
+          <h3>📋 ประวัติคำสั่ง SQL ในระบบ (SQL Query Log)</h3>
+          <p>ประวัติการทำงานของคำสั่ง SQL จริง (DDL, SELECT, INSERT, UPDATE, DELETE)</p>
+        </div>
+        <button type="button" class="sheet-close" id="closeSqlLogsBtn">✕ ปิด</button>
+      </div>
+      <div id="sqlLogsContainer" style="background:#0f172a; color:#38bdf8; font-family:monospace; font-size:13px; padding:16px; border-radius:12px; max-height:360px; overflow-y:auto; line-height:1.6;">
+        <!-- Log entries -->
+      </div>
+      <div style="display: flex; justify-content: flex-end; gap: 8px;">
+        <button type="button" class="btn" id="modalExportSqlBtn" style="background:var(--yru-pink); color:#ffffff; border-color:var(--yru-pink);">
+          💾 ดาวน์โหลดสคริปต์ SQL (.sql)
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast แจ้งเตือนข้อความสั้นๆ -->
   <div class="toast" id="toast" hidden>
     <span id="toastIcon" style="font-size: 24px;">ℹ️</span>
@@ -799,7 +828,8 @@
   </div>
 
   <!-- Scripts -->
-  <script src="js/data.js"></script>
-  <script src="js/app.js?v=2.3"></script>
+  <script src="js/data.js?v=3.2"></script>
+  <script src="js/db.js?v=3.2"></script>
+  <script src="js/app.js?v=3.2"></script>
 </body>
 </html>

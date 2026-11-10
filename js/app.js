@@ -82,6 +82,12 @@
     logCountTag: document.getElementById('logCountTag'),
     incidentList: document.getElementById('incidentList'),
     exportCsvBtn: document.getElementById('exportCsvBtn'),
+    exportSqlBtn: document.getElementById('exportSqlBtn'),
+    viewSqlLogsBtn: document.getElementById('viewSqlLogsBtn'),
+    sqlLogsModal: document.getElementById('sqlLogsModal'),
+    sqlLogsContainer: document.getElementById('sqlLogsContainer'),
+    closeSqlLogsBtn: document.getElementById('closeSqlLogsBtn'),
+    modalExportSqlBtn: document.getElementById('modalExportSqlBtn'),
 
     // Admin Edit Modal
     adminEditVeil: document.getElementById('adminEditVeil'),
@@ -108,14 +114,14 @@
   };
 
   // --- INITIALIZATION ---
-  function init() {
+  async function init() {
     const savedSession = localStorage.getItem('yru_sp_session');
     if (!savedSession) {
       window.location.replace('login.html');
       return;
     }
 
-    loadFromLocalStorage();
+    await loadFromLocalStorage();
     setupClock();
     setupTheme();
     setupAuth();
@@ -133,30 +139,36 @@
     }
   }
 
-  // --- STORAGE ---
-  function loadFromLocalStorage() {
+  // --- STORAGE & SQL DATABASE INTEGRATION ---
+  async function loadFromLocalStorage() {
     try {
-      const storedVersion = localStorage.getItem('yru_sp_version');
-      if (storedVersion !== DATA_VERSION) {
-        state.guards = DEFAULT_GUARDS;
-        state.checkpoints = DEFAULT_CHECKPOINTS;
-        state.history = DEFAULT_HISTORY;
-        state.roundChecks = {};
-        localStorage.setItem('yru_sp_version', DATA_VERSION);
-        saveToLocalStorage();
-      } else {
-        const g = localStorage.getItem('yru_sp_guards');
-        state.guards = g ? JSON.parse(g) : DEFAULT_GUARDS;
-
-        const cp = localStorage.getItem('yru_sp_checkpoints');
-        state.checkpoints = cp ? JSON.parse(cp) : DEFAULT_CHECKPOINTS;
-
-        const h = localStorage.getItem('yru_sp_history');
-        state.history = h ? JSON.parse(h) : DEFAULT_HISTORY;
-
-        const rc = localStorage.getItem('yru_sp_round_checks');
-        state.roundChecks = rc ? JSON.parse(rc) : {};
+      if (window.AppDB) {
+        await window.AppDB.init();
       }
+
+      state.guards = DEFAULT_GUARDS;
+      state.checkpoints = DEFAULT_CHECKPOINTS;
+      state.roundChecks = {};
+
+      if (window.AppDB) {
+        // ดึงข้อมูลผ่านคำสั่ง SQL SELECT จากฐานข้อมูลจริง
+        const records = await window.AppDB.query("SELECT * FROM patrol_records ORDER BY date DESC, time DESC");
+        state.history = records || [];
+      } else {
+        const storedVersion = localStorage.getItem('yru_sp_version');
+        if (storedVersion !== DATA_VERSION) {
+          state.history = [];
+          localStorage.setItem('yru_sp_version', DATA_VERSION);
+          saveToLocalStorage();
+        } else {
+          const h = localStorage.getItem('yru_sp_history');
+          state.history = h ? JSON.parse(h) : [];
+        }
+      }
+
+      // ลบข้อมูลจำลอง/ตัวอย่างเก่าออกทั้งหมด (ล้างประวัติ mock data ทั้งใน guard และ admin)
+      state.history = state.history.filter(r => !['rec-001', 'rec-off-001', 'rec-002'].includes(r.id));
+      saveToLocalStorage();
 
       state.currentGuardId = state.guards[0]?.id || '';
 
@@ -175,7 +187,7 @@
       console.warn('Storage read error, using defaults:', err);
       state.guards = DEFAULT_GUARDS;
       state.checkpoints = DEFAULT_CHECKPOINTS;
-      state.history = DEFAULT_HISTORY;
+      state.history = [];
       state.roundChecks = {};
       state.currentGuardId = DEFAULT_GUARDS[0]?.id || '';
       state.currentUser = null;
@@ -340,6 +352,35 @@
       });
     }
     if (el.exportCsvBtn) el.exportCsvBtn.addEventListener('click', exportToCsv);
+
+    // SQL Database Management Buttons
+    if (el.exportSqlBtn) {
+      el.exportSqlBtn.addEventListener('click', () => {
+        if (window.AppDB) {
+          window.AppDB.exportSQLFile();
+          showToast('💾 ส่งออกไฟล์ฐานข้อมูล SQL เรียบร้อยแล้ว', '✅');
+        }
+      });
+    }
+
+    if (el.viewSqlLogsBtn) {
+      el.viewSqlLogsBtn.addEventListener('click', openSqlLogsModal);
+    }
+
+    if (el.closeSqlLogsBtn) {
+      el.closeSqlLogsBtn.addEventListener('click', () => {
+        if (el.sqlLogsModal) el.sqlLogsModal.setAttribute('hidden', '');
+      });
+    }
+
+    if (el.modalExportSqlBtn) {
+      el.modalExportSqlBtn.addEventListener('click', () => {
+        if (window.AppDB) {
+          window.AppDB.exportSQLFile();
+          showToast('💾 ส่งออกไฟล์ฐานข้อมูล SQL เรียบร้อยแล้ว', '✅');
+        }
+      });
+    }
   }
 
   // --- AUTHENTICATION & ACCESS CONTROL ---
@@ -1034,6 +1075,14 @@
         : (state.capturedImageBase64 ? [state.capturedImageBase64] : [])
     };
 
+    // บันทึกลงฐานข้อมูล SQL (SQL INSERT INTO patrol_records)
+    if (window.AppDB) {
+      await window.AppDB.query(
+        `INSERT INTO patrol_records (id, date, time, shift, round, guard_id, guard_name, cp_id, cp_code, cp_name, is_risk, is_off_checkpoint, status, note, images, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [record.id, record.date, record.time, record.shift, record.round, record.guardId, record.guardName, record.cpId, record.cpCode, record.cpName, record.isRisk ? 1 : 0, record.isOffCheckpoint ? 1 : 0, record.status, record.note, record.images, new Date().toISOString()]
+      );
+    }
+
     // Save record to history
     state.history.unshift(record);
     saveToLocalStorage();
@@ -1174,8 +1223,14 @@
     el.logCountTag.textContent = `${filtered.length} รายการ`;
 
     if (filtered.length === 0) {
+      const msg = state.history.length === 0
+        ? 'ยังไม่มีข้อมูลการเวียนตรวจในระบบ (ฐานข้อมูล SQL ว่างเปล่า พร้อมบันทึกข้อมูลจริง)'
+        : 'ไม่พบข้อมูลตามตัวกรองที่เลือก';
       el.reportTableBody.innerHTML = `
-        <tr><td colspan="8" class="empty">ไม่พบข้อมูลตามตัวกรองที่เลือก</td></tr>
+        <tr><td colspan="8" class="empty" style="text-align:center; padding:32px 16px; color:var(--muted);">
+          <div style="font-size:28px; margin-bottom:8px;">📋</div>
+          <b>${msg}</b>
+        </td></tr>
       `;
     } else {
       const shiftMap = { morning: 'กะเช้า', afternoon: 'กะบ่าย', night: 'กะดึก' };
@@ -1338,6 +1393,14 @@
 
     state.history[index] = updatedRecord;
 
+    // อัปเดตในฐานข้อมูล SQL (SQL UPDATE)
+    if (window.AppDB) {
+      await window.AppDB.query(
+        `UPDATE patrol_records SET status = ?, note = ?, is_risk = ?, images = ? WHERE id = ?`,
+        [updatedRecord.status, updatedRecord.note, updatedRecord.isRisk ? 1 : 0, updatedRecord.images, updatedRecord.id]
+      );
+    }
+
     // อัปเดตในรอบตรวจปัจจุบันถ้าตรงกัน
     if (updatedRecord.cpId && state.roundChecks[updatedRecord.cpId]) {
       state.roundChecks[updatedRecord.cpId] = {
@@ -1377,6 +1440,12 @@
     }
 
     state.history = state.history.filter(h => h.id !== recordId);
+
+    // ลบจากฐานข้อมูล SQL (SQL DELETE FROM)
+    if (window.AppDB) {
+      await window.AppDB.query(`DELETE FROM patrol_records WHERE id = ?`, [recordId]);
+    }
+
     saveToLocalStorage();
 
     closeAdminEditModal();
@@ -1384,6 +1453,23 @@
     renderCheckpoints();
     updateProgress();
     showToast('🗑️ ลบบันทึกข้อมูลเรียบร้อยแล้ว', '✅');
+  }
+
+  // --- SQL LOGS MODAL ---
+  function openSqlLogsModal() {
+    if (!el.sqlLogsModal || !el.sqlLogsContainer) return;
+    const logs = window.AppDB ? window.AppDB.getQueryLogs() : [];
+    if (logs.length === 0) {
+      el.sqlLogsContainer.innerHTML = '<div style="color:#94a3b8; text-align:center; padding:20px;">ยังไม่มีประวัติคำสั่ง SQL ที่บันทึก</div>';
+    } else {
+      el.sqlLogsContainer.innerHTML = logs.map((log, idx) => `
+        <div style="margin-bottom:12px; border-bottom:1px solid #334155; padding-bottom:8px;">
+          <div style="color:#64748b; font-size:11px;">#${logs.length - idx} · เวลา ${log.timestamp}</div>
+          <div style="color:#38bdf8; font-family:monospace; margin-top:2px; word-break:break-all;">${escapeHtml(log.sql)}</div>
+        </div>
+      `).join('');
+    }
+    el.sqlLogsModal.removeAttribute('hidden');
   }
 
   // --- EXPORT TO CSV ---

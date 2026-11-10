@@ -3,7 +3,7 @@
  * อัปเดตรายชื่อ รปภ. 9 นาย + เพิ่มพื้นที่เสี่ยง + เพิ่มประเภทเหตุนอกจุดตรวจ
  */
 
-const DATA_VERSION = '2.2';
+const DATA_VERSION = '3.0';
 
 // บัญชีผู้ใช้งานระบบ (สิทธิ์ Admin และ User ธรรมดา)
 const DEFAULT_ACCOUNTS = [
@@ -149,59 +149,5 @@ const DEFAULT_CHECKPOINTS = [
   }
 ];
 
-// บันทึกประวัติเริ่มต้นจำลอง
-const DEFAULT_HISTORY = [
-  {
-    id: 'rec-001',
-    date: '2026-11-09',
-    time: '12:30',
-    shift: 'morning',
-    round: 'รอบที่ 1',
-    guardId: 'g1',
-    guardName: 'นายรอแม กามา',
-    cpId: 'cp10',
-    cpCode: 'CP-10',
-    cpName: 'แนวกำแพงรั้วด้านหลังและลานจอดรถพัสดุ',
-    isRisk: true,
-    isOffCheckpoint: false,
-    status: 'alert',
-    note: 'ตรวจพบกิ่งไม้ใหญ่พาดแนวกำแพงรั้วหลังอาคารพัสดุ เสี่ยงต่อการปีนข้าม ประสานงานช่างตัดแต่งต้นไม้แล้ว',
-    images: []
-  },
-  {
-    id: 'rec-off-001',
-    date: '2026-11-09',
-    time: '11:15',
-    shift: 'morning',
-    round: 'เหตุด่วนนอกรอบ',
-    guardId: 'g2',
-    guardName: 'นายศิลปชัย ขุนทรัพย์',
-    cpId: 'off-checkpoint',
-    cpCode: 'OFF-CP',
-    cpName: 'พบเหตุนอกจุดตรวจ: ลานจอดรถจักรยานยนต์ข้างโรงอาหารเก่า',
-    isRisk: true,
-    isOffCheckpoint: true,
-    incidentType: 'บุคคลภายนอกน่าสงสัย',
-    urgency: 'high',
-    status: 'alert',
-    note: 'พบบุคคลภายนอกไม่ติดบัตรเดินวนเวียนส่องรถจักรยานยนต์ จึงได้เข้าไปสอบถามและเชิญตัวตรวจสอบที่ป้อม รปภ.',
-    images: []
-  },
-  {
-    id: 'rec-002',
-    date: '2026-11-09',
-    time: '08:45',
-    shift: 'morning',
-    round: 'รอบที่ 1',
-    guardId: 'g3',
-    guardName: 'นายสุไลมาน สารี',
-    cpId: 'cp5',
-    cpCode: 'CP-05',
-    cpName: 'อาคาร 4 (คณะวิทยาศาสตร์เทคโนโลยีและการเกษตร)',
-    isRisk: true,
-    isOffCheckpoint: false,
-    status: 'ok',
-    note: 'ห้องแล็บล็อกแน่นหนาทุกห้อง ถังดับเพลิงอยู่ในสภาพพร้อมใช้ ไฟทางเดินปกติ',
-    images: []
-  }
-];
+// บันทึกประวัติเริ่มต้น (ค่าเริ่มต้นว่างเปล่าสำหรับฐานข้อมูลจริง)
+const DEFAULT_HISTORY = [];

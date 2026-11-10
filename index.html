@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bai+Jamjuree:wght@500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap">
   
   <!-- CSS -->
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/style.css?v=2.3">
   <!-- Auth Guard: หากยังไม่ล็อกอิน ให้ส่งไปหน้า login.html ทันที -->
   <script>
     (function () {
@@ -85,135 +85,289 @@
   <div class="wrap" id="appContent">
     <main>
       <!-- =========================================================
-           ส่วนที่ 1: หน้าสำหรับเจ้าหน้าที่ รปภ. (บันทึกการเดินตรวจเวร)
-           ออกแบบเป็นขั้นที่ 1 - 2 - 3 เข้าใจง่ายสำหรับผู้ใหญ่และคนทั่วไป
+           ส่วนที่ 1: หน้าสำหรับเจ้าหน้าที่ รปภ. (ระบบบันทึกเวียนตรวจ)
+           ดีไซน์ทันสมัย เป็นทางการ สบายตา ใช้งานง่ายสำหรับมือถือ
            ========================================================= -->
       <section id="panelGuard" class="tab-panel">
 
-        <!-- แบนเนอร์แนะนำการใช้งานสำหรับ รปภ. -->
-        <div class="role-welcome-banner guard-banner">
-          <div class="banner-icon">🚶‍♂️</div>
+        <!-- แบนเนอร์หัวข้อระบบเวียนตรวจ รปภ. มรย. -->
+        <div class="role-welcome-banner guard-banner-modern">
+          <div class="banner-icon-modern">🛡️</div>
           <div class="banner-info">
-            <h2>หน้าบันทึกการเดินตรวจเวร (สำหรับเจ้าหน้าที่ รปภ.)</h2>
-            <p>ทำตามลำดับ <b>ขั้นที่ 1 ➔ ขั้นที่ 2 ➔ ขั้นที่ 3</b> ด้านล่าง เพื่อส่งรายงานการตรวจให้หัวหน้าเวร</p>
+            <div class="banner-top-tag">
+              <span class="live-dot"></span>
+              <span>ระบบเวียนตรวจ มหาวิทยาลัยราชภัฏยะลา</span>
+            </div>
+            <h2>บันทึกการเวียนตรวจรักษาความปลอดภัย</h2>
+            <p>เลือกผลัดเวร ระบุอาคาร/สถานที่ แนบภาพถ่าย และกดบันทึกรายงานได้ทันที</p>
           </div>
         </div>
 
-        <!-- กล่องปุ่มแจ้งเหตุด่วนฉุกเฉิน (แยกกรอบชัดเจน กดได้ทันทีเมื่อมีเหตุ) -->
-        <div class="emergency-callout-card">
-          <div class="emergency-callout-text">
-            <b>🚨 พบเหตุด่วนฉุกเฉิน หรือ พบปัญหาที่ไม่ใช่จุดตรวจปกติ?</b>
-            <span>เช่น พบบุคคลน่าสงสัย, ประตูรั้วพัง, ไฟทางเดินดับ, ท่อน้ำแตก กดปุ่มสีแดงด้านล่างนี้ได้ทันที</span>
+        <!-- กล่องแจ้งเหตุฉุกเฉินด่วน (SOS Emergency Card) -->
+        <div class="sos-banner-card">
+          <div class="sos-banner-info">
+            <div class="sos-badge-pill">🚨 เหตุฉุกเฉินเร่งด่วน</div>
+            <h3>พบเหตุร้าย หรือต้องการความช่วยเหลือด่วน?</h3>
+            <p>เช่น พบบุคคลน่าสงสัย, อัคคีภัย, การบุกรุก, อุบัติเหตุร้ายแรง กดปุ่มแจ้งเหตุด้านล่างทันที</p>
           </div>
-          <button type="button" class="btn-emergency-main" id="openOffCpBtn">
-            <span>🚨</span> กดที่นี่เพื่อแจ้งเหตุด่วน / นอกจุดตรวจ
+          <button type="button" class="btn-sos-modern" id="sosPatrolBtn">
+            <span class="sos-glow-circle"></span>
+            <span class="sos-main-icon">🚨</span>
+            <span class="sos-btn-label">แจ้งเหตุฉุกเฉิน (SOS)</span>
           </button>
         </div>
 
-        <!-- ขั้นที่ 1: เลือกชื่อ กะเวลา และรอบที่ตรวจ -->
-        <div class="card step-card">
-          <div class="step-header">
-            <span class="step-badge">ขั้นที่ 1</span>
-            <div>
-              <h3>ตรวจสอบชื่อผู้ตรวจ และเลือกกะเวลาเข้าเวร</h3>
-              <p>กรุณาเลือกชื่อของท่านและกะเวลาที่กำลังปฏิบัติหน้าที่</p>
-            </div>
-          </div>
+        <!-- การ์ดแบบฟอร์มหลัก (Patrol Recording Form Card) -->
+        <div class="card patrol-card-form">
 
-          <div class="step-form-grid">
-            <!-- 1.1 ชื่อ รปภ. -->
-            <div class="field-box">
-              <label class="lbl" for="guardSelect">👤 1.1 ชื่อเจ้าหน้าที่ รปภ. ผู้เดินตรวจ:</label>
-              <select id="guardSelect"></select>
+          <!-- หมวดที่ 1: ข้อมูลกะและเจ้าหน้าที่ -->
+          <div class="form-section-block">
+            <div class="form-section-header">
+              <span class="step-num-badge">1</span>
+              <div>
+                <h3>กะเวลาและเจ้าหน้าที่ รปภ. ผู้ตรวจ</h3>
+                <p>เลือกผลัดเวรที่กำลังปฏิบัติหน้าที่ และตรวจสอบชื่อของท่าน</p>
+              </div>
             </div>
 
-            <!-- 1.2 กะเวลา -->
-            <div class="field-box">
-              <label class="lbl">⏰ 1.2 กดเลือกกะเวลาที่ปฏิบัติงาน:</label>
-              <div class="seg-shifts" id="shiftSegment">
-                <button type="button" aria-pressed="true" style="--c:var(--sm)" data-shift="morning">
-                  <span class="shift-icon">☀️</span>
-                  <b>กะเช้า</b>
-                  <small>07:00 - 15:00 น.</small>
+            <!-- 1.1 ผลัดเวร (กะการทำงาน) จัดกึ่งกลางสวยงาม -->
+            <div class="field-container shift-field-centered">
+              <div class="shift-header-centered">
+                <div class="shift-title-pill">
+                  <span class="shift-clock-emoji">⏰</span>
+                  <span class="shift-title-text">ผลัดเวร (กะการทำงาน)</span>
+                </div>
+                <p class="shift-hint-text">แตะเลือกผลัดเวรที่ท่านกำลังปฏิบัติหน้าที่</p>
+              </div>
+
+              <div class="seg-shifts-modern" id="shiftPatrolSeg">
+                <button type="button" class="shift-btn shift-morning" aria-pressed="true" data-shift="morning" data-val="เช้า">
+                  <span class="shift-badge-check">✓ กำลังเลือก</span>
+                  <div class="shift-icon-circle">
+                    <span class="shift-emoji">☀️</span>
+                  </div>
+                  <b class="shift-name-title">กะเช้า</b>
+                  <span class="shift-time-badge">06:00 - 14:00 น.</span>
                 </button>
-                <button type="button" aria-pressed="false" style="--c:var(--sa)" data-shift="afternoon">
-                  <span class="shift-icon">⛅</span>
-                  <b>กะบ่าย</b>
-                  <small>15:00 - 23:00 น.</small>
+                <button type="button" class="shift-btn shift-afternoon" aria-pressed="false" data-shift="afternoon" data-val="บ่าย">
+                  <span class="shift-badge-check">✓ กำลังเลือก</span>
+                  <div class="shift-icon-circle">
+                    <span class="shift-emoji">⛅</span>
+                  </div>
+                  <b class="shift-name-title">กะบ่าย</b>
+                  <span class="shift-time-badge">14:00 - 22:00 น.</span>
                 </button>
-                <button type="button" aria-pressed="false" style="--c:var(--sn)" data-shift="night">
-                  <span class="shift-icon">🌙</span>
-                  <b>กะดึก</b>
-                  <small>23:00 - 07:00 น.</small>
+                <button type="button" class="shift-btn shift-night" aria-pressed="false" data-shift="night" data-val="ดึก">
+                  <span class="shift-badge-check">✓ กำลังเลือก</span>
+                  <div class="shift-icon-circle">
+                    <span class="shift-emoji">🌙</span>
+                  </div>
+                  <b class="shift-name-title">กะดึก</b>
+                  <span class="shift-time-badge">22:00 - 06:00 น.</span>
                 </button>
               </div>
             </div>
 
-            <!-- 1.3 รอบที่ตรวจ -->
-            <div class="field-box">
-              <label class="lbl" for="roundSelect">🔄 1.3 เลือกรอบที่เดินตรวจ:</label>
-              <select id="roundSelect">
-                <option value="รอบที่ 1">รอบที่ 1</option>
-                <option value="รอบที่ 2">รอบที่ 2</option>
-                <option value="รอบที่ 3">รอบที่ 3</option>
-                <option value="รอบที่ 4">รอบที่ 4</option>
-                <option value="รอบพิเศษ / สุ่มตรวจ">รอบพิเศษ / สุ่มตรวจ</option>
+            <!-- 1.2 รายชื่อ รปภ. -->
+            <div class="field-container" style="margin-top: 16px;">
+              <label class="lbl-modern" for="guardPatrolSelect">👤 ชื่อเจ้าหน้าที่ รปภ. ผู้เดินตรวจ:</label>
+              <div class="input-select-wrapper">
+                <select id="guardPatrolSelect" class="select-modern">
+                  <option value="" disabled selected>-- แตะเพื่อเลือกรายชื่อเจ้าหน้าที่ --</option>
+                  <option value="1 นายรอแม กามา">1. นายรอแม กามา</option>
+                  <option value="2 นายศิลปชัย ขุนทรัพย์">2. นายศิลปชัย ขุนทรัพย์</option>
+                  <option value="3 นายสุไลมาน สารี">3. นายสุไลมาน สารี</option>
+                  <option value="4 นายกิตติวัฒน์ สระบัว">4. นายกิตติวัฒน์ สระบัว</option>
+                  <option value="5 นายปิยศักดิ์ ศักดิ์สองเมือง">5. นายปิยศักดิ์ ศักดิ์สองเมือง</option>
+                  <option value="6 นายสุกรี เจ๊ะมิง">6. นายสุกรี เจ๊ะมิง</option>
+                  <option value="7 นายซุลกิฟลี วาแฉะ">7. นายซุลกิฟลี วาแฉะ</option>
+                  <option value="8 นางภัณฑิรา วุฒิพงศ์">8. นางภัณฑิรา วุฒิพงศ์</option>
+                  <option value="9 นายนาวาวี เซะ">9. นายนาวาวี เซะ</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-divider"></div>
+
+          <!-- หมวดที่ 2: สถานที่ / อาคาร -->
+          <div class="form-section-block">
+            <div class="form-section-header">
+              <span class="step-num-badge">2</span>
+              <div style="flex: 1;">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                  <h3>สถานที่ / อาคารจุดตรวจ</h3>
+                  <button type="button" class="btn-toggle-custom" id="toggleCustomLocBtn">
+                    <span>✏️</span> พิมพ์ระบุเอง
+                  </button>
+                </div>
+                <p>เลือกอาคารภายในมหาวิทยาลัยราชภัฏยะลา หรือกดพิมพ์ระบุเองหากอยู่นอกจุดตรวจ</p>
+              </div>
+            </div>
+
+            <div class="field-container">
+              <select id="locPatrolSelect" class="select-modern">
+                <option value="" disabled selected>-- แตะเพื่อเลือกจุดตรวจ (35 อาคารสถานที่) --</option>
+                <optgroup label="🏢 อาคารเรียน สำนักงาน และคณะ">
+                  <option value="อาคารเรียน 1">อาคารเรียน 1</option>
+                  <option value="อาคาร 2 ศูนย์ศิลปวัฒนธรรม">อาคาร 2 ศูนย์ศิลปวัฒนธรรม</option>
+                  <option value="อาคารเรียน 3 วิทยาศาสตร์ฮาลาล">อาคารเรียน 3 วิทยาศาสตร์ฮาลาล</option>
+                  <option value="อาคารเรียน 4 สถาบันวิจัยและพัฒนาชายแดนใต้">อาคารเรียน 4 สถาบันวิจัยและพัฒนาชายแดนใต้</option>
+                  <option value="อาคารเรียน 5 คณะวิทยาศาสตร์เทคโนโลยีและการเกษตร">อาคารเรียน 5 คณะวิทยาศาสตร์เทคโนโลยีและการเกษตร</option>
+                  <option value="อาคารเรียน 6 สาขาวิชาคอมพิวเตอร์">อาคารเรียน 6 สาขาวิชาคอมพิวเตอร์</option>
+                  <option value="อาคาร 7 ศูนย์บรรณสารสนเทศ">อาคาร 7 ศูนย์บรรณสารสนเทศ (หอสมุดกลาง)</option>
+                  <option value="อาคาร 8 ยะลาพาเลส @INN YRU">อาคาร 8 ยะลาพาเลส @INN YRU</option>
+                  <option value="อาคาร 9 ศูนย์วิทยาศาสตร์และวิทยาศาสตร์ประยุกต์">อาคาร 9 ศูนย์วิทยาศาสตร์และวิทยาศาสตร์ประยุกต์</option>
+                  <option value="อาคาร 10A-10B สาขาวิชาศิลปะ">อาคาร 10A-10B สาขาวิชาศิลปะ</option>
+                  <option value="อาคารเรียน 15 สาขาวิชาเกษตรศาสตร์ฯ">อาคารเรียน 15 สาขาวิชาเกษตรศาสตร์ฯ</option>
+                  <option value="อาคารเรียน 16 สาขาวิชาวิทยาศาสตร์และเทคโนโลยีการอาหาร">อาคารเรียน 16 สาขาวิชาวิทยาศาสตร์และเทคโนโลยีการอาหาร</option>
+                  <option value="อาคารเรียน 18">อาคารเรียน 18</option>
+                  <option value="อาคารเรียน 20 อาคารเฉลิมพระเกียรติ 50 พรรษาฯ">อาคารเรียน 20 อาคารเฉลิมพระเกียรติ 50 พรรษาฯ</option>
+                  <option value="อาคาร 21 หอประชุมเฉลิมพระเกียรติ 80 พรรษาฯ">อาคาร 21 หอประชุมเฉลิมพระเกียรติ 80 พรรษาฯ</option>
+                  <option value="อาคาร 23 คณะวิทยาการจัดการ">อาคาร 23 คณะวิทยาการจัดการ</option>
+                  <option value="อาคาร 24 อาคารสังคมศาสตร์">อาคาร 24 อาคารสังคมศาสตร์</option>
+                  <option value="อาคาร 25 อาคารเทคโนโลยีสารสนเทศ">อาคาร 25 อาคารเทคโนโลยีสารสนเทศ</option>
+                </optgroup>
+                <optgroup label="🏠 หอพักนักศึกษาและบุคลากร">
+                  <option value="หอชาย 4 หออินทนิล">หอชาย 4 หออินทนิล</option>
+                  <option value="หอหญิง 5 หอปาริชาติ">หอหญิง 5 หอปาริชาติ</option>
+                  <option value="หอหญิง 6 หอราชพฤกษ์">หอหญิง 6 หอราชพฤกษ์</option>
+                  <option value="หอพักบุคลากร หอจามจุรี">หอพักบุคลากร หอจามจุรี</option>
+                  <option value="อาคาร 26 อาคารชุดที่พักบุคลากร (บ้านจันทน์กะพ้อ)">อาคาร 26 อาคารชุดที่พักบุคลากร (บ้านจันทน์กะพ้อ)</option>
+                  <option value="อาคาร 27 หอพักนักศึกษา A">อาคาร 27 หอพักนักศึกษา A</option>
+                  <option value="อาคาร 28 หอพักนักศึกษา B">อาคาร 28 หอพักนักศึกษา B</option>
+                  <option value="อาคาร 29 หอพักนักศึกษา C">อาคาร 29 หอพักนักศึกษา C</option>
+                  <option value="อาคาร 30 หอพักนักศึกษา D">อาคาร 30 หอพักนักศึกษา D</option>
+                </optgroup>
+                <optgroup label="🍽️ ศูนย์อาหาร กิจกรรม และบริการ">
+                  <option value="อาคาร 22 อาคารกิจกรรมนักศึกษา (Student Union)">อาคาร 22 อาคารกิจกรรมนักศึกษา (Student Union)</option>
+                  <option value="อาคาร 31 ศูนย์แสดงและจำหน่ายผลิตภัณฑ์ฯ YRU FreshMart">อาคาร 31 ศูนย์แสดงและจำหน่ายผลิตภัณฑ์ฯ YRU FreshMart</option>
+                  <option value="อาคาร 32 อาคารห้องปฏิบัติการอาหารและโภชนาการ">อาคาร 32 อาคารห้องปฏิบัติการอาหารและโภชนาการ</option>
+                  <option value="อาคาร 33 อาคารละหมาด">อาคาร 33 อาคารละหมาด</option>
+                  <option value="อาคาร 34 ศูนย์อาหาร มรย.">อาคาร 34 ศูนย์อาหาร มรย.</option>
+                  <option value="อาคาร 35 ห้องฉายภาพยนต์">อาคาร 35 ห้องฉายภาพยนต์</option>
+                  <option value="หอประชุมเล็ก + อาคารประกอบ">หอประชุมเล็ก + อาคารประกอบ</option>
+                </optgroup>
+                <optgroup label="📦 อาคารสนับสนุนและงานสถานที่">
+                  <option value="อาคาร 17 อาคารพัสดุกลางและงานอาคารสถานที่">อาคาร 17 อาคารพัสดุกลางและงานอาคารสถานที่</option>
+                </optgroup>
               </select>
-            </div>
-          </div>
-        </div>
 
-        <!-- ขั้นที่ 2: ดูความคืบหน้าการตรวจในรอบนี้ -->
-        <div class="card step-card">
-          <div class="step-header">
-            <span class="step-badge">ขั้นที่ 2</span>
-            <div style="flex: 1;">
-              <h3>ความคืบหน้าการเดินตรวจในรอบนี้</h3>
-              <p id="progressText">ตรวจเสร็จแล้ว 0 จาก 10 จุด</p>
-            </div>
-            <div class="progress-number-box">
-              <b id="progressPercent">0%</b>
+              <div class="custom-loc-box" id="customLocWrap" style="display:none; margin-top: 10px;">
+                <input type="text" id="customLocPatrolInput" class="input-modern" placeholder="พิมพ์ระบุชื่อสถานที่นอกจุดตรวจ เช่น ลานจอดรถหลังอาคาร 5...">
+              </div>
             </div>
           </div>
 
-          <div class="progress-bar-wrap">
-            <div class="progress-bar-fill" id="progressBarFill" style="width: 0%;"></div>
+          <div class="form-divider"></div>
+
+          <!-- หมวดที่ 3: ภาพถ่ายและบันทึกเหตุการณ์ -->
+          <div class="form-section-block">
+            <div class="form-section-header">
+              <span class="step-num-badge">3</span>
+              <div>
+                <h3>หลักฐานภาพถ่ายและบันทึกเหตุการณ์</h3>
+                <p>แนบภาพถ่ายหน้างาน และพิมพ์ข้อความหรือกดพูดด้วยเสียง</p>
+              </div>
+            </div>
+
+            <!-- 3.1 ถ่ายภาพ -->
+            <div class="field-container">
+              <label class="lbl-modern">📸 ภาพถ่ายขณะปฏิบัติหน้าที่ (บีบอัดขนาดภาพอัตโนมัติ):</label>
+              <input type="file" accept="image/*" capture="environment" id="camPatrolInput" style="display:none">
+              
+              <button type="button" class="photo-dropzone-btn" id="triggerCamBtn">
+                <div class="photo-dropzone-icon">📷</div>
+                <div class="photo-dropzone-text">
+                  <b>แตะที่นี่เพื่อถ่ายภาพหน้างาน หรือเลือกรูปจากมือถือ</b>
+                  <small>ระบบจะบีบอัดภาพให้อัตโนมัติ เพื่อประหยัดพื้นที่และความเร็ว</small>
+                </div>
+              </button>
+
+              <div class="thumbs-modern" id="thumbPatrolContainer"></div>
+            </div>
+
+            <!-- 3.2 ข้อความบันทึกเหตุการณ์ & ไมค์ -->
+            <div class="field-container" style="margin-top: 20px;">
+              <div class="sec-head">
+                <label class="lbl-modern" style="margin-bottom:0;" for="notePatrolInput">📝 บันทึกเหตุการณ์ / รายละเอียด:</label>
+                <span class="mic-hint-badge">🎙️ มีปุ่มพิมพ์ด้วยเสียง</span>
+              </div>
+
+              <!-- Quick note chips -->
+              <div class="quick-chips-bar">
+                <span class="quick-chips-lbl">⚡ ข้อความด่วน:</span>
+                <div class="quick-chips-list">
+                  <button type="button" class="chip-quick-note" data-text="เหตุการณ์ปกติ เรียบร้อยดี">✅ ปกติ เรียบร้อย</button>
+                  <button type="button" class="chip-quick-note" data-text="ตรวจล็อกประตูหน้าต่างเรียบร้อย">🔒 ตรวจล็อกแล้ว</button>
+                  <button type="button" class="chip-quick-note" data-text="พบหลอดไฟทางเดินดับ">💡 ไฟดับ</button>
+                  <button type="button" class="chip-quick-note" data-text="พบประตูเปิดทิ้งไว้ ไม่ได้ล็อก">🚪 ประตูเปิดทิ้งไว้</button>
+                  <button type="button" class="chip-quick-note" data-text="พบบุคคลภายนอกน่าสงสัย">👤 พบบุคคลน่าสงสัย</button>
+                  <button type="button" class="chip-quick-note" data-text="อุปกรณ์ดับเพลิงอยู่ในสภาพพร้อมใช้">🧯 ถังดับเพลิงพร้อมใช้</button>
+                </div>
+              </div>
+
+              <div class="note-wrap-modern">
+                <!-- Listening status bar -->
+                <div id="micListeningBar" class="mic-listening-bar" style="display: none;">
+                  <div class="mic-live-indicator">
+                    <span class="mic-pulse-dot"></span>
+                    <span class="mic-live-label">กำลังฟังเสียงพูดภาษาไทย...</span>
+                  </div>
+                  <div class="sound-wave-anim">
+                    <span></span><span></span><span></span><span></span><span></span>
+                  </div>
+                  <button type="button" class="btn-stop-listening" id="stopListeningBtn">✓ เสร็จสิ้น</button>
+                </div>
+
+                <textarea id="notePatrolInput" class="textarea-modern" placeholder="แตะที่นี่เพื่อพิมพ์ หรือกดปุ่มไมค์สีเขียวด้านล่างขวาเพื่อพูดภาษาไทย..."></textarea>
+                <button type="button" class="mic-modern" id="micPatrolBtn" title="กดเพื่อเริ่มพูดภาษาไทย">
+                  <span class="mic-icon">🎙️</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- 3.3 Checkbox พื้นที่เสี่ยง -->
+            <label class="risk-card-modern" for="riskPatrolChk">
+              <input type="checkbox" id="riskPatrolChk">
+              <div class="risk-card-content">
+                <div class="risk-title-row">
+                  <span class="risk-icon-shield">⚠️</span>
+                  <b>ทำเครื่องหมายหากเป็น "พื้นที่เสี่ยง / ควรเฝ้าระวังพิเศษ"</b>
+                </div>
+                <p>รายงานนี้จะถูกติดแท็กสีส้มสะดุดตา เพื่อให้หัวหน้าเวรและผู้บริหารตรวจสอบเป็นพิเศษ</p>
+              </div>
+            </label>
+
           </div>
 
-          <div class="progress-footer-row">
-            <span class="progress-hint">💡 เมื่อเดินตรวจครบทุกจุดแล้ว หากต้องการขึ้นรอบใหม่ให้กดปุ่มทางขวา</span>
-            <button type="button" class="btn ghost btn-sm-reset" id="resetRoundBtn">
-              🔄 เริ่มนับรอบการตรวจใหม่
+          <!-- ปุ่มบันทึกข้อมูลหลัก -->
+          <div class="form-submit-row">
+            <button type="button" class="btn-submit-patrol" id="submitPatrolBtn">
+              <span class="submit-icon">💾</span>
+              <span class="submit-text">บันทึกข้อมูลเข้าสู่ระบบ</span>
             </button>
           </div>
+
         </div>
 
-        <!-- ขั้นที่ 3: รายการจุดตรวจ 10 จุดในมหาวิทยาลัย -->
-        <div class="card step-card">
-          <div class="step-header">
-            <span class="step-badge">ขั้นที่ 3</span>
-            <div>
-              <h3>กดปุ่มที่จุดตรวจเพื่อบันทึกผล (ทั้งหมด 10 จุด)</h3>
-              <p>เมื่อเดินถึงสถานที่ใด ให้กดปุ่ม <b>"กดเพื่อบันทึกจุดนี้"</b> ในกรอบของสถานที่นั้น</p>
+        <!-- รายการประวัติการเวียนตรวจล่าสุดของผลัดนี้ -->
+        <div class="card recent-logs-container">
+          <div class="recent-logs-header">
+            <div class="recent-logs-title-group">
+              <span class="recent-logs-icon">📋</span>
+              <div>
+                <h3>ประวัติการบันทึกเวียนตรวจล่าสุดของคุณ</h3>
+                <p>ตรวจสอบความถูกต้องของรายการที่บันทึกแล้วในวันนี้</p>
+              </div>
             </div>
+            <span id="guardLogCount" class="recent-count-tag">0 รายการ</span>
           </div>
-
-          <!-- ปุ่มกรองดูจุดตรวจทั้งหมด หรือเฉพาะจุดเสี่ยง -->
-          <div class="filter-bar-simple">
-            <span class="filter-bar-label">เลือกแสดงรายการ:</span>
-            <div class="chip-row">
-              <button type="button" class="chip-btn active" id="filterAllCpBtn">
-                📋 แสดงทุกจุดตรวจ (10 จุด)
-              </button>
-              <button type="button" class="chip-btn risk-chip" id="filterRiskCpBtn">
-                ⚠️ เฉพาะจุดเสี่ยงเฝ้าระวังพิเศษ (3 จุด)
-              </button>
-            </div>
+          <div id="guardRecentLogs" class="recent-logs-feed">
+            <!-- Rendered by JS -->
           </div>
-
-          <!-- รายการการ์ดจุดตรวจ (Rendered by JS) -->
-          <div class="cp-list" id="checkpointList"></div>
         </div>
+
       </section>
 
       <!-- =========================================================
@@ -633,6 +787,6 @@
 
   <!-- Scripts -->
   <script src="js/data.js"></script>
-  <script src="js/app.js"></script>
+  <script src="js/app.js?v=2.3"></script>
 </body>
 </html>

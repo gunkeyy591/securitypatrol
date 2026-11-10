@@ -1688,3 +1688,1191 @@ tbody tr:hover {
   font-size: 17px;
   font-weight: 600;
 }
+
+/* ========================================================
+   STYLES FOR PATROL RECORDING (ระบบบันทึกเวียนตรวจ รปภ. มรย. - MODERN PREMIUM UI)
+   ======================================================== */
+
+/* แบนเนอร์หัวข้อระบบ รปภ. มรย. โมเดิร์น */
+.guard-banner-modern {
+  background: linear-gradient(135deg, var(--navy) 0%, #0e4842 100%);
+  border-radius: 20px;
+  padding: 22px 24px;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  box-shadow: 0 10px 25px rgba(27, 54, 93, 0.12);
+  border-bottom: 4px solid var(--gold);
+  position: relative;
+  overflow: hidden;
+}
+.guard-banner-modern::after {
+  content: '';
+  position: absolute;
+  right: -40px;
+  top: -40px;
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(198, 138, 18, 0.2) 0%, transparent 70%);
+  pointer-events: none;
+}
+.banner-icon-modern {
+  width: 60px;
+  height: 60px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(8px);
+  display: grid;
+  place-items: center;
+  font-size: 32px;
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+.banner-top-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--gold-border);
+  letter-spacing: 0.03em;
+  margin-bottom: 4px;
+}
+.live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.35);
+  animation: pulse-dot 1.5s infinite;
+}
+@keyframes pulse-dot {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+  70% { transform: scale(1.1); box-shadow: 0 0 0 6px rgba(34, 197, 94, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+}
+
+/* กล่องแจ้งเหตุฉุกเฉิน (SOS Emergency Box) */
+.sos-banner-card {
+  margin-top: 18px;
+  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+  border: 2px solid #f87171;
+  border-radius: 20px;
+  padding: 20px 22px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  box-shadow: 0 6px 20px rgba(220, 38, 38, 0.1);
+}
+:root[data-theme="dark"] .sos-banner-card {
+  background: linear-gradient(135deg, #2b1113 0%, #3b1417 100%);
+  border-color: #991b1b;
+}
+.sos-banner-info {
+  flex: 1;
+  min-width: 220px;
+}
+.sos-badge-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  background: #dc2626;
+  color: #ffffff;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 6px;
+  letter-spacing: 0.02em;
+}
+.sos-banner-info h3 {
+  font-size: 19px;
+  font-weight: 700;
+  color: #991b1b;
+  margin: 0;
+}
+:root[data-theme="dark"] .sos-banner-info h3 {
+  color: #fca5a5;
+}
+.sos-banner-info p {
+  margin: 4px 0 0;
+  font-size: 14px;
+  color: #7f1d1d;
+  line-height: 1.45;
+}
+:root[data-theme="dark"] .sos-banner-info p {
+  color: #fecaca;
+}
+.btn-sos-modern {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 50%, #b91c1c 100%);
+  color: #ffffff;
+  border: none;
+  min-height: 56px;
+  padding: 0 24px;
+  border-radius: 16px;
+  font-family: inherit;
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  box-shadow: 0 4px 16px rgba(220, 38, 38, 0.35);
+  position: relative;
+  overflow: hidden;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: pulse-sos 2s infinite;
+  flex-shrink: 0;
+}
+.btn-sos-modern:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 22px rgba(220, 38, 38, 0.5);
+}
+.btn-sos-modern:active {
+  transform: translateY(1px) scale(0.98);
+}
+@keyframes pulse-sos {
+  0% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7); }
+  70% { box-shadow: 0 0 0 12px rgba(220, 38, 38, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+}
+
+/* การ์ดแบบฟอร์มหลัก */
+.patrol-card-form {
+  margin-top: 18px;
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--line);
+}
+.form-section-block {
+  display: flex;
+  flex-direction: column;
+}
+.form-section-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+.step-num-badge {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--navy) 0%, var(--accent) 100%);
+  color: #ffffff;
+  display: grid;
+  place-items: center;
+  font-size: 16px;
+  font-weight: 700;
+  flex-shrink: 0;
+  margin-top: 2px;
+  box-shadow: 0 2px 6px rgba(15, 94, 86, 0.25);
+}
+.form-section-header h3 {
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0;
+}
+.form-section-header p {
+  margin: 2px 0 0;
+  font-size: 14px;
+  color: var(--muted);
+}
+.form-divider {
+  height: 1px;
+  background: var(--line);
+  margin: 26px 0;
+}
+
+/* Fields & Labels */
+.field-container {
+  display: flex;
+  flex-direction: column;
+}
+.lbl-modern {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 8px;
+  display: block;
+}
+
+/* ========================================================
+   ผลัดเวร (กะการทำงาน) - จัดกึ่งกลาง สวยงาม พรีเมียม (CENTERED & MODERN)
+   ======================================================== */
+.shift-field-centered {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  padding: 22px 18px 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+  box-sizing: border-box;
+}
+
+.shift-header-centered {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 18px;
+}
+
+.shift-title-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, rgba(15, 94, 86, 0.08) 0%, rgba(13, 83, 75, 0.03) 100%);
+  border: 1.5px solid rgba(15, 94, 86, 0.25);
+  padding: 8px 20px;
+  border-radius: 30px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+:root[data-theme="dark"] .shift-title-pill {
+  background: rgba(45, 212, 191, 0.1);
+  border-color: rgba(45, 212, 191, 0.3);
+}
+
+.shift-clock-emoji {
+  font-size: 20px;
+}
+
+.shift-title-text {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: 0.01em;
+}
+
+.shift-hint-text {
+  margin: 6px 0 0;
+  font-size: 13.5px;
+  color: var(--muted);
+}
+
+.seg-shifts-modern {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  width: 100%;
+  max-width: 680px;
+  margin: 0 auto;
+}
+
+@media (max-width: 540px) {
+  .shift-field-centered {
+    padding: 18px 12px 20px;
+  }
+  .seg-shifts-modern {
+    gap: 8px;
+  }
+}
+
+.shift-btn {
+  position: relative;
+  overflow: hidden;
+  min-height: 128px;
+  border: 2px solid var(--line);
+  border-radius: 20px;
+  background: var(--surface-alt);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 24px 8px 16px;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  font-family: inherit;
+  color: var(--muted);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.03);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.shift-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.08);
+}
+
+.shift-btn:active {
+  transform: scale(0.97);
+}
+
+/* ป้ายสถานะ ✓ กำลังเลือก */
+.shift-badge-check {
+  position: absolute;
+  top: 7px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 10px;
+  border-radius: 20px;
+  letter-spacing: 0.02em;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  opacity: 0;
+  transform: translateY(-6px);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.shift-btn[aria-pressed="true"] .shift-badge-check {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* วงกลมไอคอนประจำกะ */
+.shift-icon-circle {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  margin-bottom: 8px;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.shift-btn:hover .shift-icon-circle {
+  transform: scale(1.08);
+}
+
+.shift-emoji {
+  font-size: 28px;
+  line-height: 1;
+}
+
+.shift-name-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 6px;
+  display: block;
+  letter-spacing: 0.01em;
+}
+
+.shift-time-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  letter-spacing: 0.01em;
+  transition: all 0.2s ease;
+}
+
+@media (max-width: 440px) {
+  .shift-btn {
+    min-height: 118px;
+    padding: 22px 4px 14px;
+    border-radius: 16px;
+  }
+  .shift-icon-circle {
+    width: 44px;
+    height: 44px;
+    margin-bottom: 6px;
+  }
+  .shift-emoji {
+    font-size: 24px;
+  }
+  .shift-name-title {
+    font-size: 16px;
+    margin-bottom: 4px;
+  }
+  .shift-time-badge {
+    font-size: 11px;
+    padding: 3px 6px;
+  }
+  .shift-badge-check {
+    font-size: 10px;
+    padding: 1px 7px;
+    top: 5px;
+  }
+}
+
+/* ================= ☀️ กะเช้า สไตล์ ================= */
+.shift-morning {
+  background: linear-gradient(180deg, #ffffff 0%, #fffef8 100%);
+  border-color: #fde68a;
+}
+.shift-morning .shift-icon-circle {
+  background: #fef3c7;
+  border: 1.5px solid #fde68a;
+}
+.shift-morning .shift-name-title {
+  color: #78350f;
+}
+.shift-morning .shift-time-badge {
+  background: #fef3c7;
+  color: #92400e;
+}
+.shift-morning .shift-badge-check {
+  background: #f59e0b;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(245, 158, 11, 0.4);
+}
+
+.shift-morning[aria-pressed="true"] {
+  border-color: #f59e0b !important;
+  border-width: 2.5px;
+  background: linear-gradient(180deg, #fffbeb 0%, #fef3c7 100%) !important;
+  box-shadow: 0 12px 28px rgba(245, 158, 11, 0.35), 0 0 0 1px #f59e0b !important;
+  transform: translateY(-4px);
+}
+.shift-morning[aria-pressed="true"] .shift-icon-circle {
+  background: #fde68a;
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+}
+.shift-morning[aria-pressed="true"] .shift-name-title {
+  color: #b45309;
+}
+.shift-morning[aria-pressed="true"] .shift-time-badge {
+  background: #f59e0b;
+  color: #ffffff;
+  font-weight: 700;
+}
+
+/* ☀️ กะเช้า Dark Mode */
+:root[data-theme="dark"] .shift-morning {
+  background: linear-gradient(180deg, #241a08 0%, #171103 100%);
+  border-color: #573a06;
+}
+:root[data-theme="dark"] .shift-morning .shift-icon-circle {
+  background: #3b2808;
+  border-color: #63430b;
+}
+:root[data-theme="dark"] .shift-morning .shift-name-title {
+  color: #fef3c7;
+}
+:root[data-theme="dark"] .shift-morning .shift-time-badge {
+  background: #3b2808;
+  color: #fde68a;
+}
+:root[data-theme="dark"] .shift-morning[aria-pressed="true"] {
+  background: linear-gradient(180deg, #3d2906 0%, #241602 100%) !important;
+  border-color: #fbbf24 !important;
+  box-shadow: 0 12px 28px rgba(251, 191, 36, 0.28), 0 0 0 1px #fbbf24 !important;
+}
+:root[data-theme="dark"] .shift-morning[aria-pressed="true"] .shift-name-title {
+  color: #fbbf24;
+}
+:root[data-theme="dark"] .shift-morning[aria-pressed="true"] .shift-time-badge {
+  background: #f59e0b;
+  color: #000000;
+}
+
+/* ================= ⛅ กะบ่าย สไตล์ ================= */
+.shift-afternoon {
+  background: linear-gradient(180deg, #ffffff 0%, #f6faff 100%);
+  border-color: #bae6fd;
+}
+.shift-afternoon .shift-icon-circle {
+  background: #e0f2fe;
+  border: 1.5px solid #bae6fd;
+}
+.shift-afternoon .shift-name-title {
+  color: #075985;
+}
+.shift-afternoon .shift-time-badge {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+.shift-afternoon .shift-badge-check {
+  background: #0284c7;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(2, 132, 199, 0.4);
+}
+
+.shift-afternoon[aria-pressed="true"] {
+  border-color: #0284c7 !important;
+  border-width: 2.5px;
+  background: linear-gradient(180deg, #f0f9ff 0%, #e0f2fe 100%) !important;
+  box-shadow: 0 12px 28px rgba(2, 132, 199, 0.35), 0 0 0 1px #0284c7 !important;
+  transform: translateY(-4px);
+}
+.shift-afternoon[aria-pressed="true"] .shift-icon-circle {
+  background: #bae6fd;
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
+}
+.shift-afternoon[aria-pressed="true"] .shift-name-title {
+  color: #0369a1;
+}
+.shift-afternoon[aria-pressed="true"] .shift-time-badge {
+  background: #0284c7;
+  color: #ffffff;
+  font-weight: 700;
+}
+
+/* ⛅ กะบ่าย Dark Mode */
+:root[data-theme="dark"] .shift-afternoon {
+  background: linear-gradient(180deg, #071e33 0%, #03101c 100%);
+  border-color: #0a3d66;
+}
+:root[data-theme="dark"] .shift-afternoon .shift-icon-circle {
+  background: #082845;
+  border-color: #0c3e6b;
+}
+:root[data-theme="dark"] .shift-afternoon .shift-name-title {
+  color: #e0f2fe;
+}
+:root[data-theme="dark"] .shift-afternoon .shift-time-badge {
+  background: #082845;
+  color: #7dd3fc;
+}
+:root[data-theme="dark"] .shift-afternoon[aria-pressed="true"] {
+  background: linear-gradient(180deg, #0a3459 0%, #04192b 100%) !important;
+  border-color: #38bdf8 !important;
+  box-shadow: 0 12px 28px rgba(56, 189, 248, 0.28), 0 0 0 1px #38bdf8 !important;
+}
+:root[data-theme="dark"] .shift-afternoon[aria-pressed="true"] .shift-name-title {
+  color: #38bdf8;
+}
+:root[data-theme="dark"] .shift-afternoon[aria-pressed="true"] .shift-time-badge {
+  background: #0284c7;
+  color: #ffffff;
+}
+
+/* ================= 🌙 กะดึก สไตล์ ================= */
+.shift-night {
+  background: linear-gradient(180deg, #ffffff 0%, #f9f7ff 100%);
+  border-color: #ddd6fe;
+}
+.shift-night .shift-icon-circle {
+  background: #ede9fe;
+  border: 1.5px solid #ddd6fe;
+}
+.shift-night .shift-name-title {
+  color: #3730a3;
+}
+.shift-night .shift-time-badge {
+  background: #ede9fe;
+  color: #4338ca;
+}
+.shift-night .shift-badge-check {
+  background: #6366f1;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(99, 102, 241, 0.4);
+}
+
+.shift-night[aria-pressed="true"] {
+  border-color: #6366f1 !important;
+  border-width: 2.5px;
+  background: linear-gradient(180deg, #f5f3ff 0%, #ede9fe 100%) !important;
+  box-shadow: 0 12px 28px rgba(99, 102, 241, 0.35), 0 0 0 1px #6366f1 !important;
+  transform: translateY(-4px);
+}
+.shift-night[aria-pressed="true"] .shift-icon-circle {
+  background: #ddd6fe;
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+.shift-night[aria-pressed="true"] .shift-name-title {
+  color: #4338ca;
+}
+.shift-night[aria-pressed="true"] .shift-time-badge {
+  background: #6366f1;
+  color: #ffffff;
+  font-weight: 700;
+}
+
+/* 🌙 กะดึก Dark Mode */
+:root[data-theme="dark"] .shift-night {
+  background: linear-gradient(180deg, #181438 0%, #0d0a21 100%);
+  border-color: #342d6e;
+}
+:root[data-theme="dark"] .shift-night .shift-icon-circle {
+  background: #211c47;
+  border-color: #3b337a;
+}
+:root[data-theme="dark"] .shift-night .shift-name-title {
+  color: #ede9fe;
+}
+:root[data-theme="dark"] .shift-night .shift-time-badge {
+  background: #211c47;
+  color: #c4b5fd;
+}
+:root[data-theme="dark"] .shift-night[aria-pressed="true"] {
+  background: linear-gradient(180deg, #2b2361 0%, #120e2e 100%) !important;
+  border-color: #818cf8 !important;
+  box-shadow: 0 12px 28px rgba(129, 140, 248, 0.28), 0 0 0 1px #818cf8 !important;
+}
+:root[data-theme="dark"] .shift-night[aria-pressed="true"] .shift-name-title {
+  color: #a5b4fc;
+}
+:root[data-theme="dark"] .shift-night[aria-pressed="true"] .shift-time-badge {
+  background: #6366f1;
+  color: #ffffff;
+}
+
+/* Inputs & Selects โมเดิร์น */
+.select-modern, .input-modern {
+  width: 100%;
+  min-height: 52px;
+  border: 1.5px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface-alt);
+  padding: 10px 14px;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--ink);
+  font-family: inherit;
+  transition: all 0.2s ease;
+}
+.select-modern:focus, .input-modern:focus {
+  border-color: var(--accent);
+  background: var(--surface);
+  box-shadow: 0 0 0 3px rgba(15, 94, 86, 0.15);
+  outline: none;
+}
+.select-modern optgroup {
+  font-weight: 700;
+  color: var(--navy);
+  background: var(--surface-alt);
+  padding: 6px 0;
+}
+:root[data-theme="dark"] .select-modern optgroup {
+  color: #38bdf8;
+  background: #1e293b;
+}
+
+/* ปุ่มสลับพิมพ์ระบุเอง */
+.btn-toggle-custom {
+  background: var(--surface-alt);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+.btn-toggle-custom:hover {
+  background: var(--navy-light);
+  border-color: var(--accent);
+}
+
+/* กล่องถ่ายภาพ Dropzone */
+.photo-dropzone-btn {
+  width: 100%;
+  border: 2px dashed var(--line-strong);
+  border-radius: 16px;
+  background: var(--surface-alt);
+  padding: 20px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+  text-align: left;
+}
+.photo-dropzone-btn:hover {
+  border-color: var(--accent);
+  background: var(--navy-light);
+  transform: translateY(-1px);
+}
+.photo-dropzone-icon {
+  font-size: 36px;
+  width: 54px;
+  height: 54px;
+  border-radius: 14px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  display: grid;
+  place-items: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  flex-shrink: 0;
+}
+.photo-dropzone-text {
+  display: flex;
+  flex-direction: column;
+}
+.photo-dropzone-text b {
+  font-size: 16px;
+  color: var(--ink);
+}
+.photo-dropzone-text small {
+  font-size: 13px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+/* พรีวิวรูปภาพ */
+.thumbs-modern {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+.thumb {
+  position: relative;
+  width: 130px;
+  height: 130px;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 2px solid var(--accent);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+  animation: popIn 0.25s ease;
+}
+.thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.thumb button {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 0;
+  background: rgba(0, 0, 0, 0.75);
+  color: #fff;
+  cursor: pointer;
+  font-size: 16px;
+  display: grid;
+  place-items: center;
+  transition: 0.15s;
+}
+.thumb button:hover {
+  background: #dc2626;
+  transform: scale(1.1);
+}
+
+/* Quick Note Chips Bar */
+.quick-chips-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.quick-chips-lbl {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.quick-chips-list {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.chip-quick-note {
+  border: 1px solid var(--line);
+  background: var(--surface-alt);
+  border-radius: 18px;
+  padding: 5px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+.chip-quick-note:hover {
+  background: var(--navy-light);
+  border-color: var(--accent);
+  color: var(--accent);
+  transform: translateY(-1px);
+}
+.chip-quick-note:active {
+  transform: scale(0.96);
+}
+
+/* กล่องพิมพ์เหตุการณ์ & ไมค์ */
+.note-wrap-modern {
+  position: relative;
+}
+.textarea-modern {
+  width: 100%;
+  min-height: 120px;
+  border: 1.5px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface-alt);
+  padding: 14px;
+  padding-right: 68px;
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--ink);
+  font-family: inherit;
+  resize: vertical;
+  transition: all 0.2s ease;
+}
+.textarea-modern:focus {
+  border-color: var(--accent);
+  background: var(--surface);
+  box-shadow: 0 0 0 3px rgba(15, 94, 86, 0.15);
+  outline: none;
+}
+
+/* สถานะกำลังฟังเสียง (Listening Bar & Waves) */
+.mic-listening-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+  border: 1.5px solid #fca5a5;
+  border-radius: 14px;
+  padding: 8px 14px;
+  margin-bottom: 10px;
+  animation: fadeInDown 0.25s ease;
+}
+:root[data-theme="dark"] .mic-listening-bar {
+  background: linear-gradient(135deg, #3f1515 0%, #290e0e 100%);
+  border-color: #7f1d1d;
+}
+
+.mic-live-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.mic-pulse-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ef4444;
+  box-shadow: 0 0 0 rgba(239, 68, 68, 0.6);
+  animation: pulse-dot 1.2s infinite;
+}
+@keyframes pulse-dot {
+  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+  70% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
+.mic-live-label {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #b91c1c;
+}
+:root[data-theme="dark"] .mic-live-label {
+  color: #fca5a5;
+}
+
+/* Sound wave bars */
+.sound-wave-anim {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  height: 20px;
+}
+.sound-wave-anim span {
+  display: block;
+  width: 3.5px;
+  height: 6px;
+  background: #ef4444;
+  border-radius: 4px;
+  animation: soundwave 1s infinite ease-in-out;
+}
+.sound-wave-anim span:nth-child(1) { animation-delay: 0.1s; }
+.sound-wave-anim span:nth-child(2) { animation-delay: 0.25s; }
+.sound-wave-anim span:nth-child(3) { animation-delay: 0.4s; }
+.sound-wave-anim span:nth-child(4) { animation-delay: 0.15s; }
+.sound-wave-anim span:nth-child(5) { animation-delay: 0.3s; }
+
+@keyframes soundwave {
+  0%, 100% { height: 5px; }
+  50% { height: 18px; }
+}
+
+.btn-stop-listening {
+  background: #ef4444;
+  color: #ffffff;
+  border: none;
+  border-radius: 20px;
+  padding: 5px 14px;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(239, 68, 68, 0.3);
+  transition: transform 0.15s ease, background 0.15s ease;
+  font-family: inherit;
+}
+.btn-stop-listening:hover {
+  transform: scale(1.05);
+  background: #dc2626;
+}
+
+.textarea-modern.is-listening {
+  border-color: #ef4444 !important;
+  background: #fffdfd !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.25) !important;
+}
+:root[data-theme="dark"] .textarea-modern.is-listening {
+  background: #1f0d0d !important;
+}
+.mic-modern {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: none;
+  background: linear-gradient(135deg, var(--accent) 0%, #0c4842 100%);
+  color: #ffffff;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  font-size: 22px;
+  box-shadow: 0 4px 12px rgba(15, 94, 86, 0.35);
+  transition: all 0.2s ease;
+}
+.mic-modern:hover {
+  transform: scale(1.08);
+}
+.mic-modern.on {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  box-shadow: 0 0 0 6px rgba(239, 68, 68, 0.35);
+  animation: pulse-mic 1s infinite;
+}
+@keyframes pulse-mic {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+.mic-hint-badge {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+  background: var(--navy-light);
+  padding: 3px 8px;
+  border-radius: 12px;
+}
+
+/* กล่องเช็คพื้นที่เสี่ยง */
+.risk-card-modern {
+  margin-top: 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+  border: 1.5px solid #fcd34d;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+:root[data-theme="dark"] .risk-card-modern {
+  background: linear-gradient(135deg, #2b1f09 0%, #3d2a09 100%);
+  border-color: #b45309;
+}
+.risk-card-modern:hover {
+  border-color: #f59e0b;
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.15);
+}
+.risk-card-modern input[type="checkbox"] {
+  width: 26px;
+  height: 26px;
+  accent-color: #d97706;
+  cursor: pointer;
+  margin: 0;
+  flex-shrink: 0;
+}
+.risk-card-content {
+  display: flex;
+  flex-direction: column;
+}
+.risk-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.risk-title-row b {
+  color: #b45309;
+  font-size: 16px;
+  font-weight: 700;
+}
+:root[data-theme="dark"] .risk-title-row b {
+  color: #fbbf24;
+}
+.risk-card-content p {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: #92400e;
+  line-height: 1.4;
+}
+:root[data-theme="dark"] .risk-card-content p {
+  color: #fde68a;
+}
+
+/* ปุ่มบันทึกข้อมูลหลัก */
+.form-submit-row {
+  margin-top: 26px;
+}
+.btn-submit-patrol {
+  width: 100%;
+  min-height: 62px;
+  border-radius: 18px;
+  border: none;
+  background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+  color: #ffffff;
+  font-size: 20px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  box-shadow: 0 8px 24px rgba(22, 163, 74, 0.35);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  letter-spacing: 0.01em;
+}
+.btn-submit-patrol:hover {
+  background: linear-gradient(135deg, #15803d 0%, #166534 100%);
+  box-shadow: 0 10px 28px rgba(22, 163, 74, 0.45);
+  transform: translateY(-2px);
+}
+.btn-submit-patrol:active {
+  transform: translateY(1px) scale(0.99);
+}
+.submit-icon {
+  font-size: 24px;
+}
+
+/* รายการประวัติล่าสุด */
+.recent-logs-container {
+  margin-top: 28px;
+  border-radius: 20px;
+  padding: 24px;
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+}
+.recent-logs-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.recent-logs-title-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.recent-logs-icon {
+  font-size: 28px;
+}
+.recent-logs-title-group h3 {
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0;
+}
+.recent-logs-title-group p {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+.recent-count-tag {
+  background: var(--navy-light);
+  color: var(--accent);
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 700;
+}
+.recent-logs-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.recent-log-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-left: 6px solid var(--ok);
+  border-radius: 14px;
+  padding: 16px 18px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s ease;
+}
+.recent-log-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+.recent-log-card.is-alert {
+  border-left-color: #dc2626;
+  background: var(--alert-bg);
+}
+.recent-log-card.is-risk {
+  border-left-color: #f59e0b;
+}
+.recent-log-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+.recent-log-location {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.recent-log-time {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent);
+  background: var(--surface-alt);
+  padding: 4px 10px;
+  border-radius: 10px;
+  white-space: nowrap;
+  border: 1px solid var(--line);
+}
+.recent-log-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+.recent-log-note {
+  margin: 8px 0 0;
+  font-size: 15px;
+  color: var(--ink);
+  line-height: 1.5;
+}
+.recent-log-img-link {
+  display: inline-block;
+  margin-top: 10px;
+  width: 80px;
+  height: 60px;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 2px solid var(--line);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+.recent-log-img-link img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+

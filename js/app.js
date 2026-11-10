@@ -14,18 +14,13 @@
     guards: [],
     checkpoints: [],
     history: [],
-    currentShift: 'morning',
-    currentRound: 'รอบที่ 1',
+    currentShift: 'morning', // 'morning' | 'afternoon' | 'night'
+    currentShiftName: 'เช้า',
     currentGuardId: '',
-    cpRiskFilter: 'all', // 'all' | 'risk'
-    roundChecks: {}, // { [cpId]: record }
-    activeCpForInspection: null,
-    selectedInspectionStatus: 'ok',
-    attachedPhotos: [],
-    offCpAttachedPhotos: [],
+    currentGuardName: '',
+    capturedImageBase64: null,
     speechRecognition: null,
     isRecordingVoice: false,
-    activeMicTarget: 'sheet', // 'sheet' | 'offCp'
     selectedAdminEditStatus: 'ok',
     adminEditPhotos: []
   };
@@ -50,50 +45,23 @@
     panelGuard: document.getElementById('panelGuard'),
     panelSupervisor: document.getElementById('panelSupervisor'),
 
-    // Guard panel
-    guardSelect: document.getElementById('guardSelect'),
-    roundSelect: document.getElementById('roundSelect'),
-    shiftSegment: document.getElementById('shiftSegment'),
-    progressText: document.getElementById('progressText'),
-    progressBarFill: document.getElementById('progressBarFill'),
-    progressPercent: document.getElementById('progressPercent'),
-    checkpointList: document.getElementById('checkpointList'),
-    resetRoundBtn: document.getElementById('resetRoundBtn'),
-    filterAllCpBtn: document.getElementById('filterAllCpBtn'),
-    filterRiskCpBtn: document.getElementById('filterRiskCpBtn'),
-    openOffCpBtn: document.getElementById('openOffCpBtn'),
+    // Patrol Elements (ระบบบันทึกเวียนตรวจ รปภ. มรย.)
+    sosPatrolBtn: document.getElementById('sosPatrolBtn'),
+    shiftPatrolSeg: document.getElementById('shiftPatrolSeg'),
+    guardPatrolSelect: document.getElementById('guardPatrolSelect'),
+    locPatrolSelect: document.getElementById('locPatrolSelect'),
+    customLocPatrolInput: document.getElementById('customLocPatrolInput'),
+    toggleCustomLocBtn: document.getElementById('toggleCustomLocBtn'),
+    camPatrolInput: document.getElementById('camPatrolInput'),
+    triggerCamBtn: document.getElementById('triggerCamBtn'),
+    thumbPatrolContainer: document.getElementById('thumbPatrolContainer'),
+    notePatrolInput: document.getElementById('notePatrolInput'),
+    micPatrolBtn: document.getElementById('micPatrolBtn'),
+    riskPatrolChk: document.getElementById('riskPatrolChk'),
+    submitPatrolBtn: document.getElementById('submitPatrolBtn'),
+    guardRecentLogs: document.getElementById('guardRecentLogs'),
+    guardLogCount: document.getElementById('guardLogCount'),
 
-    // Inspection Modal (ตรวจจุดปกติ)
-    inspectionVeil: document.getElementById('inspectionVeil'),
-    sheetTitle: document.getElementById('sheetTitle'),
-    sheetSubtitle: document.getElementById('sheetSubtitle'),
-    sheetCloseBtn: document.getElementById('sheetCloseBtn'),
-    sheetStampTime: document.getElementById('sheetStampTime'),
-    sheetGuardTag: document.getElementById('sheetGuardTag'),
-    statusOkBtn: document.getElementById('statusOkBtn'),
-    statusAlertBtn: document.getElementById('statusAlertBtn'),
-    sheetNote: document.getElementById('sheetNote'),
-    micBtn: document.getElementById('micBtn'),
-    photoInput: document.getElementById('photoInput'),
-    takePhotoBtn: document.getElementById('takePhotoBtn'),
-    photoThumbs: document.getElementById('photoThumbs'),
-    saveInspectionBtn: document.getElementById('saveInspectionBtn'),
-    cancelInspectionBtn: document.getElementById('cancelInspectionBtn'),
-
-    // Off-Checkpoint Emergency Modal (เหตุด่วนนอกจุดตรวจ)
-    offCpVeil: document.getElementById('offCpVeil'),
-    offCpCloseBtn: document.getElementById('offCpCloseBtn'),
-    offCpStampTime: document.getElementById('offCpStampTime'),
-    offCpGuardTag: document.getElementById('offCpGuardTag'),
-    offCpLocation: document.getElementById('offCpLocation'),
-    offCpType: document.getElementById('offCpType'),
-    offCpNote: document.getElementById('offCpNote'),
-    offCpMicBtn: document.getElementById('offCpMicBtn'),
-    offCpPhotoInput: document.getElementById('offCpPhotoInput'),
-    offCpTakePhotoBtn: document.getElementById('offCpTakePhotoBtn'),
-    offCpPhotoThumbs: document.getElementById('offCpPhotoThumbs'),
-    saveOffCpBtn: document.getElementById('saveOffCpBtn'),
-    cancelOffCpBtn: document.getElementById('cancelOffCpBtn'),
 
     // Supervisor panel
     statTotal: document.getElementById('statTotal'),
@@ -144,12 +112,10 @@
     loadFromLocalStorage();
     setupClock();
     setupTheme();
-    setupSpeechRecognition();
     setupAuth();
     bindEvents();
-    renderGuardSelect();
-    renderCheckpoints();
-    updateProgress();
+    setupPatrolForm();
+    renderGuardRecentLogs();
     renderSupervisorDashboard();
     applyAuthUI();
 
@@ -158,14 +124,6 @@
       switchTab('supervisor');
     } else {
       switchTab('guard');
-      // ตรวจสอบ URL query สำหรับเปิดหน้าบันทึก (สำหรับ รปภ. เท่านั้น)
-      const urlParams = new URLSearchParams(window.location.search);
-      const openCp = urlParams.get('open');
-      if (openCp === 'off') {
-        setTimeout(() => openOffCheckpointModal(), 200);
-      } else if (openCp) {
-        setTimeout(() => window.appOpenInspection(openCp), 200);
-      }
     }
   }
 
@@ -359,95 +317,13 @@
     }
 
     // 2 Tabs switching
-    el.tabGuard.addEventListener('click', () => switchTab('guard'));
-    el.tabSupervisor.addEventListener('click', () => switchTab('supervisor'));
-
-    // Guard select change
-    el.guardSelect.addEventListener('change', (e) => {
-      state.currentGuardId = e.target.value;
-      const selectedGuard = state.guards.find(g => g.id === e.target.value);
-      showToast(`เลือก: ${selectedGuard ? selectedGuard.name : ''}`);
-    });
-
-    // Round select change
-    el.roundSelect.addEventListener('change', (e) => {
-      state.currentRound = e.target.value;
-      updateProgress();
-      renderCheckpoints();
-      showToast(`เปลี่ยนเป็น: ${e.target.value}`);
-    });
-
-    // Shift segment
-    el.shiftSegment.querySelectorAll('button').forEach(btn => {
-      btn.addEventListener('click', () => {
-        el.shiftSegment.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', 'false'));
-        btn.setAttribute('aria-pressed', 'true');
-        state.currentShift = btn.dataset.shift;
-        showToast(`เลือกกะ: ${btn.querySelector('b').textContent}`);
-      });
-    });
-
-    // Checkpoint Risk Filter Buttons
-    el.filterAllCpBtn.addEventListener('click', () => {
-      state.cpRiskFilter = 'all';
-      el.filterAllCpBtn.classList.add('active');
-      el.filterRiskCpBtn.classList.remove('active');
-      renderCheckpoints();
-    });
-
-    el.filterRiskCpBtn.addEventListener('click', () => {
-      state.cpRiskFilter = 'risk';
-      el.filterRiskCpBtn.classList.add('active');
-      el.filterAllCpBtn.classList.remove('active');
-      renderCheckpoints();
-    });
-
-    // Reset round
-    el.resetRoundBtn.addEventListener('click', () => {
-      if (confirm('คุณต้องการเริ่มรอบการตรวจใหม่หรือไม่? (ข้อมูลรอบเก่าจะยังคงถูกบันทึกไว้ในระบบ)')) {
-        state.roundChecks = {};
-        saveToLocalStorage();
-        renderCheckpoints();
-        updateProgress();
-        showToast('🔄 เริ่มรอบการตรวจใหม่เรียบร้อย');
-      }
-    });
-
-    // Inspection Status picker buttons (2 ปุ่มยักษ์)
-    el.statusOkBtn.addEventListener('click', () => setStatusSelection('ok'));
-    el.statusAlertBtn.addEventListener('click', () => setStatusSelection('alert'));
-
-    // Mic buttons
-    el.micBtn.addEventListener('click', () => toggleVoiceRecording('sheet'));
-    el.offCpMicBtn.addEventListener('click', () => toggleVoiceRecording('offCp'));
-
-    // Photo Attachments - Normal
-    el.takePhotoBtn.addEventListener('click', () => el.photoInput.click());
-    el.photoInput.addEventListener('change', handlePhotoSelect);
-
-    // Modal Close / Cancel / Save - Normal
-    el.sheetCloseBtn.addEventListener('click', closeInspectionSheet);
-    el.cancelInspectionBtn.addEventListener('click', closeInspectionSheet);
-    el.inspectionVeil.addEventListener('click', (e) => {
-      if (e.target === el.inspectionVeil) closeInspectionSheet();
-    });
-    el.saveInspectionBtn.addEventListener('click', saveInspection);
-
-    // Off-Checkpoint Modal events
-    el.openOffCpBtn.addEventListener('click', openOffCheckpointModal);
-    el.offCpCloseBtn.addEventListener('click', closeOffCheckpointModal);
-    el.cancelOffCpBtn.addEventListener('click', closeOffCheckpointModal);
-    el.offCpVeil.addEventListener('click', (e) => {
-      if (e.target === el.offCpVeil) closeOffCheckpointModal();
-    });
-    el.offCpTakePhotoBtn.addEventListener('click', () => el.offCpPhotoInput.click());
-    el.offCpPhotoInput.addEventListener('change', handleOffCpPhotoSelect);
-    el.saveOffCpBtn.addEventListener('click', saveOffCheckpointIncident);
+    if (el.tabGuard) el.tabGuard.addEventListener('click', () => switchTab('guard'));
+    if (el.tabSupervisor) el.tabSupervisor.addEventListener('click', () => switchTab('supervisor'));
 
     // Supervisor Filters
-    el.filterDate.addEventListener('change', renderSupervisorDashboard);
-    el.filterShift.addEventListener('change', renderSupervisorDashboard);
-    el.filterStatus.addEventListener('change', renderSupervisorDashboard);
+    if (el.filterDate) el.filterDate.addEventListener('change', renderSupervisorDashboard);
+    if (el.filterShift) el.filterShift.addEventListener('change', renderSupervisorDashboard);
+    if (el.filterStatus) el.filterStatus.addEventListener('change', renderSupervisorDashboard);
     if (el.resetFilterBtn) {
       el.resetFilterBtn.addEventListener('click', () => {
         el.filterDate.value = '';
@@ -457,7 +333,7 @@
         showToast('🔄 แสดงข้อมูลทั้งหมดเรียบร้อยแล้ว');
       });
     }
-    el.exportCsvBtn.addEventListener('click', exportToCsv);
+    if (el.exportCsvBtn) el.exportCsvBtn.addEventListener('click', exportToCsv);
   }
 
   // --- AUTHENTICATION & ACCESS CONTROL ---
@@ -490,9 +366,9 @@
       // แอดมิน: แสดงเฉพาะหน้าแดชบอร์ดสรุปผลของหัวหน้าเวร (ซ่อนหน้าสำหรับ รปภ. โดยสิ้นเชิง)
       switchTab('supervisor');
     } else {
-      // รปภ.: แสดงเฉพาะหน้าบันทึกการเดินตรวจ (ซ่อนหน้าแดชบอร์ดสรุปผลโดยสิ้นเชิง)
+      // รปภ.: แสดงเฉพาะหน้าระบบบันทึกเวียนตรวจ (ซ่อนหน้าแดชบอร์ดสรุปผลโดยสิ้นเชิง)
       switchTab('guard');
-      renderCheckpoints();
+      renderGuardRecentLogs();
     }
   }
 
@@ -531,367 +407,544 @@
     }
   }
 
-  // --- GUARDS & CHECKPOINTS RENDERING ---
-  function renderGuardSelect() {
-    el.guardSelect.innerHTML = state.guards.map((g, idx) => `
-      <option value="${g.id}">${idx + 1}. ${g.name} (${g.code})</option>
-    `).join('');
-
-    if (state.currentGuardId) {
-      el.guardSelect.value = state.currentGuardId;
-    }
-  }
-
-  function renderCheckpoints() {
-    let activeCps = state.checkpoints.filter(cp => cp.active !== false);
-
-    if (state.cpRiskFilter === 'risk') {
-      activeCps = activeCps.filter(cp => cp.isRisk === true);
-    }
-
-    if (activeCps.length === 0) {
-      el.checkpointList.innerHTML = `<div class="empty">ไม่พบจุดตรวจในตัวกรองนี้</div>`;
-      return;
-    }
-
-    const isAdmin = state.currentUser && state.currentUser.role === 'admin';
-
-    el.checkpointList.innerHTML = activeCps.map((cp, idx) => {
-      const check = state.roundChecks[cp.id];
-      const isDone = !!check;
-      const isAlert = check && check.status === 'alert';
-      const isRisk = !!cp.isRisk;
-
-      let cardClass = 'cp-card';
-      if (isRisk) cardClass += ' is-risk';
-
-      if (!isDone) {
-        // ยังไม่ได้ตรวจ: แสดงปุ่มใหญ่กดบันทึกจุดนี้ชัดเจน
-        return `
-          <div class="${cardClass}">
-            <div class="cp-card-top">
-              <div class="cp-num">${idx + 1}</div>
-              <div class="cp-card-info">
-                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-                  <div class="cp-card-title">จุดที่ ${idx + 1}: ${escapeHtml(cp.name)}</div>
-                  ${isRisk ? '<span class="tag risk">⚠️ พื้นที่เฝ้าระวังพิเศษ</span>' : '<span class="tag" style="background:#e2e8f0; color:#475569;">⏳ รอการตรวจ</span>'}
-                </div>
-                <div class="cp-card-zone">📍 พิกัด: ${escapeHtml(cp.zone)} (${escapeHtml(cp.code)})</div>
-                <div class="cp-card-desc">🔍 <b>สิ่งที่ต้องตรวจดู:</b> ${escapeHtml(cp.desc)}</div>
-                ${isRisk && cp.riskReason ? `<div style="margin-top:6px; font-size:14px; color:var(--risk); font-weight:600;">💡 หมายเหตุจุดเสี่ยง: ${escapeHtml(cp.riskReason)}</div>` : ''}
-              </div>
-            </div>
-            <button type="button" class="btn-check-action" onclick="window.appOpenInspection('${cp.id}')">
-              👉 แตะปุ่มนี้เพื่อบันทึกผลการตรวจ (จุดที่ ${idx + 1})
-            </button>
-          </div>
-        `;
-      } else if (isAlert) {
-        // ตรวจแล้ว: พบปัญหา (สีแดง)
-        cardClass += ' alert';
-        return `
-          <div class="${cardClass}">
-            <div class="cp-card-top">
-              <div class="cp-num">🚨</div>
-              <div class="cp-card-info">
-                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-                  <div class="cp-card-title">จุดที่ ${idx + 1}: ${escapeHtml(cp.name)}</div>
-                  <span class="tag alert">🚨 แจ้งพบปัญหาแล้ว (เวลา ${check.time} น.)</span>
-                </div>
-                <div class="cp-card-zone">📍 พิกัด: ${escapeHtml(cp.zone)} • ผู้ตรวจ: <b>${escapeHtml(check.guardName)}</b></div>
-                ${check.note ? `<div style="font-size:16px; color:var(--alert); font-weight:700; margin-top:8px; background:#ffffff; border:1px solid var(--alert-border); padding:8px 12px; border-radius:8px;">⚠️ รายละเอียดที่แจ้ง: ${escapeHtml(check.note)}</div>` : ''}
-              </div>
-            </div>
-            ${isAdmin ? `
-              <button type="button" class="btn-check-action edit" onclick="window.appOpenInspection('${cp.id}')">
-                ✏️ แตะเพื่อแก้ไขข้อมูลจุดนี้ (สำหรับหัวหน้าเวร)
-              </button>
-            ` : `
-              <div class="badge-locked-status">
-                🔒 บันทึกผลเรียบร้อยแล้วเมื่อเวลา ${check.time} น. (หากต้องการแก้ไข กรุณาแจ้งหัวหน้าเวร)
-              </div>
-            `}
-          </div>
-        `;
-      } else {
-        // ตรวจแล้ว: ปกติ (สีเขียว)
-        cardClass += ' done';
-        return `
-          <div class="${cardClass}">
-            <div class="cp-card-top">
-              <div class="cp-num">✅</div>
-              <div class="cp-card-info">
-                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-                  <div class="cp-card-title">จุดที่ ${idx + 1}: ${escapeHtml(cp.name)}</div>
-                  <span class="tag ok">✅ ตรวจแล้ว: ปกติเรียบร้อย (เวลา ${check.time} น.)</span>
-                </div>
-                <div class="cp-card-zone">📍 พิกัด: ${escapeHtml(cp.zone)} • ผู้ตรวจ: <b>${escapeHtml(check.guardName)}</b></div>
-                ${check.note ? `<div style="font-size:15px; margin-top:6px; background:#ffffff; padding:6px 10px; border-radius:8px; border:1px solid var(--ok-border);">💬 บันทึกเพิ่มเติม: ${escapeHtml(check.note)}</div>` : ''}
-              </div>
-            </div>
-            ${isAdmin ? `
-              <button type="button" class="btn-check-action edit" onclick="window.appOpenInspection('${cp.id}')">
-                ✏️ แตะเพื่อแก้ไขข้อมูลจุดนี้ (สำหรับหัวหน้าเวร)
-              </button>
-            ` : `
-              <div class="badge-locked-status">
-                🔒 บันทึกผลเรียบร้อยแล้วเมื่อเวลา ${check.time} น. (หากต้องการแก้ไข กรุณาแจ้งหัวหน้าเวร)
-              </div>
-            `}
-          </div>
-        `;
+  // --- PATROL RECORDING SYSTEM (ระบบบันทึกเวียนตรวจ รปภ. มรย.) ---
+  function setupPatrolForm() {
+    // 1. Shift buttons
+    if (el.shiftPatrolSeg) {
+      const shiftBtns = el.shiftPatrolSeg.querySelectorAll('button');
+      
+      // คำนวณกะปัจจุบันตามเวลาจริงอัตโนมัติ (เช้า 06-14, บ่าย 14-22, ดึก 22-06)
+      const curHour = new Date().getHours();
+      let autoShift = 'morning';
+      let autoShiftName = 'เช้า';
+      if (curHour >= 14 && curHour < 22) {
+        autoShift = 'afternoon';
+        autoShiftName = 'บ่าย';
+      } else if (curHour >= 22 || curHour < 6) {
+        autoShift = 'night';
+        autoShiftName = 'ดึก';
       }
-    }).join('');
-  }
+      state.currentShift = autoShift;
+      state.currentShiftName = autoShiftName;
 
-  function updateProgress() {
-    const activeCps = state.checkpoints.filter(cp => cp.active !== false);
-    const total = activeCps.length;
-    let completed = 0;
+      shiftBtns.forEach(btn => {
+        if (btn.dataset.shift === autoShift) {
+          btn.setAttribute('aria-pressed', 'true');
+        } else {
+          btn.setAttribute('aria-pressed', 'false');
+        }
 
-    activeCps.forEach(cp => {
-      if (state.roundChecks[cp.id]) {
-        completed++;
+        btn.addEventListener('click', () => {
+          shiftBtns.forEach(b => b.setAttribute('aria-pressed', 'false'));
+          btn.setAttribute('aria-pressed', 'true');
+          state.currentShift = btn.dataset.shift || 'morning';
+          state.currentShiftName = btn.dataset.val || 'เช้า';
+          showToast(`เลือกกะ: ${state.currentShiftName}`);
+        });
+      });
+    }
+
+    // 2. Guard select: Pre-select current user if name matches
+    if (el.guardPatrolSelect) {
+      if (state.currentUser && state.currentUser.name) {
+        for (let opt of el.guardPatrolSelect.options) {
+          if (opt.value.includes(state.currentUser.name)) {
+            opt.selected = true;
+            state.currentGuardName = opt.value;
+            break;
+          }
+        }
       }
+      el.guardPatrolSelect.addEventListener('change', (e) => {
+        state.currentGuardName = e.target.value;
+        showToast(`เลือกเจ้าหน้าที่: ${e.target.value}`);
+      });
+    }
+
+    // 3. Location toggle between dropdown and custom text input
+    if (el.toggleCustomLocBtn) {
+      el.toggleCustomLocBtn.addEventListener('click', () => {
+        const wrap = document.getElementById('customLocWrap') || el.customLocPatrolInput;
+        const isHidden = wrap.style.display === 'none';
+        if (isHidden) {
+          wrap.style.display = 'block';
+          if (el.customLocPatrolInput) el.customLocPatrolInput.style.display = 'block';
+          if (el.locPatrolSelect) {
+            el.locPatrolSelect.style.display = 'none';
+            el.locPatrolSelect.value = '';
+          }
+          el.toggleCustomLocBtn.innerHTML = '<span>📋</span> เลือกจากรายการ';
+          if (el.customLocPatrolInput) el.customLocPatrolInput.focus();
+        } else {
+          wrap.style.display = 'none';
+          if (el.customLocPatrolInput) {
+            el.customLocPatrolInput.style.display = 'none';
+            el.customLocPatrolInput.value = '';
+          }
+          if (el.locPatrolSelect) el.locPatrolSelect.style.display = 'block';
+          el.toggleCustomLocBtn.innerHTML = '<span>✏️</span> พิมพ์ระบุเอง';
+        }
+      });
+    }
+
+    // 4. Quick note chips
+    document.querySelectorAll('.chip-quick-note').forEach(chip => {
+      chip.addEventListener('click', () => {
+        const text = chip.dataset.text || chip.textContent.trim();
+        if (el.notePatrolInput) {
+          const current = el.notePatrolInput.value.trim();
+          if (!current) {
+            el.notePatrolInput.value = text;
+          } else if (!current.includes(text)) {
+            el.notePatrolInput.value = current + ' ' + text;
+          }
+          showToast(`เพิ่มข้อความ: "${text}"`);
+          el.notePatrolInput.focus();
+        }
+      });
     });
 
-    const remaining = total - completed;
-    const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
-    
-    el.progressBarFill.style.width = `${percent}%`;
-    el.progressPercent.textContent = `${percent}%`;
-    
-    if (completed === total) {
-      el.progressText.innerHTML = `<span style="color:var(--ok); font-weight:700;">🎉 ตรวจครบทั้ง ${total} จุดแล้ว!</span>`;
-    } else {
-      el.progressText.textContent = `ตรวจเสร็จแล้ว ${completed} จาก ${total} จุด (เหลืออีก ${remaining} จุด)`;
+    // 4. Camera & Image Compression (Canvas Max 600px, JPEG 60%)
+    if (el.triggerCamBtn && el.camPatrolInput) {
+      el.triggerCamBtn.addEventListener('click', () => el.camPatrolInput.click());
+      el.camPatrolInput.addEventListener('change', handlePatrolImageUpload);
+    }
+
+    // 5. Speech recognition
+    setupPatrolSpeechRecognition();
+
+    // 6. Submit button
+    if (el.submitPatrolBtn) {
+      el.submitPatrolBtn.addEventListener('click', () => savePatrolRecord(false));
+    }
+
+    // 7. SOS button
+    if (el.sosPatrolBtn) {
+      el.sosPatrolBtn.addEventListener('click', triggerSOS);
     }
   }
 
-  // --- INSPECTION SHEET MODAL ---
-  window.appOpenInspection = function (cpId) {
-    const cp = state.checkpoints.find(c => c.id === cpId);
-    if (!cp) return;
+  function handlePatrolImageUpload(event) {
+    const file = event.target.files && event.target.files[0];
+    if (!file) return;
 
-    const existingCheck = state.roundChecks[cpId];
-    const isAdmin = state.currentUser && state.currentUser.role === 'admin';
+    const reader = new FileReader();
+    reader.onload = function (e) {
+      const img = new Image();
+      img.onload = function () {
+        const canvas = document.createElement('canvas');
+        const MAX_SIZE = 600;
+        let width = img.width;
+        let height = img.height;
 
-    // ถ้าตรวจไปแล้ว และไม่ใช่แอดมิน -> ห้ามเปิดแก้ไข
-    if (existingCheck && !isAdmin) {
-      showToast('🔒 จุดนี้บันทึกข้อมูลแล้ว เฉพาะแอดมินเท่านั้นที่สามารถแก้ไขได้', '⚠️');
-      return;
-    }
+        if (width > height && width > MAX_SIZE) {
+          height *= MAX_SIZE / width;
+          width = MAX_SIZE;
+        } else if (height > MAX_SIZE) {
+          width *= MAX_SIZE / height;
+          height = MAX_SIZE;
+        }
 
-    state.activeCpForInspection = cp;
-    state.attachedPhotos = [];
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
 
-    const currentGuard = state.guards.find(g => g.id === state.currentGuardId) || state.guards[0];
+        state.capturedImageBase64 = canvas.toDataURL('image/jpeg', 0.6);
 
-    const riskPrefix = cp.isRisk ? '⚠️ [พื้นที่เสี่ยง] ' : '';
-    el.sheetTitle.textContent = `${riskPrefix}${cp.name}`;
-    el.sheetSubtitle.textContent = `พิกัด: ${cp.zone} • ${cp.desc || 'เดินตรวจความเรียบร้อยรอบพื้นที่'}`;
-    el.sheetGuardTag.textContent = currentGuard ? currentGuard.name : 'รปภ.';
-
-    const now = new Date();
-    const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-    
-    el.sheetStampTime.textContent = existingCheck ? `${existingCheck.time} น.` : `${timeStr} น.`;
-
-    if (existingCheck) {
-      setStatusSelection(existingCheck.status || 'ok');
-      el.sheetNote.value = existingCheck.note || '';
-      state.attachedPhotos = existingCheck.images ? [...existingCheck.images] : [];
-    } else {
-      setStatusSelection('ok');
-      el.sheetNote.value = '';
-    }
-
-    renderPhotoThumbs();
-    el.inspectionVeil.removeAttribute('hidden');
-    document.body.style.overflow = 'hidden';
-  };
-
-  function closeInspectionSheet() {
-    el.inspectionVeil.setAttribute('hidden', '');
-    document.body.style.overflow = '';
-    state.activeCpForInspection = null;
-    if (state.isRecordingVoice && state.speechRecognition) {
-      state.speechRecognition.stop();
-    }
-  }
-
-  function setStatusSelection(status) {
-    state.selectedInspectionStatus = status;
-    if (status === 'ok') {
-      el.statusOkBtn.setAttribute('aria-pressed', 'true');
-      el.statusAlertBtn.setAttribute('aria-pressed', 'false');
-    } else {
-      el.statusOkBtn.setAttribute('aria-pressed', 'false');
-      el.statusAlertBtn.setAttribute('aria-pressed', 'true');
-    }
-  }
-
-  function handlePhotoSelect(e) {
-    const files = Array.from(e.target.files);
-    if (!files.length) return;
-
-    files.forEach(file => {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        state.attachedPhotos.push(event.target.result);
-        renderPhotoThumbs();
+        if (el.thumbPatrolContainer) {
+          el.thumbPatrolContainer.innerHTML = `
+            <div class="thumb">
+              <img src="${state.capturedImageBase64}" alt="รูปถ่ายขณะตรวจ">
+              <button type="button" id="removePatrolImgBtn" title="ลบรูป">✖</button>
+            </div>
+          `;
+          const removeBtn = document.getElementById('removePatrolImgBtn');
+          if (removeBtn) {
+            removeBtn.addEventListener('click', removePatrolImage);
+          }
+        }
+        showToast('📷 แนบรูปภาพเรียบร้อยแล้ว');
       };
-      reader.readAsDataURL(file);
-    });
-    e.target.value = '';
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
   }
 
-  function renderPhotoThumbs() {
-    el.photoThumbs.innerHTML = state.attachedPhotos.map((src, index) => `
-      <div class="thumb">
-        <img src="${src}" alt="รูปหลักฐาน ${index + 1}">
-        <button type="button" onclick="window.appRemovePhoto(${index})" title="ลบรูปนี้">✕</button>
-      </div>
-    `).join('');
+  function removePatrolImage() {
+    state.capturedImageBase64 = null;
+    if (el.camPatrolInput) el.camPatrolInput.value = '';
+    if (el.thumbPatrolContainer) el.thumbPatrolContainer.innerHTML = '';
   }
 
-  window.appRemovePhoto = function (index) {
-    state.attachedPhotos.splice(index, 1);
-    renderPhotoThumbs();
-  };
+  // --- SPEECH RECOGNITION (พิมพ์ด้วยเสียงภาษาไทย) ---
+  let activePatrolRec = null;
+  let speechAccumulated = '';
+  let noteBeforeSpeech = '';
 
-  function saveInspection() {
-    if (!state.activeCpForInspection) return;
+  function playMicChime(start = true) {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      const now = ctx.currentTime;
+      if (start) {
+        osc.frequency.setValueAtTime(440, now);
+        osc.frequency.exponentialRampToValueAtTime(880, now + 0.12);
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.linearRampToValueAtTime(0.01, now + 0.15);
+        osc.start(now);
+        osc.stop(now + 0.15);
+      } else {
+        osc.frequency.setValueAtTime(880, now);
+        osc.frequency.exponentialRampToValueAtTime(440, now + 0.12);
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.linearRampToValueAtTime(0.01, now + 0.15);
+        osc.start(now);
+        osc.stop(now + 0.15);
+      }
+    } catch (e) {
+      // AudioContext might be restricted until user gesture; ignore
+    }
+  }
 
-    const cp = state.activeCpForInspection;
-    const currentGuard = state.guards.find(g => g.id === state.currentGuardId) || state.guards[0];
+  function setListeningState(isListening) {
+    state.isRecordingVoice = isListening;
+    if (el.micPatrolBtn) {
+      if (isListening) {
+        el.micPatrolBtn.classList.add('on');
+        el.micPatrolBtn.title = 'กำลังฟังเสียง... แตะเพื่อหยุด';
+      } else {
+        el.micPatrolBtn.classList.remove('on');
+        el.micPatrolBtn.title = 'กดเพื่อเริ่มพูดภาษาไทย';
+      }
+    }
+    if (el.notePatrolInput) {
+      if (isListening) {
+        el.notePatrolInput.classList.add('is-listening');
+      } else {
+        el.notePatrolInput.classList.remove('is-listening');
+      }
+    }
+    const bar = document.getElementById('micListeningBar');
+    if (bar) {
+      bar.style.display = isListening ? 'flex' : 'none';
+    }
+  }
+
+  async function togglePatrolSpeechRecognition() {
+    const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    // หากกำลังฟังอยู่ -> ให้หยุดฟังทันที
+    if (state.isRecordingVoice && activePatrolRec) {
+      try {
+        activePatrolRec.stop();
+      } catch (e) {}
+      return;
+    }
+
+    // หากเบราว์เซอร์ไม่รองรับ Web Speech API
+    if (!SpeechRec) {
+      showToast('💡 แตะที่ช่องพิมพ์ แล้วกดปุ่มรูปไมค์ 🎙️ บนแป้นพิมพ์มือถือเพื่อพูดภาษาไทยได้ทันที', '🎙️');
+      if (el.notePatrolInput) {
+        el.notePatrolInput.focus();
+      }
+      return;
+    }
+
+    // ขออนุญาตใช้ไมโครโฟนล่วงหน้า (เผื่อสิทธิ์ยังไม่ได้อนุญาต)
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        stream.getTracks().forEach(track => track.stop());
+      } catch (permErr) {
+        console.warn('Microphone permission:', permErr);
+        if (permErr.name === 'NotAllowedError' || permErr.name === 'PermissionDeniedError') {
+          showToast('⚠️ กรุณากด "อนุญาต" สิทธิ์การใช้ไมโครโฟนในเบราว์เซอร์', '🔒');
+          return;
+        }
+      }
+    }
+
+    try {
+      activePatrolRec = new SpeechRec();
+      activePatrolRec.lang = 'th-TH';
+      activePatrolRec.continuous = true;
+      activePatrolRec.interimResults = true;
+      activePatrolRec.maxAlternatives = 1;
+
+      noteBeforeSpeech = el.notePatrolInput ? el.notePatrolInput.value.trim() : '';
+      speechAccumulated = '';
+
+      activePatrolRec.onstart = () => {
+        setListeningState(true);
+        playMicChime(true);
+        if (navigator.vibrate) navigator.vibrate(60);
+        showToast('🎙️ กำลังฟังเสียงพูดภาษาไทย... พูดได้เลย', '🔴');
+      };
+
+      activePatrolRec.onresult = (evt) => {
+        let interimText = '';
+        let currentFinal = '';
+
+        for (let i = evt.resultIndex; i < evt.results.length; i++) {
+          const res = evt.results[i];
+          if (res.isFinal) {
+            currentFinal += res[0].transcript;
+          } else {
+            interimText += res[0].transcript;
+          }
+        }
+
+        if (currentFinal) {
+          speechAccumulated += (speechAccumulated ? ' ' : '') + currentFinal.trim();
+        }
+
+        const combined = (speechAccumulated + (interimText ? ' ' + interimText : '')).trim();
+        if (el.notePatrolInput && combined) {
+          el.notePatrolInput.value = noteBeforeSpeech
+            ? noteBeforeSpeech + ' ' + combined
+            : combined;
+          el.notePatrolInput.scrollTop = el.notePatrolInput.scrollHeight;
+        }
+      };
+
+      activePatrolRec.onerror = (evt) => {
+        console.warn('Speech recognition error:', evt.error);
+        if (evt.error === 'not-allowed') {
+          showToast('⚠️ ไมโครโฟนถูกปิดกั้น กรุณาอนุญาตสิทธิ์ในตั้งค่าเบราว์เซอร์', '🔒');
+        } else if (evt.error === 'no-speech') {
+          showToast('⚠️ ไม่ได้ยินเสียงพูด แตะปุ่มไมค์แล้วพูดใหม่อีกครั้งใกล้ๆ ไมค์', '🎙️');
+        } else if (evt.error === 'network') {
+          showToast('⚠️ ระบบแปลงเสียงต้องการการเชื่อมต่ออินเทอร์เน็ต', '📡');
+        }
+      };
+
+      activePatrolRec.onend = () => {
+        setListeningState(false);
+        playMicChime(false);
+        if (navigator.vibrate) navigator.vibrate([40, 40, 40]);
+        if (speechAccumulated.trim()) {
+          showToast('✅ พิมพ์ข้อความจากเสียงเรียบร้อยแล้ว', '✅');
+        }
+        activePatrolRec = null;
+      };
+
+      activePatrolRec.start();
+    } catch (err) {
+      console.warn('Failed to start speech recognition:', err);
+      setListeningState(false);
+      showToast('⚠️ ไม่สามารถเปิดไมโครโฟนได้ กรุณาลองใหม่อีกครั้ง');
+    }
+  }
+
+  function setupPatrolSpeechRecognition() {
+    if (el.micPatrolBtn) {
+      el.micPatrolBtn.addEventListener('click', togglePatrolSpeechRecognition);
+    }
+    const stopBtn = document.getElementById('stopListeningBtn');
+    if (stopBtn) {
+      stopBtn.addEventListener('click', () => {
+        if (activePatrolRec) {
+          try {
+            activePatrolRec.stop();
+          } catch (e) {}
+        }
+      });
+    }
+  }
+
+  function triggerSOS() {
+    const confirmed = confirm('🚨 ยืนยันแจ้งเหตุฉุกเฉิน (SOS)?\n\nระบบจะส่งข้อมูลแจ้งเหตุฉุกเฉินและแจ้งเตือนหัวหน้าเวรทันที\nคุณต้องการแจ้งเหตุด่วนฉุกเฉินใช่หรือไม่?');
+    if (confirmed) {
+      savePatrolRecord(true);
+    }
+  }
+
+  async function savePatrolRecord(isSOS = false) {
+    const btn = el.submitPatrolBtn;
+    const guardVal = el.guardPatrolSelect ? el.guardPatrolSelect.value : '';
+    let locVal = el.locPatrolSelect ? el.locPatrolSelect.value : '';
+    const customLocVal = el.customLocPatrolInput ? el.customLocPatrolInput.value.trim() : '';
+    let notes = el.notePatrolInput ? el.notePatrolInput.value.trim() : '';
+    let isRisk = el.riskPatrolChk ? el.riskPatrolChk.checked : false;
+
+    const isCustomLoc = Boolean(customLocVal);
+    if (isCustomLoc) {
+      locVal = customLocVal + ' (นอกจุดตรวจ)';
+    }
+
+    // Validation
+    if (!isSOS && (!guardVal || (!locVal && !customLocVal))) {
+      showToast('⚠️ กรุณาเลือกชื่อเจ้าหน้าที่ รปภ. และระบุสถานที่/อาคารให้ชัดเจน', '⚠️');
+      return;
+    }
+
+    // If SOS
+    if (isSOS) {
+      isRisk = true;
+      notes = '🚨 แจ้งเหตุฉุกเฉิน (SOS)! ' + (notes || 'ต้องการความช่วยเหลือเร่งด่วน ณ จุดตรวจ');
+      if (!locVal && !customLocVal) {
+        locVal = 'แจ้งเหตุด่วนฉุกเฉิน (ไม่ระบุจุดตรวจ)';
+      }
+    }
+
+    if (!isSOS && btn) {
+      btn.disabled = true;
+      btn.textContent = '⏳ กำลังบันทึกข้อมูล...';
+    }
+
     const now = new Date();
-    const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    const h = String(now.getHours()).padStart(2, '0');
+    const m = String(now.getMinutes()).padStart(2, '0');
+    const timeStr = `${h}:${m}`;
     const isoDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+    const shiftMap = {
+      'เช้า': 'morning',
+      'บ่าย': 'afternoon',
+      'ดึก': 'night',
+      'morning': 'morning',
+      'afternoon': 'afternoon',
+      'night': 'night'
+    };
+    const shiftCode = shiftMap[state.currentShift] || 'morning';
+    const shiftName = state.currentShiftName || 'เช้า';
+
+    // Normalize guard display name
+    let cleanGuardName = guardVal;
+    if (cleanGuardName.match(/^\d+\s/)) {
+      cleanGuardName = cleanGuardName.substring(cleanGuardName.indexOf(' ') + 1);
+    }
+    if (!cleanGuardName) {
+      cleanGuardName = state.currentUser ? state.currentUser.name : 'เจ้าหน้าที่ รปภ.';
+    }
 
     const record = {
       id: 'rec-' + Date.now(),
       date: isoDate,
       time: timeStr,
-      shift: state.currentShift,
-      round: state.currentRound,
-      guardId: currentGuard ? currentGuard.id : 'unknown',
-      guardName: currentGuard ? currentGuard.name : 'เจ้าหน้าที่ รปภ.',
-      cpId: cp.id,
-      cpCode: cp.code,
-      cpName: cp.name,
-      isRisk: !!cp.isRisk,
-      isOffCheckpoint: false,
-      status: state.selectedInspectionStatus,
-      note: el.sheetNote.value.trim(),
-      images: [...state.attachedPhotos]
+      shift: shiftCode,
+      round: `กะ${shiftName} (เวียนตรวจ)`,
+      guardId: state.currentGuardId || 'g1',
+      guardName: cleanGuardName,
+      cpId: isCustomLoc ? 'off-checkpoint' : 'cp-yru',
+      cpCode: isCustomLoc ? 'OFF-CP' : 'CP-YRU',
+      cpName: locVal,
+      isRisk: isRisk,
+      isOffCheckpoint: isCustomLoc,
+      status: isSOS ? 'alert' : (isRisk ? 'alert' : 'ok'),
+      note: notes || (isSOS ? '🚨 แจ้งเหตุฉุกเฉิน' : 'ปกติ เรียบร้อยดี'),
+      images: state.capturedImageBase64 ? [state.capturedImageBase64] : []
     };
 
-    state.roundChecks[cp.id] = record;
+    // Save record to history
     state.history.unshift(record);
-
     saveToLocalStorage();
-    closeInspectionSheet();
-    renderCheckpoints();
-    updateProgress();
+
+    // Re-render UI
     renderSupervisorDashboard();
+    renderGuardRecentLogs();
 
-    const isAlert = record.status === 'alert';
-    showToast(isAlert ? '🚨 บันทึกพบเหตุผิดปกติแล้ว' : '✅ บันทึกว่าปกติเรียบร้อย', isAlert ? '🚨' : '✅');
-  }
+    if (isSOS) {
+      showToast('🚨 ส่งแจ้งเหตุฉุกเฉินเรียบร้อยแล้ว!', '🚨');
+    } else {
+      showToast(`✅ บันทึกเวียนตรวจเรียบร้อย: ${locVal} (${timeStr} น.)`, '✅');
+    }
 
-  // --- OFF-CHECKPOINT INCIDENT MODAL (แจ้งเหตุด่วน) ---
-  function openOffCheckpointModal() {
-    const currentGuard = state.guards.find(g => g.id === state.currentGuardId) || state.guards[0];
-    const now = new Date();
-    const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    // Reset fields for next checkpoint
+    const wrap = document.getElementById('customLocWrap');
+    if (wrap) wrap.style.display = 'none';
+    if (el.locPatrolSelect) {
+      el.locPatrolSelect.value = '';
+      el.locPatrolSelect.style.display = 'block';
+    }
+    if (el.customLocPatrolInput) {
+      el.customLocPatrolInput.value = '';
+      el.customLocPatrolInput.style.display = 'none';
+    }
+    if (el.toggleCustomLocBtn) {
+      el.toggleCustomLocBtn.innerHTML = '<span>✏️</span> พิมพ์ระบุเอง';
+    }
+    if (el.riskPatrolChk) el.riskPatrolChk.checked = false;
+    if (el.notePatrolInput) el.notePatrolInput.value = '';
+    removePatrolImage();
 
-    el.offCpStampTime.textContent = `${timeStr} น.`;
-    el.offCpGuardTag.textContent = currentGuard ? currentGuard.name : 'รปภ.';
-    el.offCpLocation.value = '';
-    el.offCpNote.value = '';
-    state.offCpAttachedPhotos = [];
-    renderOffCpPhotoThumbs();
-
-    el.offCpVeil.removeAttribute('hidden');
-    document.body.style.overflow = 'hidden';
-  }
-
-  function closeOffCheckpointModal() {
-    el.offCpVeil.setAttribute('hidden', '');
-    document.body.style.overflow = '';
-    if (state.isRecordingVoice && state.speechRecognition) {
-      state.speechRecognition.stop();
+    if (!isSOS && btn) {
+      btn.disabled = false;
+      btn.textContent = '💾 บันทึกข้อมูลเข้าสู่ระบบ';
     }
   }
 
-  function handleOffCpPhotoSelect(e) {
-    const files = Array.from(e.target.files);
-    if (!files.length) return;
+  function renderGuardRecentLogs() {
+    if (!el.guardRecentLogs) return;
 
-    files.forEach(file => {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        state.offCpAttachedPhotos.push(event.target.result);
-        renderOffCpPhotoThumbs();
-      };
-      reader.readAsDataURL(file);
-    });
-    e.target.value = '';
-  }
+    const today = new Date();
+    const isoToday = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
-  function renderOffCpPhotoThumbs() {
-    el.offCpPhotoThumbs.innerHTML = state.offCpAttachedPhotos.map((src, index) => `
-      <div class="thumb">
-        <img src="${src}" alt="รูปหลักฐาน ${index + 1}">
-        <button type="button" onclick="window.appRemoveOffCpPhoto(${index})" title="ลบภาพนี้">✕</button>
-      </div>
-    `).join('');
-  }
+    const recent = state.history.filter(h => h.date === isoToday).slice(0, 10);
 
-  window.appRemoveOffCpPhoto = function (index) {
-    state.offCpAttachedPhotos.splice(index, 1);
-    renderOffCpPhotoThumbs();
-  };
+    if (el.guardLogCount) {
+      el.guardLogCount.textContent = `${recent.length} รายการวันนี้`;
+    }
 
-  function saveOffCheckpointIncident() {
-    const locationVal = el.offCpLocation.value.trim();
-    if (!locationVal) {
-      showToast('⚠️ กรุณาระบุสถานที่หรือพิกัดที่พบเหตุก่อน');
-      el.offCpLocation.focus();
+    if (recent.length === 0) {
+      el.guardRecentLogs.innerHTML = `
+        <div style="text-align:center; padding: 36px 20px; color: var(--muted); font-size: 15px; border: 1.5px dashed var(--line); border-radius: 14px; background: var(--surface-alt);">
+          <div style="font-size: 32px; margin-bottom: 8px;">🛡️</div>
+          <b>ยังไม่มีรายการบันทึกเวียนตรวจในวันนี้</b>
+          <p style="margin: 4px 0 0; font-size: 13px;">เลือกสถานที่และกรอกข้อมูลด้านบน จากนั้นกดปุ่มบันทึกเพื่อเริ่มเก็บประวัติ</p>
+        </div>
+      `;
       return;
     }
 
-    const currentGuard = state.guards.find(g => g.id === state.currentGuardId) || state.guards[0];
-    const now = new Date();
-    const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-    const isoDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    el.guardRecentLogs.innerHTML = recent.map(item => {
+      const isOk = item.status === 'ok';
+      let cardClass = 'recent-log-card';
+      if (!isOk || item.isOffCheckpoint) cardClass += ' is-alert';
+      else if (item.isRisk) cardClass += ' is-risk';
 
-    const record = {
-      id: 'rec-off-' + Date.now(),
-      date: isoDate,
-      time: timeStr,
-      shift: state.currentShift,
-      round: 'เหตุด่วนนอกจุดตรวจ',
-      guardId: currentGuard ? currentGuard.id : 'unknown',
-      guardName: currentGuard ? currentGuard.name : 'เจ้าหน้าที่ รปภ.',
-      cpId: 'off-checkpoint',
-      cpCode: 'OFF-CP',
-      cpName: `พบเหตุนอกจุดตรวจ: ${locationVal}`,
-      incidentType: el.offCpType.value,
-      isRisk: true,
-      isOffCheckpoint: true,
-      status: 'alert',
-      note: `[${el.offCpType.value}] ${el.offCpNote.value.trim()}`,
-      images: [...state.offCpAttachedPhotos]
-    };
+      let badgeHtml = isOk
+        ? `<span class="tag ok" style="font-size:12px;">✅ ปกติ</span>`
+        : `<span class="tag alert" style="font-size:12px;">🚨 มีเหตุผิดปกติ</span>`;
+      
+      if (item.isRisk) {
+        badgeHtml += ` <span class="tag risk" style="font-size:12px;">⚠️ จุดเสี่ยง</span>`;
+      }
+      if (item.isOffCheckpoint) {
+        badgeHtml = `<span class="tag alert" style="background:#dc2626; color:#fff; font-size:12px;">🚨 เหตุด่วนนอกจุด</span>`;
+      }
 
-    state.history.unshift(record);
-    saveToLocalStorage();
-    closeOffCheckpointModal();
-    renderSupervisorDashboard();
+      let imgHtml = '';
+      if (item.images && item.images.length > 0) {
+        imgHtml = `
+          <a href="${item.images[0]}" target="_blank" class="recent-log-img-link" title="แตะเพื่อดูภาพขนาดเต็ม">
+            <img src="${item.images[0]}" alt="ภาพหลักฐาน">
+          </a>
+        `;
+      }
 
-    showToast('🚨 แจ้งเหตุด่วนเรียบร้อยแล้ว!', '🚨');
+      return `
+        <div class="${cardClass}">
+          <div class="recent-log-top">
+            <span class="recent-log-location">${escapeHtml(item.cpName)}</span>
+            <span class="recent-log-time">${item.time} น.</span>
+          </div>
+          <div class="recent-log-meta">
+            ${badgeHtml}
+            <span style="font-size:13px; color:var(--muted);">ผู้ตรวจ: <b>${escapeHtml(item.guardName)}</b></span>
+            <span style="font-size:13px; color:var(--muted);">${escapeHtml(item.round || '')}</span>
+          </div>
+          <p class="recent-log-note">${escapeHtml(item.note || '-')}</p>
+          ${imgHtml}
+        </div>
+      `;
+    }).join('');
   }
 
   // --- SUPERVISOR DASHBOARD ---

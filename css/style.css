@@ -3550,4 +3550,292 @@ tbody tr:hover {
   }
 }
 
+/* =========================================================
+   LIVE CAMERA MODAL & VIEWFINDER (ระบบกล้องถ่ายภาพสด มรย.)
+   ========================================================= */
+.camera-sheet {
+  max-width: 580px !important;
+  width: 95% !important;
+  padding: 18px 16px !important;
+  background: #0b1329 !important;
+  color: #f8fafc !important;
+  border: 1px solid #334155 !important;
+  box-shadow: 0 24px 50px rgba(0, 0, 0, 0.75) !important;
+  border-radius: 20px !important;
+}
+
+.camera-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #1e293b;
+}
+
+.camera-modal-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  color: #38bdf8;
+}
+
+.camera-live-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ef4444;
+  box-shadow: 0 0 10px #ef4444;
+  animation: pulse-live 1.5s infinite;
+}
+
+@keyframes pulse-live {
+  0% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.35; transform: scale(0.8); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+.camera-viewfinder-box {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  max-height: 50vh;
+  background: #020617;
+  border-radius: 16px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #334155;
+}
+
+#cameraVideo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.camera-watermark-overlay {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  background: rgba(0, 0, 0, 0.78);
+  color: #ffffff;
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  pointer-events: none;
+  z-index: 5;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  letter-spacing: 0.3px;
+}
+
+.camera-guides {
+  position: absolute;
+  inset: 16px;
+  pointer-events: none;
+  z-index: 4;
+}
+
+.guide-tl, .guide-tr, .guide-bl, .guide-br {
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  border-color: rgba(56, 189, 248, 0.85);
+  border-style: solid;
+}
+.guide-tl { top: 0; left: 0; border-width: 3px 0 0 3px; border-top-left-radius: 6px; }
+.guide-tr { top: 0; right: 0; border-width: 3px 3px 0 0; border-top-right-radius: 6px; }
+.guide-bl { bottom: 0; left: 0; border-width: 0 0 3px 3px; border-bottom-left-radius: 6px; }
+.guide-br { bottom: 0; right: 0; border-width: 0 3px 3px 0; border-bottom-right-radius: 6px; }
+
+.camera-flash {
+  position: absolute;
+  inset: 0;
+  background: #ffffff;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 10;
+  transition: opacity 0.12s ease-out;
+}
+.camera-flash.active {
+  opacity: 0.9;
+}
+
+.camera-modal-status {
+  margin-top: 10px;
+  text-align: center;
+}
+
+.cam-status-pill {
+  display: inline-block;
+  padding: 5px 14px;
+  border-radius: 999px;
+  font-size: 13.5px;
+  font-weight: 600;
+}
+.cam-status-pill.warn {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+  border: 1px solid #f59e0b;
+}
+.cam-status-pill.ok {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+  border: 1px solid #10b981;
+}
+
+.camera-modal-strip {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 8px 4px;
+  margin-top: 6px;
+  min-height: 68px;
+  align-items: center;
+}
+
+.camera-strip-item {
+  position: relative;
+  width: 76px;
+  height: 60px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 2px solid #38bdf8;
+  background: #000;
+}
+.camera-strip-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.camera-strip-item .strip-badge {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.8);
+  color: #fff;
+  font-size: 9.5px;
+  text-align: center;
+  padding: 1px 2px;
+}
+.camera-strip-item .strip-del-btn {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 20px;
+  height: 20px;
+  background: #ef4444;
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+.camera-controls-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 8px 0;
+  margin-top: 6px;
+}
+
+.btn-cam-action {
+  background: #1e293b;
+  color: #94a3b8;
+  border: 1px solid #475569;
+  border-radius: 12px;
+  padding: 8px 12px;
+  font-size: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 68px;
+  text-decoration: none;
+}
+.btn-cam-action:hover, .btn-cam-action:active {
+  background: #334155;
+  color: #ffffff;
+  border-color: #38bdf8;
+}
+
+.btn-cam-shutter {
+  width: 74px;
+  height: 74px;
+  border-radius: 50%;
+  background: transparent;
+  border: 4px solid #ffffff;
+  padding: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.15s, border-color 0.15s;
+  box-shadow: 0 0 20px rgba(56, 189, 248, 0.4);
+}
+.btn-cam-shutter:hover {
+  transform: scale(1.06);
+  border-color: #38bdf8;
+}
+.btn-cam-shutter:active {
+  transform: scale(0.92);
+}
+.shutter-inner {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0284c7, #0369a1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  color: #ffffff;
+  transition: background 0.15s;
+}
+.btn-cam-shutter:active .shutter-inner {
+  background: #0284c7;
+}
+
+.camera-modal-footer {
+  margin-top: 10px;
+}
+
+.btn-save-giant.pulse-ready {
+  background: linear-gradient(135deg, #10b981, #059669) !important;
+  box-shadow: 0 6px 18px rgba(16, 185, 129, 0.45) !important;
+  animation: pulse-ready-anim 2s infinite;
+}
+
+@keyframes pulse-ready-anim {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+  100% { transform: scale(1); }
+}
+
+.visually-hidden-file-input {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
 

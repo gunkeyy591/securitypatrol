@@ -57,6 +57,19 @@
     galleryPatrolInput: document.getElementById('galleryPatrolInput'),
     triggerCamBtn: document.getElementById('triggerCamBtn'),
     triggerGalleryBtn: document.getElementById('triggerGalleryBtn'),
+    cameraModal: document.getElementById('cameraModal'),
+    closeCameraModalBtn: document.getElementById('closeCameraModalBtn'),
+    cameraVideo: document.getElementById('cameraVideo'),
+    cameraCanvas: document.getElementById('cameraCanvas'),
+    cameraLiveWatermark: document.getElementById('cameraLiveWatermark'),
+    cameraFlash: document.getElementById('cameraFlash'),
+    camModalCountBadge: document.getElementById('camModalCountBadge'),
+    cameraModalStrip: document.getElementById('cameraModalStrip'),
+    switchCameraBtn: document.getElementById('switchCameraBtn'),
+    shutterBtn: document.getElementById('shutterBtn'),
+    doneCameraBtn: document.getElementById('doneCameraBtn'),
+    modalChooseGalleryBtn: document.getElementById('modalChooseGalleryBtn'),
+    modalGalleryInput: document.getElementById('modalGalleryInput'),
     photoCountBadge: document.getElementById('photoCountBadge'),
     camBtnMainText: document.getElementById('camBtnMainText'),
     camBtnSubText: document.getElementById('camBtnSubText'),
@@ -559,10 +572,11 @@
     });
 
     // 4. Camera & Image Compression with Watermark Timestamp & Multi-photo support
-    if (el.triggerCamBtn && el.camPatrolInput) {
-      el.triggerCamBtn.addEventListener('click', () => {
-        el.camPatrolInput.click();
-      });
+    if (el.triggerCamBtn) {
+      el.triggerCamBtn.addEventListener('click', openCameraModal);
+    }
+
+    if (el.camPatrolInput) {
       el.camPatrolInput.addEventListener('change', handlePatrolCameraUpload);
     }
 
@@ -571,6 +585,23 @@
         el.galleryPatrolInput.click();
       });
       el.galleryPatrolInput.addEventListener('change', handlePatrolGalleryUpload);
+    }
+
+    // Modal Camera Listeners
+    if (el.closeCameraModalBtn) el.closeCameraModalBtn.addEventListener('click', closeCameraModal);
+    if (el.doneCameraBtn) el.doneCameraBtn.addEventListener('click', closeCameraModal);
+    if (el.cameraModal) {
+      el.cameraModal.addEventListener('click', (e) => {
+        if (e.target === el.cameraModal) closeCameraModal();
+      });
+    }
+    if (el.shutterBtn) el.shutterBtn.addEventListener('click', takeCameraSnapshot);
+    if (el.switchCameraBtn) el.switchCameraBtn.addEventListener('click', switchCamera);
+    if (el.modalGalleryInput) {
+      el.modalGalleryInput.addEventListener('change', async (e) => {
+        await handlePatrolGalleryUpload(e);
+        renderCameraModalStrip();
+      });
     }
 
     renderPatrolThumbnails();
@@ -588,6 +619,274 @@
       el.sosPatrolBtn.addEventListener('click', triggerSOS);
     }
   }
+
+  // --- LIVE CAMERA CONTROLLER (ระบบควบคุมกล้องถ่ายภาพสด มรย.) ---
+  let currentCameraStream = null;
+  let currentFacingMode = 'environment';
+  let liveWatermarkInterval = null;
+
+  async function openCameraModal() {
+    // ตรวจสอบความพร้อมของ WebRTC getUserMedia
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      try {
+        if (el.cameraModal) {
+          el.cameraModal.removeAttribute('hidden');
+          el.cameraModal.style.display = 'flex';
+          document.body.style.overflow = 'hidden';
+        }
+        await startCameraStream();
+        renderCameraModalStrip();
+        return;
+      } catch (err) {
+        console.warn('getUserMedia failed or rejected, falling back to file picker:', err);
+        closeCameraModal();
+      }
+    }
+
+    // Fallback: ถ้าอุปกรณ์/เบราว์เซอร์ไม่รองรับกล้องสด ให้เปิดตัวเลือกกล้อง/ไฟล์ระบบทันที
+    showToast('📷 กำลังเปิดกล้อง/ไฟล์ภาพของอุปกรณ์...', '📸');
+    if (el.camPatrolInput) {
+      el.camPatrolInput.click();
+    } else if (el.galleryPatrolInput) {
+      el.galleryPatrolInput.click();
+    }
+  }
+
+  function closeCameraModal() {
+    stopCameraStream();
+    if (el.cameraModal) {
+      el.cameraModal.setAttribute('hidden', '');
+      el.cameraModal.style.display = 'none';
+    }
+    document.body.style.overflow = '';
+    renderPatrolThumbnails();
+  }
+
+  async function startCameraStream() {
+    stopCameraStream();
+
+    const constraints = {
+      video: {
+        facingMode: currentFacingMode,
+        width: { ideal: 1280 },
+        height: { ideal: 720 }
+      },
+      audio: false
+    };
+
+    try {
+      currentCameraStream = await navigator.mediaDevices.getUserMedia(constraints);
+    } catch (err) {
+      // ถ้าไม่มีกล้องหลัง (เช่น ในคอมพิวเตอร์/โน้ตบุ๊ก) ให้ลองเปิดกล้องใดก็ได้ที่ใช้ได้
+      try {
+        currentCameraStream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: false
+        });
+      } catch (err2) {
+        throw err2;
+      }
+    }
+
+    if (el.cameraVideo) {
+      el.cameraVideo.srcObject = currentCameraStream;
+      try {
+        await el.cameraVideo.play();
+      } catch (e) {}
+    }
+
+    updateLiveWatermarkPreview();
+    if (liveWatermarkInterval) clearInterval(liveWatermarkInterval);
+    liveWatermarkInterval = setInterval(updateLiveWatermarkPreview, 1000);
+  }
+
+  function stopCameraStream() {
+    if (liveWatermarkInterval) {
+      clearInterval(liveWatermarkInterval);
+      liveWatermarkInterval = null;
+    }
+    if (currentCameraStream) {
+      currentCameraStream.getTracks().forEach(track => {
+        try { track.stop(); } catch (e) {}
+      });
+      currentCameraStream = null;
+    }
+    if (el.cameraVideo) {
+      el.cameraVideo.srcObject = null;
+    }
+  }
+
+  function updateLiveWatermarkPreview() {
+    if (!el.cameraLiveWatermark) return;
+    const now = new Date();
+    const thaiMonths = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+    const thaiYear = (now.getFullYear() + 543).toString().slice(-2);
+    const d = now.getDate();
+    const m = thaiMonths[now.getMonth()];
+    const hh = String(now.getHours()).padStart(2, '0');
+    const mm = String(now.getMinutes()).padStart(2, '0');
+    const ss = String(now.getSeconds()).padStart(2, '0');
+    el.cameraLiveWatermark.textContent = `🕒 ${d} ${m} ${thaiYear} ${hh}:${mm}:${ss} น.`;
+  }
+
+  async function switchCamera() {
+    currentFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment';
+    try {
+      await startCameraStream();
+      showToast(currentFacingMode === 'environment' ? '🔄 เปลี่ยนเป็นกล้องหลัง' : '🔄 เปลี่ยนเป็นกล้องหน้า');
+    } catch (e) {
+      console.warn('Switch camera error:', e);
+      showToast('⚠️ ไม่สามารถสลับกล้องได้');
+    }
+  }
+
+  function playShutterSound() {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(880, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(220, ctx.currentTime + 0.09);
+      gain.gain.setValueAtTime(0.25, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.09);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.09);
+    } catch (e) {}
+  }
+
+  function takeCameraSnapshot() {
+    if (!el.cameraVideo || !currentCameraStream) {
+      showToast('⚠️ กล้องยังไม่พร้อมทำงาน');
+      return;
+    }
+
+    playShutterSound();
+
+    if (el.cameraFlash) {
+      el.cameraFlash.classList.add('active');
+      setTimeout(() => el.cameraFlash.classList.remove('active'), 140);
+    }
+
+    const video = el.cameraVideo;
+    const canvas = el.cameraCanvas || document.createElement('canvas');
+    const w = video.videoWidth || 1280;
+    const h = video.videoHeight || 720;
+    canvas.width = w;
+    canvas.height = h;
+
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, w, h);
+
+    // ประทับเวลาอัตโนมัติภาษาไทย
+    const now = new Date();
+    const thaiMonths = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+    const thaiYear = (now.getFullYear() + 543).toString().slice(-2);
+    const d = now.getDate();
+    const m = thaiMonths[now.getMonth()];
+    const hh = String(now.getHours()).padStart(2, '0');
+    const mm = String(now.getMinutes()).padStart(2, '0');
+    const ss = String(now.getSeconds()).padStart(2, '0');
+
+    const timeOnlyStr = `${hh}:${mm} น.`;
+    const fullStamp = `${d} ${m} ${thaiYear} ${hh}:${mm}:${ss} น.`;
+
+    const fontSize = Math.max(14, Math.round(w * 0.026));
+    ctx.font = `600 ${fontSize}px 'Sarabun', 'Prompt', sans-serif`;
+    const stampText = `🕒 ${fullStamp}`;
+    const metrics = ctx.measureText(stampText);
+    const padX = 12;
+    const padY = 7;
+    const boxW = metrics.width + (padX * 2);
+    const boxH = fontSize + (padY * 2);
+    const boxX = w - boxW - 14;
+    const boxY = h - boxH - 14;
+
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.72)';
+    ctx.beginPath();
+    if (ctx.roundRect) {
+      ctx.roundRect(boxX, boxY, boxW, boxH, 8);
+    } else {
+      ctx.rect(boxX, boxY, boxW, boxH);
+    }
+    ctx.fill();
+
+    ctx.fillStyle = '#ffffff';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(stampText, boxX + padX, boxY + (boxH / 2));
+
+    const base64 = canvas.toDataURL('image/jpeg', 0.68);
+    const photoObj = {
+      dataUrl: base64,
+      timeStr: timeOnlyStr,
+      fullStamp: fullStamp,
+      timestamp: Date.now()
+    };
+
+    if (!state.capturedImages) state.capturedImages = [];
+    state.capturedImages.push(photoObj);
+    state.capturedImageBase64 = state.capturedImages[0].dataUrl;
+
+    renderCameraModalStrip();
+    renderPatrolThumbnails();
+
+    const count = state.capturedImages.length;
+    if (count === 1) {
+      showToast('📸 ถ่ายภาพที่ 1 สำเร็จ! กรุณาแตะถ่ายภาพที่ 2 เพิ่มอีก 1 รูป', '📷');
+    } else {
+      showToast(`✅ ถ่ายภาพสำเร็จ (รวม ${count} รูป ครบเกณฑ์แล้ว)`, '✅');
+    }
+  }
+
+  function renderCameraModalStrip() {
+    if (!el.cameraModalStrip || !el.camModalCountBadge) return;
+    const count = (state.capturedImages && state.capturedImages.length) || 0;
+
+    if (count === 0) {
+      el.camModalCountBadge.className = 'cam-status-pill warn';
+      el.camModalCountBadge.textContent = '⚠️ ถ่ายแล้ว 0/2 รูป (ต้องการอย่างน้อย 2 รูป)';
+      el.cameraModalStrip.innerHTML = '<span style="color:#94a3b8; font-size:13px; padding-left:6px;">ยังไม่มีรูปที่ถ่ายในรอบนี้ — แตะปุ่มชัตเตอร์สีฟ้าด้านล่างเพื่อถ่ายรูป</span>';
+    } else if (count === 1) {
+      el.camModalCountBadge.className = 'cam-status-pill warn';
+      el.camModalCountBadge.textContent = '⚠️ ถ่ายแล้ว 1/2 รูป (กรุณากดถ่ายเพิ่มอีก 1 รูป)';
+    } else {
+      el.camModalCountBadge.className = 'cam-status-pill ok';
+      el.camModalCountBadge.textContent = `✅ ถ่ายแล้ว ${count} รูป (ครบตามเกณฑ์ 2+ รูปแล้ว)`;
+    }
+
+    if (count > 0) {
+      el.cameraModalStrip.innerHTML = state.capturedImages.map((img, idx) => `
+        <div class="camera-strip-item">
+          <img src="${img.dataUrl}" alt="รูปที่ ${idx + 1}">
+          <span class="strip-badge">#${idx + 1} (${img.timeStr})</span>
+          <button type="button" class="strip-del-btn" onclick="window.appRemoveModalPhoto(${idx})" title="ลบภาพนี้">✕</button>
+        </div>
+      `).join('');
+    }
+
+    if (el.doneCameraBtn) {
+      if (count >= 2) {
+        el.doneCameraBtn.classList.add('pulse-ready');
+        el.doneCameraBtn.innerHTML = `✅ เสร็จสิ้นการถ่ายภาพ (ครบ ${count} รูป — นำไปใช้งาน)`;
+      } else {
+        el.doneCameraBtn.classList.remove('pulse-ready');
+        el.doneCameraBtn.innerHTML = `✅ เสร็จสิ้นการถ่ายภาพ (ถ่ายแล้ว ${count}/2 รูป)`;
+      }
+    }
+  }
+
+  window.appRemoveModalPhoto = function (idx) {
+    if (state.capturedImages && state.capturedImages[idx]) {
+      state.capturedImages.splice(idx, 1);
+      state.capturedImageBase64 = state.capturedImages[0] ? state.capturedImages[0].dataUrl : null;
+      renderCameraModalStrip();
+      renderPatrolThumbnails();
+    }
+  };
 
   // --- CAMERA & PHOTO PROCESSING (กล้องมือถือ + ประทับเวลาอัตโนมัติ + บังคับ 2 รูปขึ้นไป) ---
   async function handlePatrolCameraUpload(event) {

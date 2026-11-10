@@ -281,16 +281,15 @@
                 <span class="photo-req-badge photo-req-warn" id="photoCountBadge">⚠️ ยังไม่ได้ถ่ายรูป (0/2 รูป)</span>
               </div>
               
-              <!-- กล้องมือถือ (เปิดกล้องหลังโดยตรง) -->
-              <input type="file" accept="image/*" capture="environment" id="camPatrolInput" style="display:none">
-              <!-- เลือกรูปจากอัลบั้ม / แกลเลอรี -->
-              <input type="file" accept="image/*" multiple id="galleryPatrolInput" style="display:none">
+              <!-- ช่องทางเลือกไฟล์/กล้องสำรองแบบ Hidden ที่เข้าถึงได้โดยเบราว์เซอร์ทุกตัว -->
+              <input type="file" accept="image/*" capture="environment" id="camPatrolInput" class="visually-hidden-file-input">
+              <input type="file" accept="image/*" multiple id="galleryPatrolInput" class="visually-hidden-file-input">
               
               <button type="button" class="photo-dropzone-btn" id="triggerCamBtn">
                 <div class="photo-dropzone-icon">📷</div>
                 <div class="photo-dropzone-text">
-                  <b id="camBtnMainText">แตะที่นี่เพื่อเปิดกล้องมือถือถ่ายภาพหน้างาน</b>
-                  <small id="camBtnSubText">ระบบจะประทับเวลาถ่ายอัตโนมัติ (บังคับถ่าย 2 รูปขึ้นไป)</small>
+                  <b id="camBtnMainText">แตะที่นี่เพื่อเปิดกล้องถ่ายภาพหน้างาน</b>
+                  <small id="camBtnSubText">เปิดกล้องถ่ายภาพสดพร้อมประทับเวลาอัตโนมัติ (บังคับถ่าย 2 รูปขึ้นไป)</small>
                 </div>
               </button>
 
@@ -819,6 +818,76 @@
       <div style="display: flex; justify-content: flex-end; gap: 8px;">
         <button type="button" class="btn" id="modalExportSqlBtn" style="background:var(--yru-pink); color:#ffffff; border-color:var(--yru-pink);">
           💾 ดาวน์โหลดสคริปต์ SQL (.sql)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal หน้าต่างกล้องถ่ายภาพสดพร้อมช่องเล็งภาพและประทับเวลา (Live Camera Viewfinder Modal) -->
+  <div class="veil" id="cameraModal" hidden style="display: none;">
+    <div class="sheet camera-sheet" role="dialog" aria-modal="true">
+      <div class="camera-modal-header">
+        <div class="camera-modal-title">
+          <span class="camera-live-dot"></span>
+          <b>📷 กล้องถ่ายภาพตรวจความปลอดภัย (มรย.)</b>
+        </div>
+        <button type="button" class="sheet-close" id="closeCameraModalBtn" aria-label="ปิดกล้อง">✕ ปิด</button>
+      </div>
+
+      <!-- ช่องเล็งภาพจากกล้อง (Video Viewfinder) -->
+      <div class="camera-viewfinder-box" id="cameraViewfinderBox">
+        <video id="cameraVideo" playsinline autoplay muted></video>
+        <canvas id="cameraCanvas" style="display:none;"></canvas>
+
+        <!-- แสดงวันที่และเวลาเรียลไทม์จำลองมุมมองภาพถ่ายจริง -->
+        <div class="camera-watermark-overlay" id="cameraLiveWatermark">
+          🕒 กำลังโหลดเวลา...
+        </div>
+
+        <!-- กรอบเล็งถ่ายภาพ (Target Viewfinder Guides) -->
+        <div class="camera-guides">
+          <span class="guide-tl"></span>
+          <span class="guide-tr"></span>
+          <span class="guide-bl"></span>
+          <span class="guide-br"></span>
+        </div>
+
+        <!-- เอฟเฟกต์แฟลชเมื่อกดถ่ายรูป -->
+        <div class="camera-flash" id="cameraFlash"></div>
+      </div>
+
+      <!-- แถบแสดงสถานะจำนวนรูปภาพที่ถ่ายในหน้านี้ -->
+      <div class="camera-modal-status">
+        <span class="cam-status-pill warn" id="camModalCountBadge">⚠️ ถ่ายแล้ว 0/2 รูป (ต้องการอย่างน้อย 2 รูป)</span>
+      </div>
+
+      <!-- แถบภาพขนาดย่อที่เพิ่งถ่ายเสร็จในรอบนี้ -->
+      <div class="camera-modal-strip" id="cameraModalStrip"></div>
+
+      <!-- แผงควบคุมกล้อง (สลับกล้อง / กดชัตเตอร์ / เลือกจากแกลเลอรี) -->
+      <div class="camera-controls-bar">
+        <button type="button" class="btn-cam-action" id="switchCameraBtn" title="สลับกล้องหน้า/กล้องหลัง">
+          <span style="font-size: 20px;">🔄</span>
+          <span>สลับกล้อง</span>
+        </button>
+
+        <button type="button" class="btn-cam-shutter" id="shutterBtn" aria-label="กดถ่ายภาพ">
+          <div class="shutter-inner">
+            <span class="shutter-icon">📸</span>
+          </div>
+        </button>
+
+        <label class="btn-cam-action" id="modalChooseGalleryBtn" title="เลือกรูปภาพจากเครื่อง">
+          <span style="font-size: 20px;">📁</span>
+          <span>เลือกรูป</span>
+          <input type="file" accept="image/*" multiple id="modalGalleryInput" class="visually-hidden-file-input">
+        </label>
+      </div>
+
+      <!-- ปุ่มเสร็จสิ้นการถ่ายภาพ -->
+      <div class="camera-modal-footer">
+        <button type="button" class="btn btn-save-giant" id="doneCameraBtn" style="width: 100%; font-size: 17px;">
+          ✅ เสร็จสิ้นการถ่ายภาพ (นำรูปไปใช้)
         </button>
       </div>
     </div>

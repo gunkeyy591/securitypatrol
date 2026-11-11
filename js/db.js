@@ -168,6 +168,48 @@
       });
     }
 
+    async clearAllFromIndexedDB() {
+      if (!this.idb) return;
+      return new Promise((resolve) => {
+        try {
+          const tx = this.idb.transaction(['patrol_records', 'patrol_images'], 'readwrite');
+          tx.objectStore('patrol_records').clear();
+          tx.objectStore('patrol_images').clear();
+          tx.oncomplete = () => resolve(true);
+          tx.onerror = () => resolve(false);
+        } catch (e) {
+          resolve(false);
+        }
+      });
+    }
+
+    getDeletedIdsSet() {
+      try {
+        const raw = localStorage.getItem('yru_sp_deleted_ids');
+        const arr = raw ? JSON.parse(raw) : [];
+        return new Set(Array.isArray(arr) ? arr : []);
+      } catch (e) {
+        return new Set();
+      }
+    }
+
+    markIdsDeleted(ids = []) {
+      try {
+        const set = this.getDeletedIdsSet();
+        ids.forEach(id => {
+          if (id) set.add(String(id));
+        });
+        const list = Array.from(set).slice(-500);
+        localStorage.setItem('yru_sp_deleted_ids', JSON.stringify(list));
+      } catch (e) {}
+    }
+
+    isIdDeleted(id) {
+      if (!id) return true;
+      if (['rec-001', 'rec-off-001', 'rec-002'].includes(id)) return true;
+      return this.getDeletedIdsSet().has(String(id));
+    }
+
     async init() {
       try {
         await this.executeDDL();
@@ -180,7 +222,7 @@
             const parsed = JSON.parse(saved);
             if (Array.isArray(parsed.patrol_records)) {
               this.tables.patrol_records = parsed.patrol_records.filter(
-                r => !['rec-001', 'rec-off-001', 'rec-002'].includes(r.id)
+                r => r && !this.isIdDeleted(r.id)
               );
             }
             if (Array.isArray(parsed.query_logs)) {
@@ -193,7 +235,7 @@
         if (legacyHistory) {
           try {
             const parsedH = JSON.parse(legacyHistory).filter(
-              r => !['rec-001', 'rec-off-001', 'rec-002'].includes(r.id)
+              r => r && !this.isIdDeleted(r.id)
             );
             this.mergeRecords(parsedH);
           } catch (e) {}
@@ -269,7 +311,7 @@
 
       let addedOrUpdated = 0;
       incomingList.forEach(inc => {
-        if (!inc || !inc.id || ['rec-001', 'rec-off-001', 'rec-002'].includes(inc.id)) return;
+        if (!inc || !inc.id || this.isIdDeleted(inc.id)) return;
         const existing = map.get(inc.id);
         if (!existing) {
           map.set(inc.id, inc);
@@ -509,6 +551,7 @@
       if (upper.startsWith('DELETE FROM PATROL_RECORDS')) {
         if (upper.includes('WHERE ID =')) {
           const id = params[0];
+          this.markIdsDeleted([id]);
           const before = this.tables.patrol_records.length;
           this.tables.patrol_records = this.tables.patrol_records.filter(r => r.id !== id);
           this.rebuildImagesTable();
@@ -521,9 +564,12 @@
 
           return { success: true, affectedRows: before - this.tables.patrol_records.length };
         } else {
+          const allIds = this.tables.patrol_records.map(r => r.id);
+          this.markIdsDeleted(allIds);
           const count = this.tables.patrol_records.length;
           this.tables.patrol_records = [];
           this.tables.patrol_images = [];
+          await this.clearAllFromIndexedDB();
           this.save();
           try {
             await fetch('/api/records', { method: 'DELETE' });

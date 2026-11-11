@@ -1539,7 +1539,7 @@
           if (event.data.type === 'patrol_record' || event.data.type === 'NEW_RECORD' || event.data.type === 'patrol_update') {
             handleIncomingRecord(event.data.record, event.data.type === 'patrol_update');
           } else if (event.data.type === 'patrol_delete' && event.data.record) {
-            handleIncomingDelete(event.data.record.id);
+            handleIncomingDelete(event.data.record.ids || event.data.record.id);
           }
         };
       } catch (e) {}
@@ -1572,7 +1572,7 @@
               if (parsed.type === 'patrol_record' || parsed.type === 'patrol_update') {
                 await handleIncomingRecord(parsed.record, parsed.type === 'patrol_update');
               } else if (parsed.type === 'patrol_delete') {
-                await handleIncomingDelete(parsed.record.id);
+                await handleIncomingDelete(parsed.record.ids || parsed.record.id);
               }
             }
           } catch (err) {}
@@ -1605,15 +1605,22 @@
     }
   }
 
-  async function handleIncomingDelete(recordId) {
-    if (!recordId) return;
+  async function handleIncomingDelete(idOrIds) {
+    if (!idOrIds) return;
+    const ids = Array.isArray(idOrIds) ? idOrIds : [idOrIds];
+    if (window.AppDB && typeof window.AppDB.markIdsDeleted === 'function') {
+      window.AppDB.markIdsDeleted(ids);
+    }
+    const idSet = new Set(ids.map(String));
     const before = state.history.length;
-    state.history = state.history.filter(r => r.id !== recordId);
+    state.history = state.history.filter(r => !idSet.has(String(r.id)));
     if (state.history.length !== before) {
       if (window.AppDB) {
-        try {
-          await window.AppDB.query(`DELETE FROM patrol_records WHERE id = ?`, [recordId]);
-        } catch (e) {}
+        for (const recordId of ids) {
+          try {
+            await window.AppDB.query(`DELETE FROM patrol_records WHERE id = ?`, [recordId]);
+          } catch (e) {}
+        }
       }
       saveToLocalStorage();
       renderSupervisorDashboard();
@@ -1623,6 +1630,9 @@
 
   async function handleIncomingRecord(incoming, isUpdate = false) {
     if (!incoming || !incoming.id) return;
+    if (window.AppDB && typeof window.AppDB.isIdDeleted === 'function' && window.AppDB.isIdDeleted(incoming.id)) {
+      return;
+    }
 
     const existingIdx = state.history.findIndex(r => r.id === incoming.id);
     if (existingIdx !== -1 && !isUpdate) {
@@ -1663,19 +1673,51 @@
         const text = await resp.text();
         const lines = text.trim().split('\n').filter(Boolean);
         let changed = 0;
-        const deletedIds = new Set();
+
+        // Pass 1: อ่านข้อมูลทั้งหมดและรวบรวม ID ที่ถูกลบ (patrol_delete / patrol_clear_all) ก่อนเป็นอันดับแรก
+        const parsedEvents = [];
+        const deletedIds = window.AppDB && typeof window.AppDB.getDeletedIdsSet === 'function'
+          ? window.AppDB.getDeletedIdsSet()
+          : new Set();
 
         for (const line of lines) {
           try {
             const data = JSON.parse(line);
             const parsed = await extractNtfyPayload(data);
-            if (!parsed || !parsed.record) continue;
+            if (!parsed) continue;
+            parsedEvents.push(parsed);
 
-            if (parsed.type === 'patrol_delete' && parsed.record.id) {
-              deletedIds.add(parsed.record.id);
-            } else if (parsed.type === 'patrol_record' || parsed.type === 'patrol_update') {
+            if (parsed.type === 'patrol_delete' && parsed.record) {
+              if (Array.isArray(parsed.record.ids)) {
+                parsed.record.ids.forEach(id => deletedIds.add(String(id)));
+              } else if (parsed.record.id) {
+                deletedIds.add(String(parsed.record.id));
+              }
+            }
+          } catch (e) {}
+        }
+
+        if (window.AppDB && typeof window.AppDB.markIdsDeleted === 'function' && deletedIds.size > 0) {
+          window.AppDB.markIdsDeleted(Array.from(deletedIds));
+        }
+
+        // ลบรายการที่อยู่ในบัญชีถูกลบออกจาก state.history ทันที
+        for (const delId of deletedIds) {
+          if (state.history.some(r => r.id === delId)) {
+            state.history = state.history.filter(r => r.id !== delId);
+            if (window.AppDB) {
+              await window.AppDB.query(`DELETE FROM patrol_records WHERE id = ?`, [delId]);
+            }
+            changed++;
+          }
+        }
+
+        // Pass 2: นำเข้าเฉพาะรายการที่ยังไม่ถูกลบเท่านั้น
+        for (const parsed of parsedEvents) {
+          try {
+            if ((parsed.type === 'patrol_record' || parsed.type === 'patrol_update') && parsed.record) {
               const rec = parsed.record;
-              if (deletedIds.has(rec.id)) continue;
+              if (!rec.id || deletedIds.has(String(rec.id))) continue;
               const existingIdx = state.history.findIndex(r => r.id === rec.id);
               if (existingIdx === -1 || parsed.type === 'patrol_update') {
                 if (existingIdx !== -1) {
@@ -1693,18 +1735,6 @@
               }
             }
           } catch (e) {}
-        }
-
-        if (deletedIds.size > 0) {
-          for (const delId of deletedIds) {
-            if (state.history.some(r => r.id === delId)) {
-              state.history = state.history.filter(r => r.id !== delId);
-              if (window.AppDB) {
-                await window.AppDB.query(`DELETE FROM patrol_records WHERE id = ?`, [delId]);
-              }
-              changed++;
-            }
-          }
         }
 
         if (changed > 0) {
@@ -1753,7 +1783,40 @@
     renderGuardRecentLogs();
   }
 
-  // --- SUPERVISOR DASHBOARD ---
+  // --- SUPERVISOR DASHBOARD & ADMIN DELETE ENGINE ---
+  const selectedRecordIds = new Set();
+
+  function updateBulkDeleteUI() {
+    const bulkBtn = document.getElementById('bulkDeleteSelectedBtn');
+    const bulkTxt = document.getElementById('bulkDeleteSelectedText');
+    const selectAllChk = document.getElementById('selectAllRecordsChk');
+    const deleteAllBtn = document.getElementById('deleteAllRecordsBtn');
+
+    // ล้าง ID ที่ไม่อยู่ใน state.history แล้ว
+    for (const id of Array.from(selectedRecordIds)) {
+      if (!state.history.some(r => r.id === id)) {
+        selectedRecordIds.delete(id);
+      }
+    }
+
+    if (bulkBtn && bulkTxt) {
+      if (selectedRecordIds.size > 0) {
+        bulkBtn.style.display = 'inline-flex';
+        bulkTxt.textContent = `ลบที่เลือก (${selectedRecordIds.size} รายการ)`;
+      } else {
+        bulkBtn.style.display = 'none';
+      }
+    }
+
+    if (deleteAllBtn) {
+      deleteAllBtn.style.display = state.history.length > 0 ? 'inline-flex' : 'none';
+    }
+
+    if (selectAllChk) {
+      selectAllChk.checked = state.history.length > 0 && selectedRecordIds.size === state.history.length;
+    }
+  }
+
   function renderSupervisorDashboard() {
     const total = state.history.length;
     const okCount = state.history.filter(h => h.status === 'ok').length;
@@ -1789,13 +1852,14 @@
     });
 
     el.logCountTag.textContent = `${filtered.length} รอบการตรวจ`;
+    updateBulkDeleteUI();
 
     if (filtered.length === 0) {
       const msg = state.history.length === 0
         ? 'ยังไม่มีข้อมูลการเวียนตรวจในระบบ (ฐานข้อมูล SQL พร้อมรับข้อมูลและรูปภาพจากเจ้าหน้าที่ รปภ.)'
         : 'ไม่พบข้อมูลตามตัวกรองที่เลือก (กดปุ่ม "ล้างตัวกรองทั้งหมด" เพื่อดูประวัติทุกรอบ)';
       el.reportTableBody.innerHTML = `
-        <tr><td colspan="8" class="empty" style="text-align:center; padding:44px 16px; color:var(--muted);">
+        <tr><td colspan="9" class="empty" style="text-align:center; padding:44px 16px; color:var(--muted);">
           <svg viewBox="0 0 64 64" fill="none" style="width:48px; height:48px; margin:0 auto 10px; color:var(--primary); opacity:0.65;">
             <rect x="12" y="10" width="40" height="44" rx="6" stroke="currentColor" stroke-width="2.2"/>
             <line x1="22" y1="24" x2="42" y2="24" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
@@ -1810,6 +1874,7 @@
       el.reportTableBody.innerHTML = filtered.map((item, idx) => {
         const isOk = item.status === 'ok';
         const roundDisplayNo = item.roundNo || (filtered.length - idx);
+        const isChecked = selectedRecordIds.has(item.id) ? 'checked' : '';
         let statusBadge = isOk 
           ? `<span class="tag ok">ปกติเรียบร้อย</span>` 
           : `<span class="tag alert">พบปัญหา</span>`;
@@ -1839,6 +1904,9 @@
 
         return `
           <tr>
+            <td style="text-align: center;">
+              <input type="checkbox" class="row-select-chk" data-id="${item.id}" ${isChecked} onchange="window.appToggleSelectRecord('${item.id}', this.checked)" style="width: 18px; height: 18px; cursor: pointer; accent-color: var(--primary);">
+            </td>
             <td>
               <span class="tag" style="background:var(--primary-soft); color:var(--primary); font-size:11.5px; padding:2px 8px; margin-bottom:4px;">รอบที่ #${roundDisplayNo}</span><br>
               <b>${item.time} น.</b><br>
@@ -1862,7 +1930,7 @@
                   <svg class="svg-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
                   <span>แก้ไข</span>
                 </button>
-                <button type="button" class="btn-action-delete" onclick="window.appDeleteRecord('${item.id}')" title="คลิกเพื่อลบข้อมูลรายการนี้">
+                <button type="button" class="btn-action-delete" onclick="window.appDeleteRecord('${item.id}')" title="คลิกเพื่อลบข้อมูลรายการนี้ออกจากระบบ">
                   <svg class="svg-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                   <span>ลบ</span>
                 </button>
@@ -1890,12 +1958,16 @@
           <p style="margin:6px 0 0; font-size:14.5px; font-weight:600;">${escapeHtml(inc.note || 'ไม่มีรายละเอียด')}</p>
           ${inc.images && inc.images.length ? `
             <div class="thumbs" style="margin-top:8px;">
-              ${inc.images.map(img => `<div class="thumb"><img src="${img}"></div>`).join('')}
+              ${inc.images.map((img, i) => `<div class="thumb" style="cursor:pointer;" onclick="window.appOpenPhotoLightbox('${inc.id}', ${i})"><img src="${img}"></div>`).join('')}
             </div>
           ` : ''}
-          <div style="margin-top: 10px; display: flex; gap: 8px;">
+          <div style="margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap;">
             <button type="button" class="btn-action-edit" onclick="window.appOpenAdminEdit('${inc.id}')">
-              ตรวจสอบ / แก้ไขข้อมูลเหตุการณ์นี้
+              ตรวจสอบ / แก้ไข
+            </button>
+            <button type="button" class="btn-action-delete" onclick="window.appDeleteRecord('${inc.id}')">
+              <svg class="svg-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              <span>ลบรายการนี้</span>
             </button>
           </div>
         </div>
@@ -1905,11 +1977,6 @@
 
   // --- ADMIN EDIT & INSPECT MODAL ---
   window.appOpenAdminEdit = function (recordId) {
-    if (!state.currentUser || state.currentUser.role !== 'admin') {
-      showToast('⚠️ สิทธิ์ไม่เพียงพอ เฉพาะแอดมินเท่านั้น', '🔒');
-      return;
-    }
-
     const record = state.history.find(h => h.id === recordId);
     if (!record) {
       showToast('⚠️ ไม่พบข้อมูลรายการนี้', '⚠️');
@@ -2064,40 +2131,174 @@
     };
   };
 
-  window.appDeleteRecord = function (recordId) {
-    if (!state.currentUser || state.currentUser.role !== 'admin') {
-      showToast('⚠️ สิทธิ์ไม่เพียงพอ เฉพาะแอดมินเท่านั้น', '🔒');
+  // --- ADMIN DELETE FUNCTIONS (ลบรายการเดียว, ลบหลายรายการที่เลือก, และลบทั้งหมด) ---
+  let pendingDeleteAction = null;
+
+  function openDeleteConfirmModal({ title, message, onConfirm }) {
+    const modal = document.getElementById('deleteConfirmModal');
+    const titleEl = document.getElementById('deleteConfirmTitle');
+    const msgEl = document.getElementById('deleteConfirmMessage');
+    const cancelBtn = document.getElementById('cancelDeleteModalBtn');
+    const confirmBtn = document.getElementById('confirmDeleteModalBtn');
+
+    if (!modal || !confirmBtn) {
+      if (confirm(message || 'ยืนยันการลบข้อมูลนี้?')) {
+        onConfirm();
+      }
       return;
     }
 
+    if (titleEl) titleEl.textContent = title || 'ยืนยันการลบข้อมูลออกจากระบบ?';
+    if (msgEl) msgEl.innerHTML = message || 'ข้อมูลและรูปภาพหลักฐานจะถูกลบออกจากฐานข้อมูล SQL อย่างถาวร';
+
+    pendingDeleteAction = onConfirm;
+
+    const closeModal = () => {
+      modal.setAttribute('hidden', '');
+      modal.style.display = 'none';
+      document.body.style.overflow = '';
+      pendingDeleteAction = null;
+    };
+
+    cancelBtn.onclick = closeModal;
+    modal.onclick = (e) => {
+      if (e.target === modal) closeModal();
+    };
+
+    confirmBtn.onclick = async () => {
+      const action = pendingDeleteAction;
+      closeModal();
+      if (typeof action === 'function') {
+        await action();
+      }
+    };
+
+    modal.removeAttribute('hidden');
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+  }
+
+  window.appToggleSelectRecord = function (recordId, isChecked) {
+    if (isChecked) {
+      selectedRecordIds.add(recordId);
+    } else {
+      selectedRecordIds.delete(recordId);
+    }
+    updateBulkDeleteUI();
+  };
+
+  window.appDeleteRecord = function (recordId) {
     deleteAdminRecord(recordId);
   };
 
-  async function deleteAdminRecord(recordId) {
-    if (!confirm('คุณแน่ใจหรือไม่ว่าต้องการลบบันทึกรายการนี้ออกจากระบบอย่างถาวร?')) {
-      return;
+  async function executeDeleteRecordIds(ids = []) {
+    if (!ids.length) return;
+    const idSet = new Set(ids);
+
+    if (window.AppDB && typeof window.AppDB.markIdsDeleted === 'function') {
+      window.AppDB.markIdsDeleted(ids);
     }
 
-    const rec = state.history.find(h => h.id === recordId);
-    if (rec && rec.cpId && state.roundChecks[rec.cpId]) {
-      delete state.roundChecks[rec.cpId];
-    }
+    ids.forEach(recordId => {
+      const rec = state.history.find(h => h.id === recordId);
+      if (rec && rec.cpId && state.roundChecks[rec.cpId]) {
+        delete state.roundChecks[rec.cpId];
+      }
+      selectedRecordIds.delete(recordId);
+    });
 
-    state.history = state.history.filter(h => h.id !== recordId);
+    state.history = state.history.filter(h => !idSet.has(h.id));
 
-    // ลบจากฐานข้อมูล SQL (SQL DELETE FROM)
     if (window.AppDB) {
-      await window.AppDB.query(`DELETE FROM patrol_records WHERE id = ?`, [recordId]);
+      for (const recordId of ids) {
+        await window.AppDB.query(`DELETE FROM patrol_records WHERE id = ?`, [recordId]);
+      }
     }
 
     saveToLocalStorage();
-    broadcastPatrolRecord({ id: recordId }, 'patrol_delete');
+    broadcastPatrolRecord({ id: ids[0], ids: ids }, 'patrol_delete');
 
     closeAdminEditModal();
     renderSupervisorDashboard();
     renderGuardRecentLogs();
-    showToast('🗑️ ลบบันทึกข้อมูลเรียบร้อยแล้ว', '✅');
   }
+
+  function deleteAdminRecord(recordId) {
+    const rec = state.history.find(h => h.id === recordId);
+    const label = rec ? `<b>${escapeHtml(rec.cpName)}</b> (${escapeHtml(rec.guardName)} · ${rec.time} น.)` : `รายการรหัส ${escapeHtml(recordId)}`;
+
+    openDeleteConfirmModal({
+      title: 'ยืนยันการลบบันทึกการเดินตรวจ?',
+      message: `คุณต้องการลบข้อมูลและรูปภาพของ ${label} ออกจากฐานข้อมูล SQL อย่างถาวรใช่หรือไม่?`,
+      onConfirm: async () => {
+        await executeDeleteRecordIds([recordId]);
+        showToast('ลบบันทึกข้อมูลและรูปภาพออกจากฐานข้อมูลเรียบร้อยแล้ว', 'ok');
+      }
+    });
+  }
+
+  function setupAdminBulkDeleteEvents() {
+    const selectAllChk = document.getElementById('selectAllRecordsChk');
+    const bulkBtn = document.getElementById('bulkDeleteSelectedBtn');
+    const deleteAllBtn = document.getElementById('deleteAllRecordsBtn');
+
+    if (selectAllChk) {
+      selectAllChk.addEventListener('change', (e) => {
+        const checked = e.target.checked;
+        selectedRecordIds.clear();
+        if (checked) {
+          state.history.forEach(r => selectedRecordIds.add(r.id));
+        }
+        renderSupervisorDashboard();
+      });
+    }
+
+    if (bulkBtn) {
+      bulkBtn.addEventListener('click', () => {
+        const ids = Array.from(selectedRecordIds);
+        if (!ids.length) return;
+        openDeleteConfirmModal({
+          title: `ยืนยันการลบข้อมูลที่เลือก (${ids.length} รายการ)?`,
+          message: `คุณต้องการลบข้อมูลการเดินตรวจและรูปภาพที่เลือกทั้งหมด <b>${ids.length} รายการ</b> ออกจากฐานข้อมูล SQL อย่างถาวรใช่หรือไม่?`,
+          onConfirm: async () => {
+            await executeDeleteRecordIds(ids);
+            showToast(`ลบข้อมูลที่เลือกจำนวน ${ids.length} รายการเรียบร้อยแล้ว`, 'ok');
+          }
+        });
+      });
+    }
+
+    if (deleteAllBtn) {
+      deleteAllBtn.addEventListener('click', () => {
+        if (!state.history.length) {
+          showToast('ไม่มีข้อมูลในระบบให้ลบ', 'warn');
+          return;
+        }
+        const allIds = state.history.map(r => r.id);
+        openDeleteConfirmModal({
+          title: `ยืนยันการล้างประวัติทั้งหมด (${allIds.length} รายการ)?`,
+          message: `คุณต้องการลบประวัติการเดินตรวจและรูปภาพหลักฐานทั้งหมด <b>${allIds.length} รายการ</b> ออกจากฐานข้อมูล SQL อย่างถาวรใช่หรือไม่?`,
+          onConfirm: async () => {
+            if (window.AppDB && typeof window.AppDB.markIdsDeleted === 'function') {
+              window.AppDB.markIdsDeleted(allIds);
+            }
+            selectedRecordIds.clear();
+            state.history = [];
+            state.roundChecks = {};
+            if (window.AppDB) {
+              await window.AppDB.query(`DELETE FROM patrol_records`);
+            }
+            saveToLocalStorage();
+            broadcastPatrolRecord({ ids: allIds }, 'patrol_delete');
+            renderSupervisorDashboard();
+            renderGuardRecentLogs();
+            showToast('ล้างข้อมูลประวัติการเดินตรวจทั้งหมดเรียบร้อยแล้ว', 'ok');
+          }
+        });
+      });
+    }
+  }
+  setupAdminBulkDeleteEvents();
 
   // --- SQL LOGS MODAL ---
   function openSqlLogsModal() {

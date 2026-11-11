@@ -606,6 +606,7 @@
       el.guardPatrolSelect.addEventListener('change', (e) => {
         state.currentGuardName = e.target.value;
         el.guardPatrolSelect.classList.remove('shake-highlight', 'field-error');
+        savePatrolFormDraft();
         showToast(`เลือกเจ้าหน้าที่: ${e.target.value}`);
       });
     }
@@ -613,6 +614,25 @@
     if (el.locPatrolSelect) {
       el.locPatrolSelect.addEventListener('change', () => {
         el.locPatrolSelect.classList.remove('shake-highlight', 'field-error');
+        savePatrolFormDraft();
+      });
+    }
+
+    if (el.customLocPatrolInput) {
+      el.customLocPatrolInput.addEventListener('input', () => {
+        savePatrolFormDraft();
+      });
+    }
+
+    if (el.notePatrolInput) {
+      el.notePatrolInput.addEventListener('input', () => {
+        savePatrolFormDraft();
+      });
+    }
+
+    if (el.riskPatrolChk) {
+      el.riskPatrolChk.addEventListener('change', () => {
+        savePatrolFormDraft();
       });
     }
 
@@ -639,6 +659,7 @@
           if (el.locPatrolSelect) el.locPatrolSelect.style.display = 'block';
           el.toggleCustomLocBtn.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> พิมพ์ระบุเอง';
         }
+        savePatrolFormDraft();
       });
     }
 
@@ -653,23 +674,34 @@
           } else if (!current.includes(text)) {
             el.notePatrolInput.value = current + ' ' + text;
           }
+          savePatrolFormDraft();
           showToast(`เพิ่มข้อความ: "${text}"`);
           el.notePatrolInput.focus();
         }
       });
     });
 
-    // 4. Camera & Image Compression with Watermark Timestamp & Multi-photo support
+    // 4. Camera & Image Compression with Watermark Timestamp & Multi-photo support (Android + iOS + Desktop)
     if (el.camPatrolInput) {
-      // ตรวจสอบว่าถ้าไม่ใช่ mobile ให้เอา capture="environment" ออก เพื่อให้บนคอมพิวเตอร์/โน้ตบุ๊กเปิดหน้าต่างเลือกไฟล์/เว็บแคมได้ตามปกติ
-      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-      if (!isMobile) {
+      const ua = navigator.userAgent || '';
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(ua) ||
+        (navigator.maxTouchPoints && navigator.maxTouchPoints > 1);
+      if (isMobile) {
+        el.camPatrolInput.setAttribute('capture', 'environment');
+        el.camPatrolInput.setAttribute('accept', 'image/*');
+      } else {
         el.camPatrolInput.removeAttribute('capture');
       }
+      // บันทึก Draft ก่อนเปิดแอปกล้องบน Android เผื่อระบบปฏิบัติการคืนค่าหน่วยความจำเมื่อสลับแอป
+      el.camPatrolInput.addEventListener('click', () => {
+        savePatrolFormDraft();
+      });
+      // ใช้เฉพาะ event 'change' เพื่อไม่ให้เกิดปัญหาซ้ำซ้อนกับ 'input' บน Chrome Android
       el.camPatrolInput.addEventListener('change', handlePatrolCameraUpload);
-      el.camPatrolInput.addEventListener('input', handlePatrolCameraUpload);
     }
 
+    // กู้คืนข้อมูลและรูปที่ถ่ายค้างไว้ (กรณีมือถือ Android รีโหลดหน้าเว็บหลังกลับจากแอปกล้อง)
+    restorePatrolFormDraft();
     renderPatrolThumbnails();
 
     // 5. Speech recognition
@@ -686,15 +718,95 @@
     }
   }
 
-  // --- CAMERA & PHOTO PROCESSING (กล้องมือถือ + ประทับเวลาอัตโนมัติ + ดึงรูปเข้าทันที) ---
+  // --- CAMERA & PHOTO PROCESSING (รองรับ Android ทุกรุ่น + iOS + ประทับเวลาอัตโนมัติ + ป้องกันรูปหายเมื่อสลับแอปกล้อง) ---
+  const PATROL_DRAFT_STORAGE_KEY = 'yru_sp_patrol_draft';
   let isProcessingPatrolCamera = false;
+
+  function savePatrolFormDraft() {
+    try {
+      const wrap = document.getElementById('customLocWrap');
+      const isCustomLoc = wrap && wrap.style.display !== 'none';
+      const draft = {
+        updatedAt: Date.now(),
+        guardName: el.guardPatrolSelect ? el.guardPatrolSelect.value : state.currentGuardName,
+        shift: state.currentShift,
+        shiftName: state.currentShiftName,
+        isCustomLoc: Boolean(isCustomLoc),
+        locSelectVal: el.locPatrolSelect ? el.locPatrolSelect.value : '',
+        customLocVal: el.customLocPatrolInput ? el.customLocPatrolInput.value : '',
+        noteVal: el.notePatrolInput ? el.notePatrolInput.value : '',
+        riskChecked: el.riskPatrolChk ? Boolean(el.riskPatrolChk.checked) : false,
+        capturedImages: Array.isArray(state.capturedImages) ? state.capturedImages : []
+      };
+      localStorage.setItem(PATROL_DRAFT_STORAGE_KEY, JSON.stringify(draft));
+    } catch (e) {
+      console.warn('Could not save patrol draft:', e);
+    }
+  }
+
+  function restorePatrolFormDraft() {
+    try {
+      const raw = localStorage.getItem(PATROL_DRAFT_STORAGE_KEY);
+      if (!raw) return;
+      const draft = JSON.parse(raw);
+      // อายุ Draft ไม่เกิน 3 ชั่วโมง
+      if (!draft || !draft.updatedAt || (Date.now() - draft.updatedAt > 3 * 60 * 60 * 1000)) {
+        localStorage.removeItem(PATROL_DRAFT_STORAGE_KEY);
+        return;
+      }
+
+      if (draft.guardName && el.guardPatrolSelect) {
+        for (let opt of el.guardPatrolSelect.options) {
+          if (opt.value === draft.guardName) {
+            opt.selected = true;
+            state.currentGuardName = draft.guardName;
+            break;
+          }
+        }
+      }
+
+      if (draft.isCustomLoc) {
+        const wrap = document.getElementById('customLocWrap');
+        if (wrap) wrap.style.display = 'block';
+        if (el.customLocPatrolInput) {
+          el.customLocPatrolInput.style.display = 'block';
+          el.customLocPatrolInput.value = draft.customLocVal || '';
+        }
+        if (el.locPatrolSelect) {
+          el.locPatrolSelect.style.display = 'none';
+        }
+      } else if (draft.locSelectVal && el.locPatrolSelect) {
+        el.locPatrolSelect.value = draft.locSelectVal;
+      }
+
+      if (typeof draft.noteVal === 'string' && el.notePatrolInput) {
+        el.notePatrolInput.value = draft.noteVal;
+      }
+
+      if (typeof draft.riskChecked === 'boolean' && el.riskPatrolChk) {
+        el.riskPatrolChk.checked = draft.riskChecked;
+      }
+
+      if (Array.isArray(draft.capturedImages) && draft.capturedImages.length > 0) {
+        state.capturedImages = draft.capturedImages;
+        state.capturedImageBase64 = state.capturedImages[0] ? state.capturedImages[0].dataUrl : null;
+      }
+    } catch (e) {
+      console.warn('Could not restore patrol draft:', e);
+    }
+  }
+
+  function clearPatrolFormDraft() {
+    try {
+      localStorage.removeItem(PATROL_DRAFT_STORAGE_KEY);
+    } catch (e) {}
+  }
 
   async function handlePatrolCameraUpload(event) {
     if (isProcessingPatrolCamera) return;
 
-    // ดึงไฟล์จาก event.target หรือจาก input element โดยตรงเพื่อความชัวร์ 100%
-    const inputEl = event.target || el.camPatrolInput;
-    const rawFiles = inputEl?.files ? Array.from(inputEl.files) : [];
+    const inputEl = (event && event.target) ? event.target : el.camPatrolInput;
+    const rawFiles = inputEl && inputEl.files ? Array.from(inputEl.files) : [];
     if (!rawFiles || rawFiles.length === 0) return;
 
     isProcessingPatrolCamera = true;
@@ -704,172 +816,203 @@
 
       for (let i = 0; i < rawFiles.length; i++) {
         const file = rawFiles[i];
+        if (!file) continue;
         const photoObj = await processPatrolImageFile(file);
-        if (!state.capturedImages) state.capturedImages = [];
-        state.capturedImages.push(photoObj);
+        if (photoObj && photoObj.dataUrl) {
+          if (!state.capturedImages) state.capturedImages = [];
+          state.capturedImages.push(photoObj);
+        }
       }
 
       state.capturedImageBase64 = state.capturedImages[0] ? state.capturedImages[0].dataUrl : null;
+      savePatrolFormDraft();
       renderPatrolThumbnails();
 
       const total = state.capturedImages.length;
       if (total === 1) {
         showToast('📸 ได้รูปที่ 1 แล้ว! กรุณาแตะถ่ายรูปที่ 2 เพิ่มเติม', '📷');
-      } else {
+      } else if (total >= 2) {
         showToast(`✅ ได้ภาพเรียบร้อย ดึงเข้าระบบแล้ว (รวม ${total} รูป)`, '✅');
       }
     } catch (err) {
       console.error('Camera processing error:', err);
-      showToast('❌ ไม่สามารถประมวลผลรูปได้ กรุณาลองใหม่อีกครั้ง: ' + (err.message || ''), '❌');
+      showToast('❌ ไม่สามารถประมวลผลรูปได้ กรุณาลองถ่ายใหม่อีกครั้ง', '❌');
     } finally {
-      // รีเซ็ตค่า input เพื่อให้สามารถแตะถ่ายรูปถัดไปซ้ำได้ทันที
+      // รีเซ็ตค่า input หลังจากอ่านไฟล์จาก Android content:// เสร็จสมบูรณ์แล้ว เพื่อให้แตะถ่ายรูปที่ 2 ต่อได้ทันที
       if (el.camPatrolInput) {
         try {
           el.camPatrolInput.value = '';
         } catch (e) {}
       }
-      setTimeout(() => {
-        isProcessingPatrolCamera = false;
-      }, 300);
+      isProcessingPatrolCamera = false;
     }
   }
 
+  function buildPatrolTimestampMeta() {
+    const now = new Date();
+    const thaiMonths = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+    const thaiYear = (now.getFullYear() + 543).toString().slice(-2);
+    const d = now.getDate();
+    const m = thaiMonths[now.getMonth()];
+    const hh = String(now.getHours()).padStart(2, '0');
+    const mm = String(now.getMinutes()).padStart(2, '0');
+    const ss = String(now.getSeconds()).padStart(2, '0');
+
+    return {
+      timeStr: `${hh}:${mm} น.`,
+      fullStamp: `${d} ${m} ${thaiYear} ${hh}:${mm}:${ss} น.`,
+      timestamp: Date.now()
+    };
+  }
+
   function processPatrolImageFile(file) {
-    return new Promise(async (resolve, reject) => {
-      // Safety timeout 15 วินาที ป้องกันกรณีเบราว์เซอร์ค้าง
+    return new Promise((resolve, reject) => {
+      let settled = false;
       const timer = setTimeout(() => {
-        reject(new Error('การประมวลผลรูปใช้เวลานานเกินไป กรุณาลองใหม่อีกครั้ง'));
-      }, 15000);
+        if (!settled) {
+          settled = true;
+          reject(new Error('การประมวลผลรูปใช้เวลานานเกินไป กรุณาลองใหม่อีกครั้ง'));
+        }
+      }, 20000);
 
       function done(result) {
+        if (settled) return;
+        settled = true;
         clearTimeout(timer);
         resolve(result);
       }
 
       function fail(err) {
+        if (settled) return;
+        settled = true;
         clearTimeout(timer);
         reject(err);
       }
 
-      // วิธีที่ 1: createImageBitmap (ประสิทธิภาพสูงสุด ใช้แรมน้อยสุดบนมือถือ ป้องกันแครช)
-      if (typeof window.createImageBitmap === 'function') {
-        try {
-          let bitmap = null;
-          try {
-            bitmap = await window.createImageBitmap(file, { imageOrientation: 'from-image' });
-          } catch (e) {
-            bitmap = await window.createImageBitmap(file);
-          }
-          if (bitmap && bitmap.width > 0 && bitmap.height > 0) {
-            drawAndWatermark(bitmap, bitmap.width, bitmap.height, () => {
-              if (bitmap.close) bitmap.close();
-            });
-            return;
-          }
-        } catch (bmpErr) {
-          console.warn('createImageBitmap failed, trying objectURL:', bmpErr);
-        }
-      }
-
-      // วิธีที่ 2: URL.createObjectURL (มาตรฐานสากล กินแรมน้อย ไม่ทำให้เบราว์เซอร์มือถือแครช)
+      // วิธีหลัก: URL.createObjectURL + Image (เสถียรที่สุดบน Android ทุกรุ่น Samsung, Xiaomi, Oppo, Vivo และ iOS)
       let blobUrl = null;
       try {
-        blobUrl = URL.createObjectURL(file);
-        const img = new Image();
-        img.onload = function () {
-          try {
-            const w = img.naturalWidth || img.width;
-            const h = img.naturalHeight || img.height;
-            drawAndWatermark(img, w, h, () => {
+        if (typeof URL !== 'undefined' && typeof URL.createObjectURL === 'function') {
+          blobUrl = URL.createObjectURL(file);
+          const img = new Image();
+          img.onload = function () {
+            const w = img.naturalWidth || img.width || 640;
+            const h = img.naturalHeight || img.height || 480;
+            const ok = drawAndWatermark(img, w, h, () => {
               if (blobUrl) {
                 try { URL.revokeObjectURL(blobUrl); } catch (e) {}
               }
             });
-          } catch (e) {
-            fail(e);
-          }
-        };
-        img.onerror = function () {
-          if (blobUrl) {
-            try { URL.revokeObjectURL(blobUrl); } catch (err) {}
-          }
-          fallbackWithFileReader();
-        };
-        img.src = blobUrl;
-        return;
+            if (!ok) {
+              fallbackWithFileReader();
+            }
+          };
+          img.onerror = function () {
+            if (blobUrl) {
+              try { URL.revokeObjectURL(blobUrl); } catch (err) {}
+            }
+            fallbackWithFileReader();
+          };
+          img.src = blobUrl;
+          return;
+        }
       } catch (urlErr) {
-        fallbackWithFileReader();
-        return;
+        if (blobUrl) {
+          try { URL.revokeObjectURL(blobUrl); } catch (err) {}
+        }
       }
 
+      fallbackWithFileReader();
+
       function fallbackWithFileReader() {
-        const reader = new FileReader();
-        reader.onload = function (e) {
-          const fallbackImg = new Image();
-          fallbackImg.onload = function () {
-            const w = fallbackImg.naturalWidth || fallbackImg.width;
-            const h = fallbackImg.naturalHeight || fallbackImg.height;
-            drawAndWatermark(fallbackImg, w, h);
+        try {
+          const reader = new FileReader();
+          reader.onload = function (e) {
+            const dataUrl = e && e.target ? e.target.result : null;
+            if (!dataUrl) {
+              fail(new Error('ไม่สามารถอ่านข้อมูลรูปภาพได้'));
+              return;
+            }
+            const fallbackImg = new Image();
+            fallbackImg.onload = function () {
+              const w = fallbackImg.naturalWidth || fallbackImg.width || 640;
+              const h = fallbackImg.naturalHeight || fallbackImg.height || 480;
+              const ok = drawAndWatermark(fallbackImg, w, h);
+              if (!ok) {
+                // กรณี WebView รุ่นเก่าวาด Canvas ไม่สำเร็จ ให้ใช้ภาพต้นฉบับจากกล้องทันทีโดยไม่แครช
+                const meta = buildPatrolTimestampMeta();
+                done({
+                  dataUrl: dataUrl,
+                  timeStr: meta.timeStr,
+                  fullStamp: meta.fullStamp,
+                  timestamp: meta.timestamp
+                });
+              }
+            };
+            fallbackImg.onerror = function () {
+              const meta = buildPatrolTimestampMeta();
+              done({
+                dataUrl: dataUrl,
+                timeStr: meta.timeStr,
+                fullStamp: meta.fullStamp,
+                timestamp: meta.timestamp
+              });
+            };
+            fallbackImg.src = dataUrl;
           };
-          fallbackImg.onerror = function () {
-            fail(new Error('ไม่สามารถแปลงไฟล์ภาพถ่ายได้'));
+          reader.onerror = function () {
+            fail(new Error('เกิดข้อผิดพลาดในการอ่านไฟล์ภาพจากอุปกรณ์'));
           };
-          fallbackImg.src = e.target.result;
-        };
-        reader.onerror = function () {
-          fail(new Error('เกิดข้อผิดพลาดในการอ่านไฟล์ภาพ'));
-        };
-        reader.readAsDataURL(file);
+          reader.readAsDataURL(file);
+        } catch (readerErr) {
+          fail(readerErr);
+        }
       }
 
       function drawAndWatermark(imgSource, originalW, originalH, cleanupCallback) {
         try {
           const canvas = document.createElement('canvas');
           const MAX_SIZE = 640;
-          let width = originalW;
-          let height = originalH;
+          let width = originalW || 640;
+          let height = originalH || 480;
 
           if (width > height && width > MAX_SIZE) {
-            height = Math.round(height * (MAX_SIZE / width));
+            height = Math.max(1, Math.round(height * (MAX_SIZE / width)));
             width = MAX_SIZE;
           } else if (height > MAX_SIZE) {
-            width = Math.round(width * (MAX_SIZE / height));
+            width = Math.max(1, Math.round(width * (MAX_SIZE / height)));
             height = MAX_SIZE;
           }
 
           canvas.width = width;
           canvas.height = height;
           const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            if (typeof cleanupCallback === 'function') {
+              try { cleanupCallback(); } catch (e) {}
+            }
+            return false;
+          }
+
           ctx.drawImage(imgSource, 0, 0, width, height);
 
           if (typeof cleanupCallback === 'function') {
             try { cleanupCallback(); } catch (e) {}
           }
 
-          // วันที่และเวลาปัจจุบัน (ภาษาไทย)
-          const now = new Date();
-          const thaiMonths = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
-          const thaiYear = (now.getFullYear() + 543).toString().slice(-2);
-          const d = now.getDate();
-          const m = thaiMonths[now.getMonth()];
-          const hh = String(now.getHours()).padStart(2, '0');
-          const mm = String(now.getMinutes()).padStart(2, '0');
-          const ss = String(now.getSeconds()).padStart(2, '0');
-
-          const timeOnlyStr = `${hh}:${mm} น.`;
-          const fullStamp = `${d} ${m} ${thaiYear} ${hh}:${mm}:${ss} น.`;
+          const meta = buildPatrolTimestampMeta();
 
           // วาดแถบลายน้ำระบุเวลาลงบนรูปภาพ
           const fontSize = Math.max(14, Math.round(width * 0.028));
           ctx.font = `600 ${fontSize}px 'Sarabun', 'Prompt', sans-serif`;
-          const stampText = `🕒 ${fullStamp}`;
+          const stampText = `🕒 ${meta.fullStamp}`;
           const metrics = ctx.measureText(stampText);
           const padX = 12;
           const padY = 7;
           const boxW = metrics.width + (padX * 2);
           const boxH = fontSize + (padY * 2);
-          const boxX = width - boxW - 14;
-          const boxY = height - boxH - 14;
+          const boxX = Math.max(6, width - boxW - 14);
+          const boxY = Math.max(6, height - boxH - 14);
 
           ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
           ctx.fillRect(boxX, boxY, boxW, boxH);
@@ -881,15 +1024,17 @@
           const base64 = canvas.toDataURL('image/jpeg', 0.65);
           done({
             dataUrl: base64,
-            timeStr: timeOnlyStr,
-            fullStamp: fullStamp,
-            timestamp: Date.now()
+            timeStr: meta.timeStr,
+            fullStamp: meta.fullStamp,
+            timestamp: meta.timestamp
           });
+          return true;
         } catch (drawErr) {
+          console.warn('Canvas drawAndWatermark fallback triggered:', drawErr);
           if (typeof cleanupCallback === 'function') {
             try { cleanupCallback(); } catch (e) {}
           }
-          fail(drawErr);
+          return false;
         }
       }
     });
@@ -975,6 +1120,7 @@
     }
     state.capturedImageBase64 = state.capturedImages[0] ? state.capturedImages[0].dataUrl : null;
     if (el.camPatrolInput) el.camPatrolInput.value = '';
+    savePatrolFormDraft();
     renderPatrolThumbnails();
   }
 
@@ -1338,6 +1484,7 @@
     if (el.riskPatrolChk) el.riskPatrolChk.checked = false;
     if (el.notePatrolInput) el.notePatrolInput.value = '';
     removePatrolImage();
+    clearPatrolFormDraft();
 
     if (!isSOS && btn) {
       btn.disabled = false;

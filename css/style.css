@@ -886,6 +886,8 @@ textarea:focus {
 }
 
 .photo-dropzone-btn {
+  position: relative;
+  overflow: hidden;
   display: flex;
   align-items: center;
   gap: 18px;
@@ -896,17 +898,46 @@ textarea:focus {
   background: linear-gradient(135deg, var(--primary-light) 0%, var(--surface-alt) 100%);
   cursor: pointer;
   transition: all 0.2s ease;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: rgba(216, 27, 96, 0.14);
+  user-select: none;
+  -webkit-user-select: none;
 }
 
-.photo-dropzone-btn:hover {
+.photo-dropzone-btn:hover,
+.photo-dropzone-btn:active,
+.photo-dropzone-btn:focus-within {
   border-color: var(--primary-hover);
   transform: translateY(-1px);
   box-shadow: var(--shadow-md);
 }
 
+.photo-dropzone-btn:active {
+  transform: scale(0.99);
+}
+
+.overlay-file-input {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  opacity: 0 !important;
+  cursor: pointer !important;
+  z-index: 10 !important;
+  font-size: 100px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  touch-action: manipulation;
+}
+
 .photo-dropzone-icon {
   color: var(--primary);
   flex-shrink: 0;
+  pointer-events: none;
 }
 
 .cam-vector-svg {
@@ -918,6 +949,7 @@ textarea:focus {
   display: flex;
   flex-direction: column;
   gap: 3px;
+  pointer-events: none;
 }
 
 .photo-dropzone-text b {
@@ -2318,12 +2350,80 @@ tbody tr:hover {
   .photo-dropzone-btn {
     flex-direction: column;
     text-align: center;
-    padding: 18px 14px;
+    padding: 20px 14px;
+    min-height: 120px;
+    justify-content: center;
   }
 
   .admin-form-grid,
   .decision-two,
   .login-quick-roles {
     grid-template-columns: 1fr;
+  }
+
+  /* ป้องกัน iOS/Android ซูมหน้าจออัตโนมัติเมื่อแตะช่องกรอกข้อมูล */
+  input[type="text"],
+  input[type="password"],
+  input[type="date"],
+  input[type="search"],
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+
+  .table-wrap {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .btn,
+  .btn-submit-hero,
+  .btn-sos-hero,
+  .shift-btn {
+    touch-action: manipulation;
+  }
+}
+
+@media (max-width: 480px) {
+  .wrap,
+  body.wide .wrap {
+    padding: 10px 10px 32px;
+  }
+
+  .card {
+    padding: 15px 12px;
+    border-radius: 16px;
+  }
+
+  .photo-header-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .photo-req-badge {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .photo-dropzone-text b {
+    font-size: 15.5px;
+    line-height: 1.35;
+  }
+
+  .photo-dropzone-text small {
+    font-size: 12.5px;
+    line-height: 1.4;
+  }
+
+  .thumbs-modern,
+  .thumbs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .btn-submit-hero,
+  .btn-sos-hero {
+    padding: 15px 14px;
+    font-size: 16px;
   }
 }

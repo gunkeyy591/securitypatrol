@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Sarabun:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,600&display=swap">
   
   <!-- CSS -->
-  <link rel="stylesheet" href="css/style.css?v=6.2">
+  <link rel="stylesheet" href="css/style.css?v=6.3">
   <!-- Auth Guard: บังคับให้เข้าสู่หน้า login.html ทุกครั้งที่มีการเปิดเข้าดูเว็บ -->
   <script>
     window.appLogout = function () {
@@ -409,10 +409,16 @@
                   <span class="photo-req-badge photo-req-warn" id="photoCountBadge">ยังไม่ได้ถ่ายรูป (0/2 รูป)</span>
                 </div>
                 
-                <!-- กล้องถ่ายภาพหน้างาน -->
-                <input type="file" accept="image/jpeg,image/png,image/*" capture="environment" id="camPatrolInput" class="visually-hidden-file-input">
-                
-                <label for="camPatrolInput" class="photo-dropzone-btn" id="triggerCamBtn">
+                <!-- ปุ่มเปิดกล้องถ่ายภาพหน้างาน (รองรับทั้ง Android, iOS, แท็บเล็ต และ PC ทุกเบราว์เซอร์) -->
+                <div class="photo-dropzone-btn" id="triggerCamBtn" role="button" tabindex="0" aria-label="แตะที่นี่เพื่อเปิดกล้องถ่ายภาพหน้างาน">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    id="camPatrolInput"
+                    class="overlay-file-input"
+                    aria-label="เปิดกล้องถ่ายภาพหน้างาน"
+                  >
                   <div class="photo-dropzone-icon" aria-hidden="true">
                     <!-- Custom Vector Camera & Timestamp Illustration -->
                     <svg viewBox="0 0 56 56" fill="none" class="cam-vector-svg">
@@ -426,7 +432,7 @@
                     <b id="camBtnMainText">แตะที่นี่เพื่อเปิดกล้องถ่ายภาพหน้างาน</b>
                     <small id="camBtnSubText">ถ่ายเสร็จจะดึงรูปเข้ามาใส่ทันทีพร้อมประทับเวลาอัตโนมัติ (บังคับถ่าย 2 รูปขึ้นไป)</small>
                   </div>
-                </label>
+                </div>
 
                 <!-- ช่องแสดงรูปภาพที่ถ่ายแล้ว ดึงเข้ามาแสดงทันทีทีละรูป -->
                 <div class="thumbs-modern" id="thumbPatrolContainer"></div>
@@ -1194,8 +1200,8 @@
   </div>
 
   <!-- Scripts -->
-  <script src="js/data.js?v=6.2"></script>
-  <script src="js/db.js?v=6.2"></script>
-  <script src="js/app.js?v=6.2"></script>
+  <script src="js/data.js?v=6.3"></script>
+  <script src="js/db.js?v=6.3"></script>
+  <script src="js/app.js?v=6.3"></script>
 </body>
 </html>

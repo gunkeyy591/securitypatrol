@@ -79,7 +79,7 @@ CREATE INDEX IF NOT EXISTS idx_patrol_cp ON patrol_records(cp_id);
 
 -- บัญชีผู้ใช้เริ่มต้น
 INSERT INTO accounts (id, username, password, name, role, role_name) VALUES
-('acc-admin', 'admin', 'admin1234', 'หัวหน้าเวร (ผู้ดูแลระบบ)', 'admin', 'แอดมิน / หัวหน้าเวร'),
+('acc-admin', 'admin', 'admin1234', 'ผู้ดูแลระบบ', 'admin', 'ผู้ดูแลระบบ'),
 ('acc-guard', 'guard', 'guard1234', 'เจ้าหน้าที่ รปภ.', 'user', 'เจ้าหน้าที่ รปภ. (ผู้ตรวจ)'),
 ('acc-user', 'user', 'user1234', 'เจ้าหน้าที่ทั่วไป', 'user', 'ผู้ใช้งานทั่วไป')
 ON DUPLICATE KEY UPDATE name=VALUES(name);

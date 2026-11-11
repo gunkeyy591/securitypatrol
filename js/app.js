@@ -292,10 +292,14 @@
 
       rec.onend = () => {
         state.isRecordingVoice = false;
-        el.micBtn.classList.remove('on');
-        el.micBtn.innerHTML = '<span>🎙️</span> กดเพื่อเริ่มพูด';
-        el.offCpMicBtn.classList.remove('on');
-        el.offCpMicBtn.innerHTML = '<span>🎙️</span> กดเพื่อเริ่มพูด';
+        if (el.micBtn) {
+          el.micBtn.classList.remove('on');
+          el.micBtn.innerHTML = '<span>🎙️</span> กดเพื่อเริ่มพูด';
+        }
+        if (el.offCpMicBtn) {
+          el.offCpMicBtn.classList.remove('on');
+          el.offCpMicBtn.innerHTML = '<span>🎙️</span> กดเพื่อเริ่มพูด';
+        }
       };
 
       state.speechRecognition = rec;
@@ -1567,7 +1571,6 @@
       el.sqlLogsModal.style.display = 'none';
       document.body.style.overflow = '';
     }
-  }
   }
 
   // --- EXPORT TO CSV ---

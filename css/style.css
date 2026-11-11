@@ -546,6 +546,9 @@ body.login-body {
   font-size: 21px;
   font-weight: 700;
   color: var(--navy);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  letter-spacing: 0.5px;
 }
 
 :root[data-theme="dark"] .clock-time {

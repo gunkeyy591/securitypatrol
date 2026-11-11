@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sarabun:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,600&display=swap">
   
   <!-- CSS -->
-  <link rel="stylesheet" href="css/style.css?v=3.7">
+  <link rel="stylesheet" href="css/style.css?v=3.8">
   <!-- Auth Guard: บังคับให้เข้าสู่หน้า login.html ทุกครั้งที่มีการเปิดเข้าดูเว็บ -->
   <script>
     // กำหนดฟังก์ชันออกจากระบบแบบสากลไว้ล่วงหน้า เพื่อให้กดปุ่มออกจากระบบได้ทันที 100%
@@ -59,12 +59,33 @@
 
       <!-- ส่วนแสดงเวลา ข้อมูลผู้ใช้ และปุ่มออกจากระบบ -->
       <div class="header-right">
-        <!-- นาฬิกาและวันที่ปัจจุบัน -->
+        <!-- นาฬิกาและวันที่ปัจจุบัน (เดินตามเวลาจริงพร้อมวินาทีทันทีที่เปิดเว็บ) -->
         <div class="clock-box" id="appClock" title="เวลาและวันที่ปัจจุบัน">
           <span class="clock-label">เวลาปัจจุบัน</span>
-          <span id="clockTime" class="clock-time">--:-- น.</span>
+          <span id="clockTime" class="clock-time">--:--:-- น.</span>
           <small id="clockDate" class="clock-date">วันที่</small>
         </div>
+        <script>
+          (function () {
+            var thaiMonths = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+            var tEl = document.getElementById('clockTime');
+            var dEl = document.getElementById('clockDate');
+            function updateHeaderClock() {
+              var now = new Date();
+              var h = String(now.getHours()).padStart(2, '0');
+              var m = String(now.getMinutes()).padStart(2, '0');
+              var s = String(now.getSeconds()).padStart(2, '0');
+              if (tEl) tEl.textContent = h + ':' + m + ':' + s + ' น.';
+              var d = now.getDate();
+              var mon = thaiMonths[now.getMonth()];
+              var y = (now.getFullYear() + 543) % 100;
+              if (dEl) dEl.textContent = d + ' ' + mon + ' ' + y;
+            }
+            updateHeaderClock();
+            setInterval(updateHeaderClock, 1000);
+            window.__securityPatrolClockStarted = true;
+          })();
+        </script>
 
         <!-- กล่องข้อมูลผู้ใช้งานที่เข้าสู่ระบบ -->
         <div class="user-pill" id="userPill">
@@ -833,8 +854,8 @@
   </div>
 
   <!-- Scripts (พร้อม Cache Buster เพื่อบังคับให้โหลดโค้ดใหม่ล่าสุดเสมอ) -->
-  <script src="js/data.js?v=3.7"></script>
-  <script src="js/db.js?v=3.7"></script>
-  <script src="js/app.js?v=3.7"></script>
+  <script src="js/data.js?v=3.8"></script>
+  <script src="js/db.js?v=3.8"></script>
+  <script src="js/app.js?v=3.8"></script>
 </body>
 </html>

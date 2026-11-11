@@ -113,6 +113,8 @@
 
   // --- INITIALIZATION ---
   async function init() {
+    setupClock();
+
     // บังคับตรวจสอบ sessionStorage ในแท็บปัจจุบัน เพื่อให้เข้าหน้าล็อกอินทุกครั้งที่เปิดเข้าเว็บใหม่
     const savedSession = sessionStorage.getItem('yru_sp_session');
     if (!savedSession) {
@@ -123,7 +125,6 @@
     }
 
     await loadFromLocalStorage();
-    setupClock();
     setupTheme();
     setupAuth();
     bindEvents();
@@ -209,6 +210,9 @@
 
   // --- CLOCK & DATE ---
   function setupClock() {
+    if (window.__securityPatrolClockStarted) return;
+    window.__securityPatrolClockStarted = true;
+
     const thaiMonths = [
       'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.',
       'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'
@@ -218,12 +222,17 @@
       const now = new Date();
       const h = String(now.getHours()).padStart(2, '0');
       const m = String(now.getMinutes()).padStart(2, '0');
-      el.clockTime.textContent = `${h}:${m} น.`;
+      const s = String(now.getSeconds()).padStart(2, '0');
+      if (el.clockTime) {
+        el.clockTime.textContent = `${h}:${m}:${s} น.`;
+      }
 
       const d = now.getDate();
       const mon = thaiMonths[now.getMonth()];
       const y = (now.getFullYear() + 543) % 100;
-      el.clockDate.textContent = `${d} ${mon} ${y}`;
+      if (el.clockDate) {
+        el.clockDate.textContent = `${d} ${mon} ${y}`;
+      }
     }
 
     tick();

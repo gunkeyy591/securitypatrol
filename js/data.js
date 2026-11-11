@@ -11,9 +11,9 @@ const DEFAULT_ACCOUNTS = [
     id: 'acc-admin',
     username: 'admin',
     password: 'admin1234',
-    name: 'หัวหน้าเวร (ผู้ดูแลระบบ)',
+    name: 'ผู้ดูแลระบบ',
     role: 'admin', // แอดมิน: ดูรายงาน, แก้ไข, ตรวจสอบ, ลบข้อมูลได้
-    roleName: 'แอดมิน / หัวหน้าเวร'
+    roleName: 'ผู้ดูแลระบบ'
   },
   {
     id: 'acc-guard',

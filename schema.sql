@@ -47,13 +47,14 @@ CREATE TABLE IF NOT EXISTS checkpoints (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 5. ตารางบันทึกการเวียนตรวจจริง (Patrol Records) - ไม่มีข้อมูลตัวอย่าง พร้อมใช้งานจริง
+-- 5. ตารางบันทึกการเวียนตรวจจริง (Patrol Records) - เก็บข้อมูลการเดินตรวจทุกรอบของ รปภ.
 CREATE TABLE IF NOT EXISTS patrol_records (
   id VARCHAR(50) PRIMARY KEY,
   date DATE NOT NULL,
   time VARCHAR(10) NOT NULL,
   shift VARCHAR(20) NOT NULL,
   round VARCHAR(50),
+  round_no INT DEFAULT 1,
   guard_id VARCHAR(50) NOT NULL,
   guard_name VARCHAR(100) NOT NULL,
   cp_id VARCHAR(50) NOT NULL,
@@ -67,11 +68,23 @@ CREATE TABLE IF NOT EXISTS patrol_records (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- 6. ตารางจัดเก็บรูปภาพหลักฐานการเดินตรวจ (Patrol Images) - เชื่อมโยงกับ patrol_records
+CREATE TABLE IF NOT EXISTS patrol_images (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  record_id VARCHAR(50) NOT NULL,
+  image_index INT NOT NULL DEFAULT 0,
+  image_data LONGTEXT NOT NULL,
+  mime_type VARCHAR(30) DEFAULT 'image/jpeg',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (record_id) REFERENCES patrol_records(id) ON DELETE CASCADE
+);
+
 -- ดัชนีเพื่อเพิ่มความเร็วในการสืบค้นข้อมูล (Indexes)
 CREATE INDEX IF NOT EXISTS idx_patrol_date ON patrol_records(date);
 CREATE INDEX IF NOT EXISTS idx_patrol_status ON patrol_records(status);
 CREATE INDEX IF NOT EXISTS idx_patrol_guard ON patrol_records(guard_id);
 CREATE INDEX IF NOT EXISTS idx_patrol_cp ON patrol_records(cp_id);
+CREATE INDEX IF NOT EXISTS idx_patrol_images_rec ON patrol_images(record_id);
 
 -- =========================================================================
 -- ข้อมูลตั้งต้นหลัก (Master Data Seeding)

@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Sarabun:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,600&display=swap">
   
   <!-- CSS -->
-  <link rel="stylesheet" href="css/style.css?v=5.0">
+  <link rel="stylesheet" href="css/style.css?v=6.0">
   <!-- Auth Guard: บังคับให้เข้าสู่หน้า login.html ทุกครั้งที่มีการเปิดเข้าดูเว็บ -->
   <script>
     window.appLogout = function () {
@@ -622,11 +622,12 @@
           </div>
         </div>
 
-        <!-- แถบสถานะการเชื่อมต่อและปุ่มซิงค์รับรายงานสดจาก รปภ. ข้ามอุปกรณ์ -->
+        <!-- แถบสถานะฐานข้อมูล SQL และการซิงค์รับรายงานสดจาก รปภ. -->
         <div class="sync-banner-row">
-          <div class="sync-status-left">
+          <div class="sync-status-left" style="flex-wrap: wrap; gap: 10px;">
             <span class="sync-dot live"></span>
-            <span id="cloudSyncStatusText">ระบบเชื่อมต่อรับรายงานสดจาก รปภ. ตลอดเวลา (Real-time Sync Active)</span>
+            <span id="cloudSyncStatusText">เชื่อมต่อฐานข้อมูล SQL (patrol_records &amp; patrol_images) พร้อมรับข้อมูลและรูปภาพจาก รปภ. แบบ Real-time</span>
+            <span class="tag ok" id="sqlDbStatusBadge" style="font-size: 12.5px; padding: 4px 10px;">SQL DB: Connected</span>
           </div>
           <div class="sync-actions-right">
             <button type="button" class="btn btn-primary-teal" id="syncCloudBtn">
@@ -635,7 +636,7 @@
                 <polyline points="1 20 1 14 7 14"/>
                 <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
               </svg>
-              <span>ดึงข้อมูลล่าสุดจากคลาวด์</span>
+              <span>ซิงค์ข้อมูลจากฐานข้อมูล / คลาวด์</span>
             </button>
             <button type="button" class="btn ghost" id="adminGoToGuardBtn">
               <svg class="svg-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -824,8 +825,8 @@
                 </svg>
               </div>
               <div>
-                <h2 class="section-title">ตารางประวัติการเดินตรวจทั้งหมด</h2>
-                <p class="section-subtitle">หัวหน้าเวรสามารถกดปุ่ม <b>"แก้ไขข้อมูล"</b> เพื่อตรวจสอบรูปถ่าย/ปรับปรุงสถานะ หรือกดปุ่ม <b>"ลบ"</b> ในคอลัมน์จัดการ</p>
+                <h2 class="section-title">ตารางประวัติการเดินตรวจทั้งหมด (Full History of Patrol Rounds)</h2>
+                <p class="section-subtitle">แสดงข้อมูลและรูปภาพหลักฐานทุกรอบที่ส่งมาจากบัญชีเจ้าหน้าที่ รปภ. ลงในฐานข้อมูล SQL (คลิกที่รูปภาพเพื่อขยายดูภาพใหญ่ หรือกด <b>"แก้ไข" / "ลบ"</b>)</p>
               </div>
             </div>
             <span class="tag ok" id="logCountTag" style="font-size: 15px; padding: 8px 16px;">0 รายการ</span>
@@ -835,14 +836,14 @@
             <table>
               <thead>
                 <tr>
-                  <th style="width: 120px;">วัน / เวลา</th>
+                  <th style="width: 135px;">รอบที่ / วัน-เวลา</th>
                   <th style="min-width: 210px;">สถานที่ / จุดตรวจ</th>
-                  <th style="min-width: 160px;">รปภ. ผู้ตรวจ</th>
-                  <th style="width: 130px;">กะ / รอบ</th>
-                  <th style="width: 140px;">ผลการตรวจ</th>
-                  <th style="min-width: 240px;">รายละเอียดบันทึก</th>
-                  <th style="width: 110px; text-align: center;">หลักฐานภาพ</th>
-                  <th style="width: 180px; text-align: center;">การจัดการ (แอดมิน)</th>
+                  <th style="min-width: 160px;">เจ้าหน้าที่ รปภ.</th>
+                  <th style="width: 145px;">กะ / รอบการเดินตรวจ</th>
+                  <th style="width: 135px;">ผลการตรวจ</th>
+                  <th style="min-width: 220px;">รายละเอียดบันทึก</th>
+                  <th style="min-width: 170px; text-align: center;">รูปภาพหลักฐาน (SQL)</th>
+                  <th style="width: 175px; text-align: center;">การจัดการ (แอดมิน)</th>
                 </tr>
               </thead>
               <tbody id="reportTableBody">
@@ -1152,6 +1153,23 @@
     </div>
   </div>
 
+  <!-- Modal สำหรับแอดมินเปิดดูรูปภาพหลักฐานขนาดใหญ่ (SQL Image Lightbox) -->
+  <div class="veil" id="photoLightboxModal" hidden style="display: none;">
+    <div class="sheet" role="dialog" aria-modal="true" style="max-width: 760px;">
+      <div class="sheet-head">
+        <div>
+          <span class="modal-step-tag">หลักฐานภาพถ่ายจากฐานข้อมูล SQL (patrol_images)</span>
+          <h2 id="lightboxTitle" style="color: var(--ink); margin-top: 4px; font-size: 19px;">ภาพถ่ายการเดินตรวจ</h2>
+          <div id="lightboxSubtitle" style="font-size: 13.5px; color: var(--muted); margin-top: 2px;"></div>
+        </div>
+        <button type="button" class="sheet-close" id="closeLightboxBtn" aria-label="ปิดหน้าต่าง">✕ ปิด</button>
+      </div>
+      <div id="lightboxGalleryContainer" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin: 12px 0;">
+        <!-- Rendered by JS -->
+      </div>
+    </div>
+  </div>
+
   <!-- Toast แจ้งเตือนข้อความสั้นๆ -->
   <div class="toast" id="toast" hidden style="display: none;">
     <span id="toastIcon" class="toast-svg-wrap"></span>
@@ -1159,8 +1177,8 @@
   </div>
 
   <!-- Scripts -->
-  <script src="js/data.js?v=5.0"></script>
-  <script src="js/db.js?v=5.0"></script>
-  <script src="js/app.js?v=5.0"></script>
+  <script src="js/data.js?v=6.0"></script>
+  <script src="js/db.js?v=6.0"></script>
+  <script src="js/app.js?v=6.0"></script>
 </body>
 </html>

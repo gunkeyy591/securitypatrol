@@ -532,7 +532,8 @@
         el.panelSupervisor.removeAttribute('hidden');
         el.panelSupervisor.style.display = 'block';
       }
-      renderSupervisorDashboard();
+      reloadFromStorageAndRender();
+      pollRecentCloudRecords();
     }
 
     if (el.quickSwitchViewBtn) {
@@ -1260,12 +1261,17 @@
       cleanGuardName = state.currentUser ? state.currentUser.name : 'เจ้าหน้าที่ รปภ.';
     }
 
+    // คำนวณรอบการเดินตรวจของกะนี้ในวันนี้โดยอัตโนมัติ (Round Number)
+    const sameShiftCount = state.history.filter(r => r.date === isoDate && r.shift === shiftCode).length;
+    const roundNo = sameShiftCount + 1;
+
     const record = {
       id: 'rec-' + Date.now(),
       date: isoDate,
       time: timeStr,
       shift: shiftCode,
-      round: `กะ${shiftName} (เวียนตรวจ)`,
+      roundNo: roundNo,
+      round: `กะ${shiftName} · รอบที่ ${roundNo}`,
       guardId: state.currentGuardId || 'g1',
       guardName: cleanGuardName,
       cpId: isCustomLoc ? 'off-checkpoint' : 'cp-yru',
@@ -1277,15 +1283,16 @@
       note: notes || (isSOS ? '🚨 แจ้งเหตุฉุกเฉิน' : 'ปกติ เรียบร้อยดี'),
       images: (state.capturedImages && state.capturedImages.length > 0)
         ? state.capturedImages.map(img => img.dataUrl)
-        : (state.capturedImageBase64 ? [state.capturedImageBase64] : [])
+        : (state.capturedImageBase64 ? [state.capturedImageBase64] : []),
+      createdAt: new Date().toISOString()
     };
 
-    // บันทึกลงฐานข้อมูล SQL (SQL INSERT INTO patrol_records)
+    // บันทึกลงฐานข้อมูล SQL (SQL INSERT INTO patrol_records & patrol_images)
     if (window.AppDB) {
       try {
         await window.AppDB.query(
           `INSERT INTO patrol_records (id, date, time, shift, round, guard_id, guard_name, cp_id, cp_code, cp_name, is_risk, is_off_checkpoint, status, note, images, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [record.id, record.date, record.time, record.shift, record.round, record.guardId, record.guardName, record.cpId, record.cpCode, record.cpName, record.isRisk ? 1 : 0, record.isOffCheckpoint ? 1 : 0, record.status, record.note, record.images, new Date().toISOString()]
+          [record.id, record.date, record.time, record.shift, record.round, record.guardId, record.guardName, record.cpId, record.cpCode, record.cpName, record.isRisk ? 1 : 0, record.isOffCheckpoint ? 1 : 0, record.status, record.note, record.images, record.createdAt, record.roundNo]
         );
       } catch (dbErr) {
         console.warn('AppDB insert error:', dbErr);
@@ -1293,15 +1300,17 @@
     }
 
     // Save record to history
-    state.history.unshift(record);
+    if (!state.history.some(r => r.id === record.id)) {
+      state.history.unshift(record);
+    }
     saveToLocalStorage();
 
     // Re-render UI
     renderSupervisorDashboard();
     renderGuardRecentLogs();
 
-    // Broadcast to other open tabs and send to cloud
-    broadcastPatrolRecord(record);
+    // Broadcast to other open tabs and send to cloud SQL channel
+    await broadcastPatrolRecord(record);
 
     if (isSOS) {
       showToast('🚨 ส่งแจ้งเหตุฉุกเฉินเรียบร้อยแล้ว!', '🚨');
@@ -1459,16 +1468,17 @@
     }
   }
 
-  // --- REAL-TIME MULTI-DEVICE & CLOUD SYNC ENGINE ---
+  // --- REAL-TIME MULTI-DEVICE & CLOUD SQL SYNC ENGINE ---
   const CLOUD_SYNC_URL = 'https://ntfy.sh/yru_sp_sync_channel_live_2026';
   let cloudEventSource = null;
+  let syncIntervalId = null;
 
-  async function broadcastPatrolRecord(record) {
+  async function broadcastPatrolRecord(record, actionType = 'patrol_record') {
     // 1. Same-device multi-tab broadcast via BroadcastChannel
     try {
       if (typeof BroadcastChannel !== 'undefined') {
         const bc = new BroadcastChannel('yru_patrol_channel');
-        bc.postMessage({ type: 'NEW_RECORD', record: record });
+        bc.postMessage({ type: actionType, record: record });
         setTimeout(() => bc.close(), 1000);
       }
     } catch (e) {
@@ -1476,25 +1486,47 @@
     }
 
     // 2. Cross-device Cloud Pub/Sub broadcast via ntfy.sh (Guard phone -> PC Admin)
+    // ใช้เฉพาะ ASCII Headers เท่านั้นเพื่อป้องกัน Fetch TypeError และรองรับไฟล์ JSON ขนาดใหญ่ที่มีรูปภาพ Base64
     try {
       const payload = JSON.stringify({
-        type: 'patrol_record',
+        type: actionType,
         record: record,
         timestamp: Date.now()
       });
 
-      fetch(CLOUD_SYNC_URL, {
+      await fetch(CLOUD_SYNC_URL, {
         method: 'POST',
         headers: {
-          'Title': `รายงานเวียนตรวจ: ${record.cpName}`,
+          'Filename': `patrol_${record.id || Date.now()}.json`,
           'Priority': record.isRisk || record.status === 'alert' ? 'urgent' : 'default',
           'Tags': record.status === 'alert' ? 'warning,shield' : 'white_check_mark,shield'
         },
         body: payload
-      }).catch(err => console.warn('Cloud sync post warning:', err));
+      });
     } catch (netErr) {
-      console.warn('Cloud broadcast error:', netErr);
+      console.warn('Cloud broadcast warning:', netErr);
     }
+  }
+
+  /**
+   * แยกข้อมูล JSON ของการเดินตรวจและรูปภาพจาก ntfy event (รองรับทั้ง inline message และ file attachment > 4KB)
+   */
+  async function extractNtfyPayload(data) {
+    if (!data) return null;
+    try {
+      // กรณีมีรูปภาพหลักฐาน (>4KB) ntfy.sh จะเก็บ JSON ไว้ใน data.attachment.url
+      if (data.attachment && data.attachment.url) {
+        const attResp = await fetch(data.attachment.url);
+        if (attResp.ok) {
+          return await attResp.json();
+        }
+      }
+      // กรณีข้อความสั้นอยู่ใน data.message
+      if (data.message && typeof data.message === 'string' && data.message.trim().startsWith('{')) {
+        return JSON.parse(data.message);
+      }
+    } catch (e) {}
+    return null;
   }
 
   function setupCloudSyncReceiver() {
@@ -1503,14 +1535,17 @@
       try {
         const bc = new BroadcastChannel('yru_patrol_channel');
         bc.onmessage = (event) => {
-          if (event.data && event.data.type === 'NEW_RECORD') {
-            handleIncomingRecord(event.data.record);
+          if (!event.data) return;
+          if (event.data.type === 'patrol_record' || event.data.type === 'NEW_RECORD' || event.data.type === 'patrol_update') {
+            handleIncomingRecord(event.data.record, event.data.type === 'patrol_update');
+          } else if (event.data.type === 'patrol_delete' && event.data.record) {
+            handleIncomingDelete(event.data.record.id);
           }
         };
       } catch (e) {}
     }
 
-    // 2. Listen for storage events (legacy cross-tab support)
+    // 2. Listen for storage events (cross-tab support)
     window.addEventListener('storage', (e) => {
       if (e.key === 'yru_sp_history' || e.key === 'yru_sp_sql_db') {
         reloadFromStorageAndRender();
@@ -1529,13 +1564,15 @@
           updateCloudSyncUI('connected');
         };
 
-        cloudEventSource.onmessage = (event) => {
+        cloudEventSource.onmessage = async (event) => {
           try {
             const data = JSON.parse(event.data);
-            if (data && data.message) {
-              const parsed = JSON.parse(data.message);
-              if (parsed.type === 'patrol_record' && parsed.record) {
-                handleIncomingRecord(parsed.record);
+            const parsed = await extractNtfyPayload(data);
+            if (parsed && parsed.record) {
+              if (parsed.type === 'patrol_record' || parsed.type === 'patrol_update') {
+                await handleIncomingRecord(parsed.record, parsed.type === 'patrol_update');
+              } else if (parsed.type === 'patrol_delete') {
+                await handleIncomingDelete(parsed.record.id);
               }
             }
           } catch (err) {}
@@ -1549,33 +1586,63 @@
       }
     }
 
-    // Auto poll last 24h of messages upon startup
+    // 4. Auto poll last 24h of messages upon startup & every 8 seconds for Admin real-time table updates
     pollRecentCloudRecords();
+    if (syncIntervalId) clearInterval(syncIntervalId);
+    syncIntervalId = setInterval(() => {
+      reloadFromStorageAndRender();
+      pollRecentCloudRecords();
+    }, 8000);
   }
 
   function updateCloudSyncUI(status) {
     if (el.cloudSyncStatusText) {
       if (status === 'connected') {
-        el.cloudSyncStatusText.textContent = 'ระบบเชื่อมต่อรับรายงานสดจาก รปภ. ตลอดเวลา (Real-time Sync Active)';
+        el.cloudSyncStatusText.textContent = 'เชื่อมต่อฐานข้อมูล SQL (patrol_records & patrol_images) พร้อมรับข้อมูลและรูปภาพจาก รปภ. แบบ Real-time';
       } else {
-        el.cloudSyncStatusText.textContent = 'กำลังเชื่อมต่อระบบคลาวด์รับรายงาน...';
+        el.cloudSyncStatusText.textContent = 'เชื่อมต่อฐานข้อมูล SQL ภายในเครื่องแล้ว (กำลังซิงค์คลาวด์...)';
       }
     }
   }
 
-  async function handleIncomingRecord(incoming) {
+  async function handleIncomingDelete(recordId) {
+    if (!recordId) return;
+    const before = state.history.length;
+    state.history = state.history.filter(r => r.id !== recordId);
+    if (state.history.length !== before) {
+      if (window.AppDB) {
+        try {
+          await window.AppDB.query(`DELETE FROM patrol_records WHERE id = ?`, [recordId]);
+        } catch (e) {}
+      }
+      saveToLocalStorage();
+      renderSupervisorDashboard();
+      renderGuardRecentLogs();
+    }
+  }
+
+  async function handleIncomingRecord(incoming, isUpdate = false) {
     if (!incoming || !incoming.id) return;
 
-    const exists = state.history.some(r => r.id === incoming.id);
-    if (exists) return;
+    const existingIdx = state.history.findIndex(r => r.id === incoming.id);
+    if (existingIdx !== -1 && !isUpdate) {
+      // หากมีอยู่แล้วแต่ข้อมูลใหม่มีรูปภาพครบกว่า ให้อัปเดต
+      const exImgs = (state.history[existingIdx].images || []).length;
+      const incImgs = (incoming.images || []).length;
+      if (incImgs <= exImgs) return;
+    }
 
-    state.history.unshift(incoming);
+    if (existingIdx !== -1) {
+      state.history[existingIdx] = incoming;
+    } else {
+      state.history.unshift(incoming);
+    }
 
     if (window.AppDB) {
       try {
         await window.AppDB.query(
           `INSERT INTO patrol_records (id, date, time, shift, round, guard_id, guard_name, cp_id, cp_code, cp_name, is_risk, is_off_checkpoint, status, note, images, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [incoming.id, incoming.date, incoming.time, incoming.shift, incoming.round, incoming.guardId, incoming.guardName, incoming.cpId, incoming.cpCode, incoming.cpName, incoming.isRisk ? 1 : 0, incoming.isOffCheckpoint ? 1 : 0, incoming.status, incoming.note, incoming.images, incoming.createdAt || new Date().toISOString()]
+          [incoming.id, incoming.date, incoming.time, incoming.shift, incoming.round, incoming.guardId, incoming.guardName, incoming.cpId, incoming.cpCode, incoming.cpName, incoming.isRisk ? 1 : 0, incoming.isOffCheckpoint ? 1 : 0, incoming.status, incoming.note, incoming.images, incoming.createdAt || new Date().toISOString(), incoming.roundNo || 1]
         );
       } catch (e) {}
     }
@@ -1584,7 +1651,9 @@
     renderSupervisorDashboard();
     renderGuardRecentLogs();
 
-    showToast(`ได้รับรายงานเวียนตรวจใหม่: ${incoming.cpName} (${incoming.guardName})`, 'ok');
+    if (existingIdx === -1) {
+      showToast(`ได้รับรายงานเวียนตรวจใหม่: ${incoming.cpName} (${incoming.guardName})`, 'ok');
+    }
   }
 
   async function pollRecentCloudRecords() {
@@ -1593,29 +1662,52 @@
       if (resp.ok) {
         const text = await resp.text();
         const lines = text.trim().split('\n').filter(Boolean);
-        let added = 0;
+        let changed = 0;
+        const deletedIds = new Set();
+
         for (const line of lines) {
           try {
             const data = JSON.parse(line);
-            if (data && data.message) {
-              const parsed = JSON.parse(data.message);
-              if (parsed.type === 'patrol_record' && parsed.record) {
-                const rec = parsed.record;
-                if (!state.history.some(r => r.id === rec.id)) {
+            const parsed = await extractNtfyPayload(data);
+            if (!parsed || !parsed.record) continue;
+
+            if (parsed.type === 'patrol_delete' && parsed.record.id) {
+              deletedIds.add(parsed.record.id);
+            } else if (parsed.type === 'patrol_record' || parsed.type === 'patrol_update') {
+              const rec = parsed.record;
+              if (deletedIds.has(rec.id)) continue;
+              const existingIdx = state.history.findIndex(r => r.id === rec.id);
+              if (existingIdx === -1 || parsed.type === 'patrol_update') {
+                if (existingIdx !== -1) {
+                  state.history[existingIdx] = rec;
+                } else {
                   state.history.unshift(rec);
-                  if (window.AppDB) {
-                    await window.AppDB.query(
-                      `INSERT INTO patrol_records (id, date, time, shift, round, guard_id, guard_name, cp_id, cp_code, cp_name, is_risk, is_off_checkpoint, status, note, images, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-                      [rec.id, rec.date, rec.time, rec.shift, rec.round, rec.guardId, rec.guardName, rec.cpId, rec.cpCode, rec.cpName, rec.isRisk ? 1 : 0, rec.isOffCheckpoint ? 1 : 0, rec.status, rec.note, rec.images, rec.createdAt || new Date().toISOString()]
-                    );
-                  }
-                  added++;
                 }
+                if (window.AppDB) {
+                  await window.AppDB.query(
+                    `INSERT INTO patrol_records (id, date, time, shift, round, guard_id, guard_name, cp_id, cp_code, cp_name, is_risk, is_off_checkpoint, status, note, images, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                    [rec.id, rec.date, rec.time, rec.shift, rec.round, rec.guardId, rec.guardName, rec.cpId, rec.cpCode, rec.cpName, rec.isRisk ? 1 : 0, rec.isOffCheckpoint ? 1 : 0, rec.status, rec.note, rec.images, rec.createdAt || new Date().toISOString(), rec.roundNo || 1]
+                  );
+                }
+                changed++;
               }
             }
           } catch (e) {}
         }
-        if (added > 0) {
+
+        if (deletedIds.size > 0) {
+          for (const delId of deletedIds) {
+            if (state.history.some(r => r.id === delId)) {
+              state.history = state.history.filter(r => r.id !== delId);
+              if (window.AppDB) {
+                await window.AppDB.query(`DELETE FROM patrol_records WHERE id = ?`, [delId]);
+              }
+              changed++;
+            }
+          }
+        }
+
+        if (changed > 0) {
           saveToLocalStorage();
           renderSupervisorDashboard();
           renderGuardRecentLogs();
@@ -1629,17 +1721,18 @@
     const syncSvg = '<svg class="svg-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>';
     if (btn) {
       btn.disabled = true;
-      btn.innerHTML = `${syncSvg} <span>กำลังดึงข้อมูล...</span>`;
+      btn.innerHTML = `${syncSvg} <span>กำลังซิงค์ฐานข้อมูล SQL...</span>`;
     }
     try {
+      await reloadFromStorageAndRender();
       await pollRecentCloudRecords();
-      showToast('ข้อมูลทั้งหมดอัปเดตเป็นปัจจุบันเรียบร้อยแล้ว', 'ok');
+      showToast('ซิงค์ฐานข้อมูล SQL และรูปภาพทั้งหมดเป็นปัจจุบันเรียบร้อยแล้ว', 'ok');
     } catch (e) {
-      showToast('ไม่สามารถเชื่อมต่อระบบคลาวด์ได้ในขณะนี้', 'warn');
+      showToast('อัปเดตข้อมูลจากฐานข้อมูล SQL ในเครื่องเรียบร้อยแล้ว', 'ok');
     } finally {
       if (btn) {
         btn.disabled = false;
-        btn.innerHTML = `${syncSvg} <span>ดึงข้อมูลล่าสุดจากคลาวด์</span>`;
+        btn.innerHTML = `${syncSvg} <span>ซิงค์ข้อมูลจากฐานข้อมูล / คลาวด์</span>`;
       }
     }
   }
@@ -1672,6 +1765,13 @@
     el.statAlert.textContent = alertCount;
     el.statActiveCp.textContent = activeCpCount;
 
+    // อัปเดตสถานะการเชื่อมต่อฐานข้อมูล SQL และจำนวนรูปภาพทั้งหมด
+    const sqlBadge = document.getElementById('sqlDbStatusBadge');
+    if (sqlBadge && window.AppDB && typeof window.AppDB.getStats === 'function') {
+      const dbStats = window.AppDB.getStats();
+      sqlBadge.textContent = `SQL DB: ${dbStats.recordCount} รอบตรวจ · ${dbStats.imageCount} รูปภาพ`;
+    }
+
     const dateVal = el.filterDate.value;
     const shiftVal = el.filterShift.value;
     const statusVal = el.filterStatus.value;
@@ -1688,12 +1788,12 @@
       return true;
     });
 
-    el.logCountTag.textContent = `${filtered.length} รายการ`;
+    el.logCountTag.textContent = `${filtered.length} รอบการตรวจ`;
 
     if (filtered.length === 0) {
       const msg = state.history.length === 0
-        ? 'ยังไม่มีข้อมูลการเวียนตรวจในระบบ (ฐานข้อมูล SQL พร้อมรับข้อมูลจริง)'
-        : 'ไม่พบข้อมูลตามตัวกรองที่เลือก';
+        ? 'ยังไม่มีข้อมูลการเวียนตรวจในระบบ (ฐานข้อมูล SQL พร้อมรับข้อมูลและรูปภาพจากเจ้าหน้าที่ รปภ.)'
+        : 'ไม่พบข้อมูลตามตัวกรองที่เลือก (กดปุ่ม "ล้างตัวกรองทั้งหมด" เพื่อดูประวัติทุกรอบ)';
       el.reportTableBody.innerHTML = `
         <tr><td colspan="8" class="empty" style="text-align:center; padding:44px 16px; color:var(--muted);">
           <svg viewBox="0 0 64 64" fill="none" style="width:48px; height:48px; margin:0 auto 10px; color:var(--primary); opacity:0.65;">
@@ -1707,8 +1807,9 @@
     } else {
       const shiftMap = { morning: 'กะเช้า', afternoon: 'กะบ่าย', night: 'กะดึก' };
 
-      el.reportTableBody.innerHTML = filtered.map(item => {
+      el.reportTableBody.innerHTML = filtered.map((item, idx) => {
         const isOk = item.status === 'ok';
+        const roundDisplayNo = item.roundNo || (filtered.length - idx);
         let statusBadge = isOk 
           ? `<span class="tag ok">ปกติเรียบร้อย</span>` 
           : `<span class="tag alert">พบปัญหา</span>`;
@@ -1717,19 +1818,41 @@
           statusBadge = `<span class="tag alert" style="background:#e11d48; color:#fff;">เหตุด่วนนอกจุด</span>`;
         }
 
-        const photoPreview = (item.images && item.images.length > 0)
-          ? `<span class="photo-count-chip"><svg class="svg-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg> ${item.images.length} รูป</span>`
-          : `<span style="color:var(--muted)">-</span>`;
+        const imgs = Array.isArray(item.images) ? item.images.filter(Boolean) : [];
+        let photoPreview = `<span style="color:var(--muted)">ไม่มีรูปภาพ</span>`;
+        if (imgs.length > 0) {
+          const thumbsHtml = imgs.slice(0, 3).map((src, i) => `
+            <button type="button" onclick="window.appOpenPhotoLightbox('${item.id}', ${i})" title="คลิกเพื่อดูรูปภาพขยายใหญ่ (รูปที่ ${i + 1})" style="padding:0; border:1.5px solid var(--primary); border-radius:8px; overflow:hidden; width:46px; height:46px; cursor:pointer; background:#000; flex-shrink:0;">
+              <img src="${src}" alt="รูปที่ ${i + 1}" style="width:100%; height:100%; object-fit:cover; display:block;">
+            </button>
+          `).join('');
+          photoPreview = `
+            <div style="display:flex; flex-direction:column; align-items:center; gap:5px;">
+              <div style="display:flex; gap:5px; justify-content:center; flex-wrap:wrap;">${thumbsHtml}</div>
+              <button type="button" class="photo-count-chip" onclick="window.appOpenPhotoLightbox('${item.id}', 0)" style="cursor:pointer; border:none;">
+                <svg class="svg-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                <span>ดูภาพ (${imgs.length} รูป)</span>
+              </button>
+            </div>
+          `;
+        }
 
         return `
           <tr>
-            <td><b>${item.time} น.</b><br><small style="color:var(--muted);">${item.date}</small></td>
+            <td>
+              <span class="tag" style="background:var(--primary-soft); color:var(--primary); font-size:11.5px; padding:2px 8px; margin-bottom:4px;">รอบที่ #${roundDisplayNo}</span><br>
+              <b>${item.time} น.</b><br>
+              <small style="color:var(--muted);">${item.date}</small>
+            </td>
             <td>
               <b>${escapeHtml(item.cpName)}</b>
-              ${item.isRisk ? '<br><span class="tag risk" style="font-size:11px;">พื้นที่เสี่ยง</span>' : ''}
+              ${item.isRisk ? '<br><span class="tag risk" style="font-size:11px; margin-top:4px;">พื้นที่เสี่ยง</span>' : ''}
             </td>
-            <td>${escapeHtml(item.guardName)}</td>
-            <td>${shiftMap[item.shift] || item.shift}<br><small style="color:var(--muted);">${item.round || ''}</small></td>
+            <td><b>${escapeHtml(item.guardName)}</b></td>
+            <td>
+              <b>${shiftMap[item.shift] || item.shift}</b><br>
+              <small style="color:var(--muted);">${escapeHtml(item.round || `รอบที่ ${roundDisplayNo}`)}</small>
+            </td>
             <td>${statusBadge}</td>
             <td>${escapeHtml(item.note || '-')}</td>
             <td style="text-align: center;">${photoPreview}</td>
@@ -1890,11 +2013,56 @@
     }
 
     saveToLocalStorage();
+    broadcastPatrolRecord(updatedRecord, 'patrol_update');
     closeAdminEditModal();
     renderSupervisorDashboard();
     renderGuardRecentLogs();
     showToast('💾 แอดมินบันทึกการแก้ไขข้อมูลเรียบร้อยแล้ว', '✅');
   }
+
+  window.appOpenPhotoLightbox = function (recordId, startIdx = 0) {
+    const record = state.history.find(h => h.id === recordId);
+    if (!record || !Array.isArray(record.images) || record.images.length === 0) {
+      showToast('ไม่มีรูปภาพสำหรับรายการนี้', 'warn');
+      return;
+    }
+
+    const modal = document.getElementById('photoLightboxModal');
+    const titleEl = document.getElementById('lightboxTitle');
+    const subEl = document.getElementById('lightboxSubtitle');
+    const galleryEl = document.getElementById('lightboxGalleryContainer');
+    const closeBtn = document.getElementById('closeLightboxBtn');
+
+    if (!modal || !galleryEl) return;
+
+    if (titleEl) titleEl.textContent = `${record.cpName} (${record.images.length} รูปภาพหลักฐาน)`;
+    if (subEl) subEl.textContent = `ผู้ตรวจ: ${record.guardName} · วันที่ ${record.date} เวลา ${record.time} น. (${record.round || ''})`;
+
+    galleryEl.innerHTML = record.images.map((src, idx) => `
+      <div style="background:var(--surface-alt); border:1.5px solid ${idx === startIdx ? 'var(--primary)' : 'var(--line)'}; border-radius:14px; overflow:hidden; padding:10px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; font-size:13px; font-weight:700;">
+          <span>ภาพถ่ายหลักฐานที่ #${idx + 1}</span>
+          <a href="${src}" download="patrol_${record.id}_${idx + 1}.jpg" class="tag ok" style="text-decoration:none; font-size:11.5px;">ดาวน์โหลดรูป</a>
+        </div>
+        <img src="${src}" alt="ภาพถ่ายหลักฐาน ${idx + 1}" style="width:100%; max-height:460px; object-fit:contain; border-radius:10px; background:#000; display:block;">
+      </div>
+    `).join('');
+
+    modal.removeAttribute('hidden');
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+
+    const closeLightbox = () => {
+      modal.setAttribute('hidden', '');
+      modal.style.display = 'none';
+      document.body.style.overflow = '';
+    };
+
+    if (closeBtn) closeBtn.onclick = closeLightbox;
+    modal.onclick = (e) => {
+      if (e.target === modal) closeLightbox();
+    };
+  };
 
   window.appDeleteRecord = function (recordId) {
     if (!state.currentUser || state.currentUser.role !== 'admin') {
@@ -1923,6 +2091,7 @@
     }
 
     saveToLocalStorage();
+    broadcastPatrolRecord({ id: recordId }, 'patrol_delete');
 
     closeAdminEditModal();
     renderSupervisorDashboard();

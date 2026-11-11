@@ -574,6 +574,7 @@
         el.camPatrolInput.removeAttribute('capture');
       }
       el.camPatrolInput.addEventListener('change', handlePatrolCameraUpload);
+      el.camPatrolInput.addEventListener('input', handlePatrolCameraUpload);
     }
 
     renderPatrolThumbnails();
@@ -593,113 +594,211 @@
   }
 
   // --- CAMERA & PHOTO PROCESSING (กล้องมือถือ + ประทับเวลาอัตโนมัติ + ดึงรูปเข้าทันที) ---
+  let isProcessingPatrolCamera = false;
+
   async function handlePatrolCameraUpload(event) {
-    const files = event.target.files;
-    if (!files || files.length === 0) return;
+    if (isProcessingPatrolCamera) return;
+
+    // ดึงไฟล์จาก event.target หรือจาก input element โดยตรงเพื่อความชัวร์ 100%
+    const inputEl = event.target || el.camPatrolInput;
+    const rawFiles = inputEl?.files ? Array.from(inputEl.files) : [];
+    if (!rawFiles || rawFiles.length === 0) return;
+
+    isProcessingPatrolCamera = true;
 
     try {
-      showToast('⏳ กำลังประมวลผลและประทับเวลาภาพถ่าย...', '📸');
-      for (let i = 0; i < files.length; i++) {
-        const photoObj = await processPatrolImageFile(files[i]);
+      showToast('⏳ กำลังดึงรูปภาพและประทับเวลาหน้างาน...', '📸');
+
+      for (let i = 0; i < rawFiles.length; i++) {
+        const file = rawFiles[i];
+        const photoObj = await processPatrolImageFile(file);
         if (!state.capturedImages) state.capturedImages = [];
         state.capturedImages.push(photoObj);
       }
+
       state.capturedImageBase64 = state.capturedImages[0] ? state.capturedImages[0].dataUrl : null;
       renderPatrolThumbnails();
 
       const total = state.capturedImages.length;
       if (total === 1) {
-        showToast('📸 ได้รูปที่ 1 แล้ว! กรุณาแตะปุ่มเพื่อถ่ายรูปที่ 2 เพิ่มเติม', '📷');
+        showToast('📸 ได้รูปที่ 1 แล้ว! กรุณาแตะถ่ายรูปที่ 2 เพิ่มเติม', '📷');
       } else {
-        showToast(`✅ ถ่ายภาพสำเร็จเรียบร้อย ดึงเข้าระบบแล้ว (รวม ${total} รูป)`, '✅');
+        showToast(`✅ ได้ภาพเรียบร้อย ดึงเข้าระบบแล้ว (รวม ${total} รูป)`, '✅');
       }
     } catch (err) {
       console.error('Camera processing error:', err);
-      showToast('❌ เกิดข้อผิดพลาดในการประมวลผลรูปภาพ', '❌');
+      showToast('❌ ไม่สามารถประมวลผลรูปได้ กรุณาลองใหม่อีกครั้ง: ' + (err.message || ''), '❌');
     } finally {
-      if (el.camPatrolInput) el.camPatrolInput.value = '';
+      // รีเซ็ตค่า input เพื่อให้สามารถแตะถ่ายรูปถัดไปซ้ำได้ทันที
+      if (el.camPatrolInput) {
+        try {
+          el.camPatrolInput.value = '';
+        } catch (e) {}
+      }
+      setTimeout(() => {
+        isProcessingPatrolCamera = false;
+      }, 300);
     }
   }
 
   function processPatrolImageFile(file) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = function (e) {
+    return new Promise(async (resolve, reject) => {
+      // Safety timeout 15 วินาที ป้องกันกรณีเบราว์เซอร์ค้าง
+      const timer = setTimeout(() => {
+        reject(new Error('การประมวลผลรูปใช้เวลานานเกินไป กรุณาลองใหม่อีกครั้ง'));
+      }, 15000);
+
+      function done(result) {
+        clearTimeout(timer);
+        resolve(result);
+      }
+
+      function fail(err) {
+        clearTimeout(timer);
+        reject(err);
+      }
+
+      // วิธีที่ 1: createImageBitmap (ประสิทธิภาพสูงสุด ใช้แรมน้อยสุดบนมือถือ ป้องกันแครช)
+      if (typeof window.createImageBitmap === 'function') {
+        try {
+          let bitmap = null;
+          try {
+            bitmap = await window.createImageBitmap(file, { imageOrientation: 'from-image' });
+          } catch (e) {
+            bitmap = await window.createImageBitmap(file);
+          }
+          if (bitmap && bitmap.width > 0 && bitmap.height > 0) {
+            drawAndWatermark(bitmap, bitmap.width, bitmap.height, () => {
+              if (bitmap.close) bitmap.close();
+            });
+            return;
+          }
+        } catch (bmpErr) {
+          console.warn('createImageBitmap failed, trying objectURL:', bmpErr);
+        }
+      }
+
+      // วิธีที่ 2: URL.createObjectURL (มาตรฐานสากล กินแรมน้อย ไม่ทำให้เบราว์เซอร์มือถือแครช)
+      let blobUrl = null;
+      try {
+        blobUrl = URL.createObjectURL(file);
         const img = new Image();
         img.onload = function () {
           try {
-            const canvas = document.createElement('canvas');
-            const MAX_SIZE = 900;
-            let width = img.width;
-            let height = img.height;
-
-            if (width > height && width > MAX_SIZE) {
-              height = Math.round(height * (MAX_SIZE / width));
-              width = MAX_SIZE;
-            } else if (height > MAX_SIZE) {
-              width = Math.round(width * (MAX_SIZE / height));
-              height = MAX_SIZE;
-            }
-
-            canvas.width = width;
-            canvas.height = height;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0, width, height);
-
-            // คำนวณวันที่และเวลาปัจจุบัน (ภาษาไทย)
-            const now = new Date();
-            const thaiMonths = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
-            const thaiYear = (now.getFullYear() + 543).toString().slice(-2);
-            const d = now.getDate();
-            const m = thaiMonths[now.getMonth()];
-            const hh = String(now.getHours()).padStart(2, '0');
-            const mm = String(now.getMinutes()).padStart(2, '0');
-            const ss = String(now.getSeconds()).padStart(2, '0');
-
-            const timeOnlyStr = `${hh}:${mm} น.`;
-            const fullStamp = `${d} ${m} ${thaiYear} ${hh}:${mm}:${ss} น.`;
-
-            // วาดลายน้ำระบุเวลาลงบนมุมล่างขวาของรูปภาพโดยตรง
-            const fontSize = Math.max(13, Math.round(width * 0.026));
-            ctx.font = `600 ${fontSize}px 'Sarabun', 'Prompt', sans-serif`;
-            const stampText = `🕒 ${fullStamp}`;
-            const metrics = ctx.measureText(stampText);
-            const padX = 10;
-            const padY = 6;
-            const boxW = metrics.width + (padX * 2);
-            const boxH = fontSize + (padY * 2);
-            const boxX = width - boxW - 12;
-            const boxY = height - boxH - 12;
-
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.72)';
-            ctx.beginPath();
-            if (ctx.roundRect) {
-              ctx.roundRect(boxX, boxY, boxW, boxH, 6);
-            } else {
-              ctx.rect(boxX, boxY, boxW, boxH);
-            }
-            ctx.fill();
-
-            ctx.fillStyle = '#ffffff';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(stampText, boxX + padX, boxY + (boxH / 2));
-
-            const base64 = canvas.toDataURL('image/jpeg', 0.65);
-            resolve({
-              dataUrl: base64,
-              timeStr: timeOnlyStr,
-              fullStamp: fullStamp,
-              timestamp: Date.now()
+            const w = img.naturalWidth || img.width;
+            const h = img.naturalHeight || img.height;
+            drawAndWatermark(img, w, h, () => {
+              if (blobUrl) {
+                try { URL.revokeObjectURL(blobUrl); } catch (e) {}
+              }
             });
-          } catch (err) {
-            reject(err);
+          } catch (e) {
+            fail(e);
           }
         };
-        img.onerror = reject;
-        img.src = e.target.result;
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
+        img.onerror = function () {
+          if (blobUrl) {
+            try { URL.revokeObjectURL(blobUrl); } catch (err) {}
+          }
+          fallbackWithFileReader();
+        };
+        img.src = blobUrl;
+        return;
+      } catch (urlErr) {
+        fallbackWithFileReader();
+        return;
+      }
+
+      function fallbackWithFileReader() {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          const fallbackImg = new Image();
+          fallbackImg.onload = function () {
+            const w = fallbackImg.naturalWidth || fallbackImg.width;
+            const h = fallbackImg.naturalHeight || fallbackImg.height;
+            drawAndWatermark(fallbackImg, w, h);
+          };
+          fallbackImg.onerror = function () {
+            fail(new Error('ไม่สามารถแปลงไฟล์ภาพถ่ายได้'));
+          };
+          fallbackImg.src = e.target.result;
+        };
+        reader.onerror = function () {
+          fail(new Error('เกิดข้อผิดพลาดในการอ่านไฟล์ภาพ'));
+        };
+        reader.readAsDataURL(file);
+      }
+
+      function drawAndWatermark(imgSource, originalW, originalH, cleanupCallback) {
+        try {
+          const canvas = document.createElement('canvas');
+          const MAX_SIZE = 1000;
+          let width = originalW;
+          let height = originalH;
+
+          if (width > height && width > MAX_SIZE) {
+            height = Math.round(height * (MAX_SIZE / width));
+            width = MAX_SIZE;
+          } else if (height > MAX_SIZE) {
+            width = Math.round(width * (MAX_SIZE / height));
+            height = MAX_SIZE;
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(imgSource, 0, 0, width, height);
+
+          if (typeof cleanupCallback === 'function') {
+            try { cleanupCallback(); } catch (e) {}
+          }
+
+          // วันที่และเวลาปัจจุบัน (ภาษาไทย)
+          const now = new Date();
+          const thaiMonths = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+          const thaiYear = (now.getFullYear() + 543).toString().slice(-2);
+          const d = now.getDate();
+          const m = thaiMonths[now.getMonth()];
+          const hh = String(now.getHours()).padStart(2, '0');
+          const mm = String(now.getMinutes()).padStart(2, '0');
+          const ss = String(now.getSeconds()).padStart(2, '0');
+
+          const timeOnlyStr = `${hh}:${mm} น.`;
+          const fullStamp = `${d} ${m} ${thaiYear} ${hh}:${mm}:${ss} น.`;
+
+          // วาดแถบลายน้ำระบุเวลาลงบนรูปภาพ
+          const fontSize = Math.max(14, Math.round(width * 0.028));
+          ctx.font = `600 ${fontSize}px 'Sarabun', 'Prompt', sans-serif`;
+          const stampText = `🕒 ${fullStamp}`;
+          const metrics = ctx.measureText(stampText);
+          const padX = 12;
+          const padY = 7;
+          const boxW = metrics.width + (padX * 2);
+          const boxH = fontSize + (padY * 2);
+          const boxX = width - boxW - 14;
+          const boxY = height - boxH - 14;
+
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+          ctx.fillRect(boxX, boxY, boxW, boxH);
+
+          ctx.fillStyle = '#ffffff';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(stampText, boxX + padX, boxY + (boxH / 2));
+
+          const base64 = canvas.toDataURL('image/jpeg', 0.72);
+          done({
+            dataUrl: base64,
+            timeStr: timeOnlyStr,
+            fullStamp: fullStamp,
+            timestamp: Date.now()
+          });
+        } catch (drawErr) {
+          if (typeof cleanupCallback === 'function') {
+            try { cleanupCallback(); } catch (e) {}
+          }
+          fail(drawErr);
+        }
+      }
     });
   }
 

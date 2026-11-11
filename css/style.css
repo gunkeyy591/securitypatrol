@@ -2475,6 +2475,9 @@ tbody tr:hover {
   font-family: inherit;
   text-align: left;
 }
+.photo-dropzone-btn * {
+  pointer-events: none;
+}
 .photo-dropzone-btn:hover {
   border-color: var(--accent);
   background: var(--navy-light);
@@ -3834,16 +3837,12 @@ tbody tr:hover {
 
 .visually-hidden-file-input {
   position: absolute !important;
+  left: -9999px !important;
+  top: -9999px !important;
   width: 1px !important;
   height: 1px !important;
-  padding: 0 !important;
-  margin: -1px !important;
-  overflow: hidden !important;
-  clip: rect(0, 0, 0, 0) !important;
-  white-space: nowrap !important;
-  border: 0 !important;
-  opacity: 0 !important;
-  pointer-events: none !important;
+  opacity: 0.01 !important;
+  z-index: -1 !important;
 }
 
 

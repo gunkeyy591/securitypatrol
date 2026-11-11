@@ -261,18 +261,21 @@
   }
 
   // --- THEME ---
+  const SVG_SUN = '<svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>';
+  const SVG_MOON = '<svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
+
   function setupTheme() {
     const saved = localStorage.getItem('yru_sp_theme_v2');
-    const theme = saved || 'light'; // ค่าเริ่มต้นเป็นโหมดสว่างสบายตาสำหรับผู้ใหญ่
+    const theme = saved || 'light';
     document.documentElement.setAttribute('data-theme', theme);
     if (el.themeToggle) {
-      el.themeToggle.textContent = theme === 'dark' ? '☀️' : '🌙';
+      el.themeToggle.innerHTML = theme === 'dark' ? SVG_SUN : SVG_MOON;
       el.themeToggle.addEventListener('click', () => {
         const current = document.documentElement.getAttribute('data-theme');
         const next = current === 'dark' ? 'light' : 'dark';
         document.documentElement.setAttribute('data-theme', next);
         localStorage.setItem('yru_sp_theme_v2', next);
-        el.themeToggle.textContent = next === 'dark' ? '☀️' : '🌙';
+        el.themeToggle.innerHTML = next === 'dark' ? SVG_SUN : SVG_MOON;
         showToast(`เปลี่ยนเป็นโหมด${next === 'dark' ? 'กลางคืน (มืด)' : 'กลางวัน (สว่างสบายตา)'}`);
       });
     }
@@ -287,12 +290,14 @@
       rec.continuous = false;
       rec.interimResults = false;
 
+      const micSvg = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>';
+
       rec.onstart = () => {
         state.isRecordingVoice = true;
         const activeBtn = state.activeMicTarget === 'sheet' ? el.micBtn : el.offCpMicBtn;
         activeBtn.classList.add('on');
-        activeBtn.innerHTML = '<span>🎙️</span> กำลังฟังเสียง... พูดได้เลย';
-        showToast('🎙️ กำลังฟังเสียงพูดภาษาไทย...');
+        activeBtn.innerHTML = `${micSvg} กำลังฟังเสียง... พูดได้เลย`;
+        showToast('กำลังฟังเสียงพูดภาษาไทย...');
       };
 
       rec.onresult = (evt) => {
@@ -315,11 +320,11 @@
         state.isRecordingVoice = false;
         if (el.micBtn) {
           el.micBtn.classList.remove('on');
-          el.micBtn.innerHTML = '<span>🎙️</span> กดเพื่อเริ่มพูด';
+          el.micBtn.innerHTML = `${micSvg} กดเพื่อเริ่มพูด`;
         }
         if (el.offCpMicBtn) {
           el.offCpMicBtn.classList.remove('on');
-          el.offCpMicBtn.innerHTML = '<span>🎙️</span> กดเพื่อเริ่มพูด';
+          el.offCpMicBtn.innerHTML = `${micSvg} กดเพื่อเริ่มพูด`;
         }
       };
 
@@ -506,6 +511,7 @@
     }
 
     const isGuard = target === 'guard';
+    document.body.classList.add('wide');
 
     if (isGuard) {
       if (el.panelGuard) {
@@ -516,7 +522,6 @@
         el.panelSupervisor.setAttribute('hidden', '');
         el.panelSupervisor.style.display = 'none';
       }
-      document.body.classList.remove('wide');
       renderGuardRecentLogs();
     } else {
       if (el.panelGuard) {
@@ -527,16 +532,15 @@
         el.panelSupervisor.removeAttribute('hidden');
         el.panelSupervisor.style.display = 'block';
       }
-      document.body.classList.add('wide');
       renderSupervisorDashboard();
     }
 
     if (el.quickSwitchViewBtn) {
       if (isGuard) {
-        el.quickSwitchViewBtn.innerHTML = '👁️ <span>สลับดูหน้าแอดมิน</span>';
+        el.quickSwitchViewBtn.innerHTML = '<svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg> <span>สลับดูหน้าแอดมิน</span>';
         el.quickSwitchViewBtn.title = 'สลับไปดูหน้าสรุปผลและรายงานสำหรับผู้ดูแลระบบ';
       } else {
-        el.quickSwitchViewBtn.innerHTML = '🚶 <span>สลับไปหน้า รปภ.</span>';
+        el.quickSwitchViewBtn.innerHTML = '<svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> <span>สลับไปหน้า รปภ.</span>';
         el.quickSwitchViewBtn.title = 'สลับไปหน้าแบบฟอร์มบันทึกเวียนตรวจของ รปภ.';
       }
     }
@@ -623,7 +627,7 @@
             el.locPatrolSelect.style.display = 'none';
             el.locPatrolSelect.value = '';
           }
-          el.toggleCustomLocBtn.innerHTML = '<span>📋</span> เลือกจากรายการ';
+          el.toggleCustomLocBtn.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg> เลือกจากรายการ';
           if (el.customLocPatrolInput) el.customLocPatrolInput.focus();
         } else {
           wrap.style.display = 'none';
@@ -632,7 +636,7 @@
             el.customLocPatrolInput.value = '';
           }
           if (el.locPatrolSelect) el.locPatrolSelect.style.display = 'block';
-          el.toggleCustomLocBtn.innerHTML = '<span>✏️</span> พิมพ์ระบุเอง';
+          el.toggleCustomLocBtn.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> พิมพ์ระบุเอง';
         }
       });
     }
@@ -899,16 +903,19 @@
     state.capturedImageBase64 = count > 0 ? state.capturedImages[0].dataUrl : null;
 
     // อัปเดตแถบป้ายเตือนจำนวนรูปภาพ
+    const svgWarn = '<svg class="svg-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
+    const svgCheck = '<svg class="svg-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>';
+
     if (el.photoCountBadge) {
       if (count === 0) {
         el.photoCountBadge.className = 'photo-req-badge photo-req-warn';
-        el.photoCountBadge.innerHTML = '⚠️ ยังไม่ได้ถ่ายรูป (0/2 รูป)';
+        el.photoCountBadge.innerHTML = `${svgWarn} <span>ยังไม่ได้ถ่ายรูป (0/2 รูป)</span>`;
       } else if (count === 1) {
         el.photoCountBadge.className = 'photo-req-badge photo-req-warn';
-        el.photoCountBadge.innerHTML = '⚠️ ถ่ายแล้ว 1 รูป (ต้องถ่ายเพิ่มอีก 1 รูป)';
+        el.photoCountBadge.innerHTML = `${svgWarn} <span>ถ่ายแล้ว 1 รูป (ต้องถ่ายเพิ่มอีก 1 รูป)</span>`;
       } else {
         el.photoCountBadge.className = 'photo-req-badge photo-req-ok';
-        el.photoCountBadge.innerHTML = `✅ ถ่ายแล้ว ${count} รูป (ครบตามเกณฑ์ 2+ รูป)`;
+        el.photoCountBadge.innerHTML = `${svgCheck} <span>ถ่ายแล้ว ${count} รูป (ครบตามเกณฑ์ 2+ รูป)</span>`;
       }
     }
 
@@ -916,12 +923,12 @@
     if (el.camBtnMainText && el.camBtnSubText) {
       if (count === 0) {
         el.camBtnMainText.textContent = 'แตะที่นี่เพื่อเปิดกล้องถ่ายภาพหน้างาน';
-        el.camBtnSubText.textContent = 'ถ่ายเสร็จจะดึงรูปเข้ามาใส่ทันที (บังคับถ่าย 2 รูปขึ้นไป)';
+        el.camBtnSubText.textContent = 'ถ่ายเสร็จจะดึงรูปเข้ามาใส่ทันทีพร้อมประทับเวลาอัตโนมัติ (บังคับถ่าย 2 รูปขึ้นไป)';
       } else if (count === 1) {
-        el.camBtnMainText.textContent = '📸 แตะเพื่อเปิดกล้องถ่ายรูปที่ 2 เพิ่มเติม';
+        el.camBtnMainText.textContent = 'แตะเพื่อเปิดกล้องถ่ายรูปที่ 2 เพิ่มเติม';
         el.camBtnSubText.textContent = 'ถ่ายรูปที่ 1 เข้ามาแล้ว — แตะเพื่อถ่ายรูปที่ 2 ให้ครบเกณฑ์';
       } else {
-        el.camBtnMainText.textContent = `📸 แตะเพื่อเปิดกล้องถ่ายรูปเพิ่มเติม (ถ่ายแล้ว ${count} รูป)`;
+        el.camBtnMainText.textContent = `แตะเพื่อเปิดกล้องถ่ายรูปเพิ่มเติม (ถ่ายแล้ว ${count} รูป)`;
         el.camBtnSubText.textContent = 'ครบตามเกณฑ์ 2 รูปแล้ว — สามารถแตะถ่ายรูปเพิ่มได้ตามต้องการ';
       }
     }
@@ -937,11 +944,11 @@
         <div class="thumb-card">
           <div class="thumb">
             <img src="${imgObj.dataUrl}" alt="รูปถ่ายหลักฐานที่ ${idx + 1}">
-            <button type="button" class="remove-single-patrol-img" data-index="${idx}" title="ลบรูปที่ ${idx + 1}">✖</button>
+            <button type="button" class="remove-single-patrol-img" data-index="${idx}" title="ลบรูปที่ ${idx + 1}">✕</button>
             <span class="thumb-idx-badge">#${idx + 1}</span>
           </div>
           <div class="thumb-caption">
-            <span class="thumb-time-text">🕒 ถ่ายเวลา ${imgObj.timeStr}</span>
+            <span class="thumb-time-text">ถ่ายเวลา ${imgObj.timeStr}</span>
           </div>
         </div>
       `).join('');
@@ -1325,7 +1332,7 @@
 
     if (!isSOS && btn) {
       btn.disabled = false;
-      btn.textContent = '💾 บันทึกข้อมูลเข้าสู่ระบบ';
+      btn.innerHTML = '<span class="submit-icon" aria-hidden="true"><svg class="svg-icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg></span><span class="submit-text">บันทึกข้อมูลเข้าสู่ระบบ</span>';
     }
   }
 
@@ -1343,10 +1350,14 @@
 
     if (recent.length === 0) {
       el.guardRecentLogs.innerHTML = `
-        <div style="text-align:center; padding: 36px 20px; color: var(--muted); font-size: 15px; border: 1.5px dashed var(--line); border-radius: 14px; background: var(--surface-alt);">
-          <div style="font-size: 32px; margin-bottom: 8px;">🛡️</div>
+        <div class="empty-illust-box">
+          <svg viewBox="0 0 80 80" fill="none" style="width:58px; height:58px; margin: 0 auto 10px; color: var(--primary);">
+            <circle cx="40" cy="40" r="34" fill="currentColor" fill-opacity="0.08" stroke="currentColor" stroke-opacity="0.25" stroke-width="1.5" stroke-dasharray="4 4"/>
+            <path d="M40 18L56 24V37C56 48.2 49.2 56.5 40 59.5C30.8 56.5 24 48.2 24 37V24L40 18Z" stroke="currentColor" stroke-width="2.2"/>
+            <path d="M33 39L38 44L48 34" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
           <b>ยังไม่มีรายการบันทึกเวียนตรวจในวันนี้</b>
-          <p style="margin: 4px 0 0; font-size: 13px;">เลือกสถานที่และกรอกข้อมูลด้านบน จากนั้นกดปุ่มบันทึกเพื่อเริ่มเก็บประวัติ</p>
+          <p style="margin: 4px 0 0; font-size: 13px;">เลือกสถานที่และแนบภาพถ่ายด้านซ้าย จากนั้นกดปุ่มบันทึกเพื่อเริ่มเก็บประวัติ</p>
         </div>
       `;
       return;
@@ -1359,14 +1370,14 @@
       else if (item.isRisk) cardClass += ' is-risk';
 
       let badgeHtml = isOk
-        ? `<span class="tag ok" style="font-size:12px;">✅ ปกติ</span>`
-        : `<span class="tag alert" style="font-size:12px;">🚨 มีเหตุผิดปกติ</span>`;
+        ? `<span class="tag ok" style="font-size:12px;">ปกติเรียบร้อย</span>`
+        : `<span class="tag alert" style="font-size:12px;">พบเหตุผิดปกติ</span>`;
       
       if (item.isRisk) {
-        badgeHtml += ` <span class="tag risk" style="font-size:12px;">⚠️ จุดเสี่ยง</span>`;
+        badgeHtml += ` <span class="tag risk" style="font-size:12px;">จุดเสี่ยง</span>`;
       }
       if (item.isOffCheckpoint) {
-        badgeHtml = `<span class="tag alert" style="background:#dc2626; color:#fff; font-size:12px;">🚨 เหตุด่วนนอกจุด</span>`;
+        badgeHtml = `<span class="tag alert" style="background:#e11d48; color:#fff; font-size:12px;">เหตุด่วนนอกจุด</span>`;
       }
 
       let imgHtml = '';
@@ -1404,29 +1415,29 @@
   function showPatrolSuccessModal(record, isSOS) {
     if (!el.patrolSuccessModal) return;
 
-    const shiftMap = { morning: 'กะเช้า (07:00 - 15:00 น.)', afternoon: 'กะบ่าย (15:00 - 23:00 น.)', night: 'กะดึก (23:00 - 07:00 น.)' };
+    const shiftMap = { morning: 'กะเช้า (06:00 - 14:00 น.)', afternoon: 'กะบ่าย (14:00 - 22:00 น.)', night: 'กะดึก (22:00 - 06:00 น.)' };
 
     if (el.patrolSuccessSummary) {
       el.patrolSuccessSummary.innerHTML = `
-        <div style="display:flex; justify-content:space-between; margin-bottom: 6px; font-size:15px;">
-          <span style="color:var(--muted);">🏢 สถานที่ / อาคาร:</span>
+        <div style="display:flex; justify-content:space-between; margin-bottom: 8px; font-size:14.5px;">
+          <span style="color:var(--muted);">สถานที่ / อาคาร:</span>
           <b>${escapeHtml(record.cpName)}</b>
         </div>
-        <div style="display:flex; justify-content:space-between; margin-bottom: 6px; font-size:15px;">
-          <span style="color:var(--muted);">👤 รปภ. ผู้ตรวจ:</span>
+        <div style="display:flex; justify-content:space-between; margin-bottom: 8px; font-size:14.5px;">
+          <span style="color:var(--muted);">รปภ. ผู้ตรวจ:</span>
           <b>${escapeHtml(record.guardName)}</b>
         </div>
-        <div style="display:flex; justify-content:space-between; margin-bottom: 6px; font-size:15px;">
-          <span style="color:var(--muted);">⏰ เวลา / ผลัดเวร:</span>
+        <div style="display:flex; justify-content:space-between; margin-bottom: 8px; font-size:14.5px;">
+          <span style="color:var(--muted);">เวลา / ผลัดเวร:</span>
           <b>${record.time} น. (${shiftMap[record.shift] || record.shift})</b>
         </div>
-        <div style="display:flex; justify-content:space-between; margin-bottom: 6px; font-size:15px;">
-          <span style="color:var(--muted);">📸 ภาพถ่ายหลักฐาน:</span>
+        <div style="display:flex; justify-content:space-between; margin-bottom: 8px; font-size:14.5px;">
+          <span style="color:var(--muted);">ภาพถ่ายหลักฐาน:</span>
           <b style="color:var(--ok);">${record.images ? record.images.length : 0} รูปภาพ (ประทับเวลาสด)</b>
         </div>
-        <div style="display:flex; justify-content:space-between; margin-bottom: 6px; font-size:15px;">
-          <span style="color:var(--muted);">📌 สถานะผลตรวจ:</span>
-          <b>${record.status === 'ok' ? '✅ เหตุการณ์ปกติ เรียบร้อยดี' : '🚨 พบปัญหา / ผิดปกติ'}</b>
+        <div style="display:flex; justify-content:space-between; margin-bottom: 8px; font-size:14.5px;">
+          <span style="color:var(--muted);">สถานะผลตรวจ:</span>
+          <b>${record.status === 'ok' ? 'เหตุการณ์ปกติ เรียบร้อยดี' : 'พบปัญหา / ผิดปกติ'}</b>
         </div>
         <div style="margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line); display:flex; align-items:center; gap:8px; color:var(--ok); font-weight:700; font-size:14px;">
           <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#10b981; flex-shrink:0;"></span>
@@ -1545,9 +1556,9 @@
   function updateCloudSyncUI(status) {
     if (el.cloudSyncStatusText) {
       if (status === 'connected') {
-        el.cloudSyncStatusText.textContent = '🟢 ระบบเชื่อมต่อรับรายงานสดจาก รปภ. ตลอดเวลา (Real-time Sync Active)';
+        el.cloudSyncStatusText.textContent = 'ระบบเชื่อมต่อรับรายงานสดจาก รปภ. ตลอดเวลา (Real-time Sync Active)';
       } else {
-        el.cloudSyncStatusText.textContent = '🟡 กำลังเชื่อมต่อระบบคลาวด์รับรายงาน...';
+        el.cloudSyncStatusText.textContent = 'กำลังเชื่อมต่อระบบคลาวด์รับรายงาน...';
       }
     }
   }
@@ -1573,7 +1584,7 @@
     renderSupervisorDashboard();
     renderGuardRecentLogs();
 
-    showToast(`🔔 ได้รับรายงานเวียนตรวจใหม่: ${incoming.cpName} (${incoming.guardName})`, '🔔');
+    showToast(`ได้รับรายงานเวียนตรวจใหม่: ${incoming.cpName} (${incoming.guardName})`, 'ok');
   }
 
   async function pollRecentCloudRecords() {
@@ -1615,19 +1626,20 @@
 
   async function syncLatestFromCloud() {
     const btn = el.syncCloudBtn;
+    const syncSvg = '<svg class="svg-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>';
     if (btn) {
       btn.disabled = true;
-      btn.innerHTML = '<span>⏳</span> <span>กำลังดึงข้อมูล...</span>';
+      btn.innerHTML = `${syncSvg} <span>กำลังดึงข้อมูล...</span>`;
     }
     try {
       await pollRecentCloudRecords();
-      showToast('✅ ข้อมูลทั้งหมดอัปเดตเป็นปัจจุบันเรียบร้อยแล้ว', '✅');
+      showToast('ข้อมูลทั้งหมดอัปเดตเป็นปัจจุบันเรียบร้อยแล้ว', 'ok');
     } catch (e) {
-      showToast('⚠️ ไม่สามารถเชื่อมต่อระบบคลาวด์ได้ในขณะนี้');
+      showToast('ไม่สามารถเชื่อมต่อระบบคลาวด์ได้ในขณะนี้', 'warn');
     } finally {
       if (btn) {
         btn.disabled = false;
-        btn.innerHTML = '<span>🔄</span> <span>ดึงข้อมูลล่าสุดจากคลาวด์</span>';
+        btn.innerHTML = `${syncSvg} <span>ดึงข้อมูลล่าสุดจากคลาวด์</span>`;
       }
     }
   }
@@ -1680,12 +1692,16 @@
 
     if (filtered.length === 0) {
       const msg = state.history.length === 0
-        ? 'ยังไม่มีข้อมูลการเวียนตรวจในระบบ (ฐานข้อมูล SQL ว่างเปล่า พร้อมบันทึกข้อมูลจริง)'
+        ? 'ยังไม่มีข้อมูลการเวียนตรวจในระบบ (ฐานข้อมูล SQL พร้อมรับข้อมูลจริง)'
         : 'ไม่พบข้อมูลตามตัวกรองที่เลือก';
       el.reportTableBody.innerHTML = `
-        <tr><td colspan="8" class="empty" style="text-align:center; padding:32px 16px; color:var(--muted);">
-          <div style="font-size:28px; margin-bottom:8px;">📋</div>
-          <b>${msg}</b>
+        <tr><td colspan="8" class="empty" style="text-align:center; padding:44px 16px; color:var(--muted);">
+          <svg viewBox="0 0 64 64" fill="none" style="width:48px; height:48px; margin:0 auto 10px; color:var(--primary); opacity:0.65;">
+            <rect x="12" y="10" width="40" height="44" rx="6" stroke="currentColor" stroke-width="2.2"/>
+            <line x1="22" y1="24" x2="42" y2="24" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+            <line x1="22" y1="34" x2="36" y2="34" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+          </svg>
+          <div><b>${msg}</b></div>
         </td></tr>
       `;
     } else {
@@ -1694,15 +1710,15 @@
       el.reportTableBody.innerHTML = filtered.map(item => {
         const isOk = item.status === 'ok';
         let statusBadge = isOk 
-          ? `<span class="tag ok">✅ ปกติ</span>` 
-          : `<span class="tag alert">🚨 มีปัญหา</span>`;
+          ? `<span class="tag ok">ปกติเรียบร้อย</span>` 
+          : `<span class="tag alert">พบปัญหา</span>`;
         
         if (item.isOffCheckpoint) {
-          statusBadge = `<span class="tag alert" style="background:#dc2626;">🚨 เหตุด่วนนอกจุด</span>`;
+          statusBadge = `<span class="tag alert" style="background:#e11d48; color:#fff;">เหตุด่วนนอกจุด</span>`;
         }
 
         const photoPreview = (item.images && item.images.length > 0)
-          ? `<span>📷 ${item.images.length} รูป</span>`
+          ? `<span class="photo-count-chip"><svg class="svg-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg> ${item.images.length} รูป</span>`
           : `<span style="color:var(--muted)">-</span>`;
 
         return `
@@ -1710,20 +1726,22 @@
             <td><b>${item.time} น.</b><br><small style="color:var(--muted);">${item.date}</small></td>
             <td>
               <b>${escapeHtml(item.cpName)}</b>
-              ${item.isRisk ? '<br><span class="tag risk" style="font-size:11px;">จุดเสี่ยง</span>' : ''}
+              ${item.isRisk ? '<br><span class="tag risk" style="font-size:11px;">พื้นที่เสี่ยง</span>' : ''}
             </td>
             <td>${escapeHtml(item.guardName)}</td>
             <td>${shiftMap[item.shift] || item.shift}<br><small style="color:var(--muted);">${item.round || ''}</small></td>
             <td>${statusBadge}</td>
             <td>${escapeHtml(item.note || '-')}</td>
-            <td>${photoPreview}</td>
+            <td style="text-align: center;">${photoPreview}</td>
             <td style="text-align: center;">
               <div class="admin-action-group">
                 <button type="button" class="btn-action-edit" onclick="window.appOpenAdminEdit('${item.id}')" title="คลิกเพื่อตรวจสอบหรือแก้ไขข้อมูลรายการนี้">
-                  ✏️ แก้ไขข้อมูล
+                  <svg class="svg-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                  <span>แก้ไข</span>
                 </button>
                 <button type="button" class="btn-action-delete" onclick="window.appDeleteRecord('${item.id}')" title="คลิกเพื่อลบข้อมูลรายการนี้">
-                  🗑️ ลบ
+                  <svg class="svg-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                  <span>ลบ</span>
                 </button>
               </div>
             </td>
@@ -1735,26 +1753,26 @@
     // Incident Feed
     const incidents = state.history.filter(h => h.status === 'alert').slice(0, 10);
     if (incidents.length === 0) {
-      el.incidentList.innerHTML = `<div class="empty">ไม่มีรายงานเหตุผิดปกติในขณะนี้ ทุกจุดเรียบร้อยดี</div>`;
+      el.incidentList.innerHTML = `<div class="empty">ไม่มีรายงานเหตุผิดปกติในขณะนี้ ทุกจุดตรวจเรียบร้อยดี</div>`;
     } else {
       el.incidentList.innerHTML = incidents.map(inc => `
-        <div style="background:var(--alert-bg); border:1.5px solid var(--alert-border); border-radius:12px; padding:12px;">
+        <div class="incident-alert-item">
           <div style="display:flex; justify-content:space-between; align-items:center;">
-            <b style="color:var(--alert); font-size:17px;">${escapeHtml(inc.cpName)}</b>
+            <b style="color:var(--alert); font-size:16.5px;">${escapeHtml(inc.cpName)}</b>
             <span class="tag alert">${inc.time} น.</span>
           </div>
-          <div style="font-size:14px; color:var(--muted); margin-top:2px;">
+          <div style="font-size:13.5px; color:var(--muted); margin-top:3px;">
             ผู้แจ้ง: <b>${escapeHtml(inc.guardName)}</b> (${inc.date})
           </div>
-          <p style="margin:6px 0 0; font-size:15px; font-weight:600;">${escapeHtml(inc.note || 'ไม่มีรายละเอียด')}</p>
+          <p style="margin:6px 0 0; font-size:14.5px; font-weight:600;">${escapeHtml(inc.note || 'ไม่มีรายละเอียด')}</p>
           ${inc.images && inc.images.length ? `
-            <div class="thumbs">
+            <div class="thumbs" style="margin-top:8px;">
               ${inc.images.map(img => `<div class="thumb"><img src="${img}"></div>`).join('')}
             </div>
           ` : ''}
           <div style="margin-top: 10px; display: flex; gap: 8px;">
             <button type="button" class="btn-action-edit" onclick="window.appOpenAdminEdit('${inc.id}')">
-              ✏️ ตรวจสอบ / แก้ไขข้อมูลเหตุการณ์นี้ (แอดมิน)
+              ตรวจสอบ / แก้ไขข้อมูลเหตุการณ์นี้
             </button>
           </div>
         </div>
@@ -1975,14 +1993,26 @@
 
   // --- TOAST HELPER ---
   let toastTimer = null;
-  function showToast(msg, icon = 'ℹ️') {
+  function showToast(msg, icon = 'info') {
     if (toastTimer) clearTimeout(toastTimer);
-    el.toastMsg.textContent = msg;
-    el.toastIcon.textContent = icon;
+    // Strip leading emojis for clean professional look
+    const cleanMsg = String(msg || '').replace(/^[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}\s]+/u, '').trim() || msg;
+    el.toastMsg.textContent = cleanMsg;
+    const isWarn = String(icon).includes('⚠') || String(icon).includes('❌') || String(icon).includes('🚨') || icon === 'warn';
+    const isOk = String(icon).includes('✅') || icon === 'ok';
+    if (isWarn) {
+      el.toastIcon.innerHTML = '<svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2.4"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
+    } else if (isOk) {
+      el.toastIcon.innerHTML = '<svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>';
+    } else {
+      el.toastIcon.innerHTML = '<svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="#2dd4bf" stroke-width="2.3"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>';
+    }
     el.toast.removeAttribute('hidden');
+    el.toast.style.display = 'inline-flex';
     toastTimer = setTimeout(() => {
       el.toast.setAttribute('hidden', '');
-    }, 2800);
+      el.toast.style.display = 'none';
+    }, 3000);
   }
 
   // --- UTILS ---

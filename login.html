@@ -5,108 +5,283 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>เข้าสู่ระบบ - ระบบเวียนตรวจรักษาความปลอดภัย มหาวิทยาลัยราชภัฏยะลา</title>
   
-  <!-- Fonts: TH Sarabun New (Google Fonts Sarabun) -->
+  <!-- Fonts: Sarabun & Plus Jakarta Sans -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sarabun:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,600&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Sarabun:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,600&display=swap">
   
   <!-- Main CSS -->
-  <link rel="stylesheet" href="css/style.css?v=4.2">
+  <link rel="stylesheet" href="css/style.css?v=5.0">
 </head>
 <body class="login-body">
 
   <!-- แถบสีประจำสถาบันด้านบนสุด -->
   <div class="uni-top-ribbon"></div>
 
-  <div class="login-wrapper">
-    <!-- ส่วนหัวตราสัญลักษณ์มหาวิทยาลัย -->
-    <div class="login-uni-header">
-      <div class="uni-crest-badge" aria-hidden="true">🛡️</div>
-      <div class="uni-title-group">
-        <span class="uni-ministry-tag">งานรักษาความปลอดภัย สำนักงานอธิการบดี</span>
-        <h1>ระบบเวียนตรวจรักษาความปลอดภัย</h1>
-        <p>มหาวิทยาลัยราชภัฏยะลา (Yala Rajabhat University)</p>
+  <div class="login-split-layout">
+    <!-- ฝั่งซ้ายสำหรับ PC/Tablet: ภาพประกอบ Vector Illustration & ข้อมูลระบบ -->
+    <div class="login-hero-showcase">
+      <div class="login-hero-bg-pattern"></div>
+      <div class="login-hero-content">
+        <div class="login-brand-pill">
+          <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            <path d="m9 12 2 2 4-4"/>
+          </svg>
+          <span>YRU SMART SECURITY COMMAND</span>
+        </div>
+
+        <h1 class="login-hero-title">ระบบเวียนตรวจรักษาความปลอดภัยอัจฉริยะ</h1>
+        <p class="login-hero-desc">
+          มหาวิทยาลัยราชภัฏยะลา (Yala Rajabhat University) • ระบบบริหารจัดการจุดตรวจ รายงานภาพถ่ายประทับเวลาจริง และศูนย์ควบคุมความปลอดภัยแบบ Real-time
+        </p>
+
+        <!-- Vector Illustration: Smart Campus Security Shield & Radar -->
+        <div class="login-illustration-box" aria-hidden="true">
+          <svg viewBox="0 0 520 340" fill="none" xmlns="http://www.w3.org/2000/svg" class="hero-vector-svg">
+            <defs>
+              <linearGradient id="gradBgGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#14B8A6" stop-opacity="0.28"/>
+                <stop offset="50%" stop-color="#0EA5E9" stop-opacity="0.18"/>
+                <stop offset="100%" stop-color="#6366F1" stop-opacity="0.25"/>
+              </linearGradient>
+              <linearGradient id="gradShield" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#0D9488"/>
+                <stop offset="100%" stop-color="#0284C7"/>
+              </linearGradient>
+              <linearGradient id="gradCard" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stop-color="#1E293B" stop-opacity="0.9"/>
+                <stop offset="100%" stop-color="#0F172A" stop-opacity="0.95"/>
+              </linearGradient>
+            </defs>
+
+            <!-- Ambient Radar Rings -->
+            <circle cx="260" cy="170" r="150" stroke="url(#gradBgGlow)" stroke-width="1.5" stroke-dasharray="6 6"/>
+            <circle cx="260" cy="170" r="115" stroke="url(#gradBgGlow)" stroke-width="1.5"/>
+            <circle cx="260" cy="170" r="80" fill="url(#gradBgGlow)"/>
+
+            <!-- Left Floating Card: Checkpoint Verified -->
+            <g transform="translate(24, 52)">
+              <rect width="175" height="74" rx="14" fill="url(#gradCard)" stroke="#334155" stroke-width="1.5"/>
+              <circle cx="34" cy="37" r="18" fill="#059669" fill-opacity="0.2"/>
+              <path d="M27 37L32 42L42 32" stroke="#34D399" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <rect x="62" y="22" width="84" height="10" rx="5" fill="#F8FAFC"/>
+              <rect x="62" y="40" width="60" height="8" rx="4" fill="#38BDF8" fill-opacity="0.8"/>
+              <rect x="62" y="53" width="96" height="6" rx="3" fill="#64748B"/>
+            </g>
+
+            <!-- Right Floating Card: Real-time Cloud Sync -->
+            <g transform="translate(320, 40)">
+              <rect width="176" height="68" rx="14" fill="url(#gradCard)" stroke="#334155" stroke-width="1.5"/>
+              <circle cx="32" cy="34" r="16" fill="#0284C7" fill-opacity="0.25"/>
+              <path d="M25 36C25 32.5 28 30 31.5 30C32.5 27 36.5 27 38 30C40.5 30.5 42 33 41 36H25Z" stroke="#38BDF8" stroke-width="2" stroke-linejoin="round"/>
+              <rect x="58" y="20" width="92" height="9" rx="4.5" fill="#F8FAFC"/>
+              <rect x="58" y="36" width="70" height="7" rx="3.5" fill="#94A3B8"/>
+              <circle cx="158" cy="24" r="5" fill="#10B981"/>
+            </g>
+
+            <!-- Bottom Floating Card: Timestamp Photo Stamp -->
+            <g transform="translate(305, 224)">
+              <rect width="188" height="78" rx="14" fill="url(#gradCard)" stroke="#334155" stroke-width="1.5"/>
+              <rect x="16" y="16" width="46" height="46" rx="10" fill="#0D9488" fill-opacity="0.2" stroke="#14B8A6" stroke-width="1.5"/>
+              <circle cx="39" cy="39" r="9" stroke="#2DD4BF" stroke-width="2"/>
+              <path d="M31 23L34 19H44L47 23" stroke="#2DD4BF" stroke-width="1.8" stroke-linecap="round"/>
+              <rect x="74" y="22" width="94" height="9" rx="4.5" fill="#F8FAFC"/>
+              <rect x="74" y="38" width="76" height="7" rx="3.5" fill="#2DD4BF"/>
+              <rect x="74" y="52" width="56" height="6" rx="3" fill="#64748B"/>
+            </g>
+
+            <!-- Bottom Left Card: GPS & Building Node -->
+            <g transform="translate(38, 218)">
+              <rect width="166" height="72" rx="14" fill="url(#gradCard)" stroke="#334155" stroke-width="1.5"/>
+              <circle cx="34" cy="36" r="16" fill="#6366F1" fill-opacity="0.22"/>
+              <path d="M34 25C29.5 25 26 28.5 26 33C26 39 34 47 34 47C34 47 42 39 42 33C42 28.5 38.5 25 34 25ZM34 36C32.3 36 31 34.7 31 33C31 31.3 32.3 30 34 30C35.7 30 37 31.3 37 33C37 34.7 35.7 36 34 36Z" fill="#818CF8"/>
+              <rect x="58" y="22" width="86" height="9" rx="4.5" fill="#F8FAFC"/>
+              <rect x="58" y="38" width="64" height="7" rx="3.5" fill="#A5B4FC"/>
+              <rect x="58" y="51" width="74" height="6" rx="3" fill="#64748B"/>
+            </g>
+
+            <!-- Centerpiece: Central Security Crest Shield -->
+            <g transform="translate(196, 94)">
+              <path d="M64 8L120 29V78C120 118 96 149 64 164C32 149 8 118 8 78V29L64 8Z" fill="url(#gradShield)" stroke="#5EEAD4" stroke-width="3"/>
+              <path d="M64 22L106 38V77C106 109 87 134 64 147C41 134 22 109 22 77V38L64 22Z" fill="#0F172A" fill-opacity="0.35"/>
+              <path d="M46 84L58 96L84 68" stroke="#FFFFFF" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+            </g>
+          </svg>
+        </div>
+
+        <div class="login-feature-Grid">
+          <div class="login-feat-item">
+            <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+              <circle cx="12" cy="13" r="4"/>
+            </svg>
+            <span>ประทับเวลาภาพถ่ายอัตโนมัติ</span>
+          </div>
+          <div class="login-feat-item">
+            <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+              <line x1="12" y1="19" x2="12" y2="22"/>
+            </svg>
+            <span>รองรับการสั่งงานด้วยเสียงภาษาไทย</span>
+          </div>
+          <div class="login-feat-item">
+            <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+            </svg>
+            <span>ซิงค์ข้อมูลเข้าแอดมินแบบ Real-time</span>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- การ์ดกล่องเข้าสู่ระบบ (ออกแบบให้อ่านง่าย สบายตา) -->
-    <div class="login-card">
-      <div class="login-card-title-box">
-        <h2>🔐 ลงชื่อเข้าใช้งานระบบ</h2>
-        <p>กรุณากรอกชื่อผู้ใช้งานและรหัสผ่านของท่านเพื่อเข้าสู่ระบบ</p>
-      </div>
-
-      <form id="loginForm" class="login-form-clean">
-        <div id="loginAlertBox" class="login-alert-banner" style="display:none;"></div>
-
-        <!-- ช่องที่ 1: ชื่อผู้ใช้งาน -->
-        <div class="login-field-group">
-          <label for="usernameInput" class="login-field-label">
-            <span class="step-circle">1</span> ชื่อผู้ใช้งาน (Username)
-          </label>
-          <input
-            type="text"
-            id="usernameInput"
-            class="login-input-large"
-            placeholder="พิมพ์ชื่อผู้ใช้งานที่นี่ (admin หรือ guard)..."
-            autocomplete="username"
-            required
-          >
-        </div>
-
-        <!-- ช่องที่ 2: รหัสผ่าน -->
-        <div class="login-field-group">
-          <label for="passwordInput" class="login-field-label">
-            <span class="step-circle">2</span> รหัสผ่าน (Password)
-          </label>
-          <div class="login-pw-wrapper">
-            <input
-              type="password"
-              id="passwordInput"
-              class="login-input-large pw-padding"
-              placeholder="พิมพ์รหัสผ่านที่นี่..."
-              autocomplete="current-password"
-              required
-            >
-            <button type="button" id="togglePwBtn" class="btn-show-pw" title="กดเพื่อดูหรือซ่อนรหัสผ่าน">
-              👁️ <span id="togglePwText">แสดงรหัส</span>
-            </button>
+    <!-- ฝั่งขวา: ฟอร์มเข้าสู่ระบบ -->
+    <div class="login-form-side">
+      <div class="login-wrapper">
+        <!-- ส่วนหัวตราสัญลักษณ์มหาวิทยาลัย (แสดงเด่นบนมือถือและหัวการ์ด) -->
+        <div class="login-uni-header">
+          <div class="uni-crest-badge" aria-hidden="true">
+            <svg viewBox="0 0 48 48" fill="none" class="crest-svg">
+              <path d="M24 4L42 11V24C42 35.5 34.2 43.8 24 47C13.8 43.8 6 35.5 6 24V11L24 4Z" fill="url(#crestGrad)" stroke="currentColor" stroke-width="2"/>
+              <path d="M17 24.5L22 29.5L32 19.5" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <defs>
+                <linearGradient id="crestGrad" x1="6" y1="4" x2="42" y2="47" gradientUnits="userSpaceOnUse">
+                  <stop stop-color="#0D9488"/>
+                  <stop offset="1" stop-color="#0284C7"/>
+                </linearGradient>
+              </defs>
+            </svg>
+          </div>
+          <div class="uni-title-group">
+            <span class="uni-ministry-tag">งานรักษาความปลอดภัย สำนักงานอธิการบดี</span>
+            <h1>ระบบเวียนตรวจรักษาความปลอดภัย</h1>
+            <p>มหาวิทยาลัยราชภัฏยะลา (Yala Rajabhat University)</p>
           </div>
         </div>
 
-        <!-- ปุ่มลัดเข้าสู่ระบบด่วนสำหรับทดสอบ -->
-        <div class="login-quick-roles" style="display: flex; gap: 10px; margin-top: 4px;">
-          <button type="button" class="btn-quick-login" id="btnQuickAdmin" style="flex: 1; min-height: 44px; padding: 8px 12px; border-radius: 12px; border: 1.5px solid var(--line); background: var(--surface-alt); font-size: 14.5px; font-weight: 700; color: var(--ink); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
-            👑 ผู้ดูแลระบบ (admin)
-          </button>
-          <button type="button" class="btn-quick-login" id="btnQuickGuard" style="flex: 1; min-height: 44px; padding: 8px 12px; border-radius: 12px; border: 1.5px solid var(--line); background: var(--surface-alt); font-size: 14.5px; font-weight: 700; color: var(--ink); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
-            🚶 รปภ. (guard)
-          </button>
+        <!-- การ์ดกล่องเข้าสู่ระบบ -->
+        <div class="login-card">
+          <div class="login-card-title-box">
+            <div class="login-title-icon-row">
+              <div class="login-key-icon">
+                <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                </svg>
+              </div>
+              <div>
+                <h2>ลงชื่อเข้าใช้งานระบบ</h2>
+                <p>กรอกชื่อผู้ใช้งานและรหัสผ่านเพื่อเข้าสู่ระบบปฏิบัติงาน</p>
+              </div>
+            </div>
+          </div>
+
+          <form id="loginForm" class="login-form-clean">
+            <div id="loginAlertBox" class="login-alert-banner" style="display:none;"></div>
+
+            <!-- ช่องที่ 1: ชื่อผู้ใช้งาน -->
+            <div class="login-field-group">
+              <label for="usernameInput" class="login-field-label">
+                <span class="step-circle">1</span>
+                <span>ชื่อผู้ใช้งาน (Username)</span>
+              </label>
+              <div class="input-with-svg">
+                <svg class="field-prefix-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                  <circle cx="12" cy="7" r="4"/>
+                </svg>
+                <input
+                  type="text"
+                  id="usernameInput"
+                  class="login-input-large has-prefix"
+                  placeholder="ระบุชื่อผู้ใช้งาน (admin หรือ guard)..."
+                  autocomplete="username"
+                  required
+                >
+              </div>
+            </div>
+
+            <!-- ช่องที่ 2: รหัสผ่าน -->
+            <div class="login-field-group">
+              <label for="passwordInput" class="login-field-label">
+                <span class="step-circle">2</span>
+                <span>รหัสผ่าน (Password)</span>
+              </label>
+              <div class="login-pw-wrapper input-with-svg">
+                <svg class="field-prefix-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                </svg>
+                <input
+                  type="password"
+                  id="passwordInput"
+                  class="login-input-large has-prefix pw-padding"
+                  placeholder="ระบุรหัสผ่าน..."
+                  autocomplete="current-password"
+                  required
+                >
+                <button type="button" id="togglePwBtn" class="btn-show-pw" title="กดเพื่อดูหรือซ่อนรหัสผ่าน">
+                  <svg class="svg-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                  </svg>
+                  <span id="togglePwText">แสดงรหัส</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- ปุ่มลัดเข้าสู่ระบบด่วนสำหรับทดสอบ -->
+            <div class="login-quick-roles-wrap">
+              <span class="quick-role-lbl">เข้าใช้งานด่วน (เลือกบทบาท):</span>
+              <div class="login-quick-roles">
+                <button type="button" class="btn-quick-login" id="btnQuickAdmin">
+                  <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
+                  </svg>
+                  <span>ผู้ดูแลระบบ (admin)</span>
+                </button>
+                <button type="button" class="btn-quick-login" id="btnQuickGuard">
+                  <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                  </svg>
+                  <span>เจ้าหน้าที่ รปภ. (guard)</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- ปุ่มกดเข้าสู่ระบบขนาดใหญ่ -->
+            <button type="submit" class="btn-login-primary" id="submitLoginBtn">
+              <span>เข้าสู่ระบบปฏิบัติงาน</span>
+              <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="5" y1="12" x2="19" y2="12"/>
+                <polyline points="12 5 19 12 12 19"/>
+              </svg>
+            </button>
+          </form>
+
+          <div class="login-help-box">
+            <svg class="svg-icon help-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="16" x2="12" y2="12"/>
+              <line x1="12" y1="8" x2="12.01" y2="8"/>
+            </svg>
+            <div>
+              <b>คำแนะนำสำหรับเจ้าหน้าที่:</b> หากท่านไม่ทราบรหัสผ่านหรือพบปัญหาการใช้งาน กรุณาติดต่อหัวหน้าเวรรักษาความปลอดภัย
+            </div>
+          </div>
         </div>
 
-        <!-- ปุ่มกดเข้าสู่ระบบขนาดใหญ่ -->
-        <button type="submit" class="btn-login-primary" id="submitLoginBtn">
-          <span>เข้าสู่ระบบ</span>
-          <span class="btn-arrow">➔</span>
-        </button>
-      </form>
-
-      <div class="login-help-box">
-        <span>ℹ️</span>
-        <div>
-          <b>คำแนะนำสำหรับเจ้าหน้าที่:</b> หากท่านไม่ทราบรหัสผ่านหรือเข้าสู่ระบบไม่ได้ กรุณาติดต่อหัวหน้าเวรรักษาความปลอดภัย
-        </div>
+        <!-- ส่วนท้ายหน้าเว็บทางการ -->
+        <footer class="login-uni-footer">
+          <div>ระบบสารสนเทศเพื่อการบริหารงานรักษาความปลอดภัย มหาวิทยาลัยราชภัฏยะลา</div>
+          <small>อำเภอเมืองยะลา จังหวัดยะลา • ศูนย์ควบคุมความปลอดภัย มรย.</small>
+        </footer>
       </div>
     </div>
-
-    <!-- ส่วนท้ายหน้าเว็บทางการ -->
-    <footer class="login-uni-footer">
-      <div>ระบบสารสนเทศเพื่อการบริหารงานรักษาความปลอดภัย มหาวิทยาลัยราชภัฏยะลา</div>
-      <small>อำเภอเมืองยะลา จังหวัดยะลา • โทรศัพท์สายด่วนป้อมยามกลาง มรย.</small>
-    </footer>
   </div>
 
-  <script src="js/data.js?v=4.2"></script>
+  <script src="js/data.js?v=5.0"></script>
   <script>
     (function () {
       'use strict';
@@ -121,17 +296,14 @@
       const btnQuickAdmin = document.getElementById('btnQuickAdmin');
       const btnQuickGuard = document.getElementById('btnQuickGuard');
 
-      // ตั้งค่าโหมดสีเริ่มต้นให้เป็นโหมดสว่างสบายตาเสมอ
       const savedTheme = localStorage.getItem('yru_sp_theme_v2') || 'light';
       document.documentElement.setAttribute('data-theme', savedTheme);
 
-      // ล้างเซสชันเก่าทุกครั้งที่เปิดเข้าหน้า login.html เพื่อบังคับให้เข้าหน้าล็อกอินเสมอตามความต้องการ
       try {
         sessionStorage.removeItem('yru_sp_session');
         localStorage.removeItem('yru_sp_session');
       } catch (e) {}
 
-      // ปุ่มแสดง/ซ่อนรหัสผ่าน
       if (togglePwBtn) {
         togglePwBtn.addEventListener('click', function () {
           const isPw = passwordInput.type === 'password';
@@ -142,7 +314,6 @@
         });
       }
 
-      // ปุ่มลัดเข้าสู่ระบบด่วน
       if (btnQuickAdmin) {
         btnQuickAdmin.addEventListener('click', function () {
           usernameInput.value = 'admin';
@@ -159,7 +330,6 @@
         });
       }
 
-      // รองรับการคลิกปุ่มเข้าสู่ระบบโดยตรง
       if (submitLoginBtn) {
         submitLoginBtn.addEventListener('click', function (e) {
           e.preventDefault();
@@ -167,7 +337,6 @@
         });
       }
 
-      // รองรับการกด Enter ในฟอร์ม
       if (loginForm) {
         loginForm.addEventListener('submit', function (e) {
           e.preventDefault();
@@ -197,7 +366,7 @@
         if (matched) {
           loginAlertBox.style.display = 'none';
           submitLoginBtn.disabled = true;
-          submitLoginBtn.innerHTML = '<span>⏳ กำลังเข้าสู่ระบบ กรุณารอสักครู่...</span>';
+          submitLoginBtn.innerHTML = '<span>กำลังเข้าสู่ระบบ กรุณารอสักครู่...</span>';
 
           const sessionData = {
             id: matched.id || ('acc-' + matched.username),
@@ -216,14 +385,14 @@
 
           setTimeout(function () {
             window.location.replace('index.html');
-          }, 250);
+          }, 200);
         } else {
           showError('ชื่อผู้ใช้งาน หรือ รหัสผ่านไม่ถูกต้อง กรุณาตรวจสอบแล้วลองใหม่อีกครั้ง');
         }
       }
 
       function showError(msg) {
-        loginAlertBox.textContent = '⚠️ ' + msg;
+        loginAlertBox.textContent = msg;
         loginAlertBox.style.display = 'block';
       }
     })();

@@ -5,16 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>ระบบเวียนตรวจรักษาความปลอดภัย - มหาวิทยาลัยราชภัฏยะลา</title>
   
-  <!-- Fonts: TH Sarabun New (Google Fonts Sarabun) -->
+  <!-- Fonts: Sarabun & Plus Jakarta Sans -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sarabun:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,600&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Sarabun:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,600&display=swap">
   
   <!-- CSS -->
-  <link rel="stylesheet" href="css/style.css?v=4.2">
+  <link rel="stylesheet" href="css/style.css?v=5.0">
   <!-- Auth Guard: บังคับให้เข้าสู่หน้า login.html ทุกครั้งที่มีการเปิดเข้าดูเว็บ -->
   <script>
-    // กำหนดฟังก์ชันออกจากระบบแบบสากลไว้ล่วงหน้า เพื่อให้กดปุ่มออกจากระบบได้ทันที 100%
     window.appLogout = function () {
       try {
         sessionStorage.clear();
@@ -25,10 +24,9 @@
 
     (function () {
       try {
-        var savedTheme = localStorage.getItem('yru_sp_theme') || 'light';
+        var savedTheme = localStorage.getItem('yru_sp_theme_v2') || localStorage.getItem('yru_sp_theme') || 'light';
         document.documentElement.setAttribute('data-theme', savedTheme);
         
-        // ตรวจสอบเซสชันในแท็บปัจจุบัน (sessionStorage) เพื่อบังคับให้ล็อกอินใหม่ทุกครั้งที่เปิดเข้าเว็บ
         var session = sessionStorage.getItem('yru_sp_session');
         if (!session) {
           localStorage.removeItem('yru_sp_session');
@@ -40,16 +38,28 @@
     })();
   </script>
 </head>
-<body>
-  <!-- แถบสีทอง-กรมท่าประจำมหาวิทยาลัยด้านบนสุด -->
+<body class="wide">
+  <!-- แถบสีประจำมหาวิทยาลัยด้านบนสุด -->
   <div class="uni-top-ribbon"></div>
 
-  <!-- แถบส่วนหัวของเว็บไซต์ (Official University Header Bar) -->
+  <!-- แถบส่วนหัวของเว็บไซต์แบบ Full-Wide (Official University Command Header Bar) -->
   <header class="bar" id="appHeader">
     <div class="bar-in">
-      <!-- โลโก้และชื่อระบบ -->
+      <!-- โลโก้และชื่อระบบพร้อม Vector Shield Emblem -->
       <div class="brand">
-        <div class="brand-icon" aria-hidden="true">🛡️</div>
+        <div class="brand-icon" aria-hidden="true">
+          <svg viewBox="0 0 40 40" fill="none" class="brand-emblem-svg">
+            <defs>
+              <linearGradient id="hdrShieldGrad" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#0D9488"/>
+                <stop offset="1" stop-color="#0284C7"/>
+              </linearGradient>
+            </defs>
+            <path d="M20 3L35 9V20C35 29.8 28.5 36.8 20 39.5C11.5 36.8 5 29.8 5 20V9L20 3Z" fill="url(#hdrShieldGrad)"/>
+            <path d="M20 7.5L31 12V19.8C31 27.2 26.2 32.6 20 34.8C13.8 32.6 9 27.2 9 19.8V12L20 7.5Z" fill="#0F172A" fill-opacity="0.28"/>
+            <path d="M14.5 20.5L18.2 24.2L26 16.4" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
         <div class="brand-text">
           <span class="brand-dept">งานรักษาความปลอดภัย กองกลาง</span>
           <h1>ระบบเวียนตรวจ รปภ. มรย.</h1>
@@ -57,13 +67,21 @@
         </div>
       </div>
 
-      <!-- ส่วนแสดงเวลา ข้อมูลผู้ใช้ และปุ่มออกจากระบบ -->
+      <!-- ส่วนแสดงเวลา ปุ่มสลับมุมมอง และปุ่มออกจากระบบ -->
       <div class="header-right">
-        <!-- นาฬิกาและวันที่ปัจจุบัน (เดินตามเวลาจริงพร้อมวินาทีทันทีที่เปิดเว็บ) -->
+        <!-- นาฬิกาและวันที่ปัจจุบัน (เดินตามเวลาจริงพร้อมวินาที) -->
         <div class="clock-box" id="appClock" title="เวลาและวันที่ปัจจุบัน">
-          <span class="clock-label">เวลาปัจจุบัน</span>
-          <span id="clockTime" class="clock-time">--:--:-- น.</span>
-          <small id="clockDate" class="clock-date">วันที่</small>
+          <div class="clock-svg-wrap" aria-hidden="true">
+            <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12 6 12 12 16 14"/>
+            </svg>
+          </div>
+          <div class="clock-meta">
+            <span class="clock-label">เวลาปัจจุบัน</span>
+            <span id="clockTime" class="clock-time">--:--:-- น.</span>
+            <small id="clockDate" class="clock-date">วันที่</small>
+          </div>
         </div>
         <script>
           (function () {
@@ -87,21 +105,34 @@
           })();
         </script>
 
-        <!-- ปุ่มสลับมุมมองระหว่าง รปภ. กับ แอดมิน (ช่วยให้สลับตรวจสอบรายงานได้ทันที) -->
+        <!-- ปุ่มสลับมุมมองระหว่าง รปภ. กับ แอดมิน -->
         <button type="button" class="btn-switch-view" id="quickSwitchViewBtn" title="สลับมุมมองระหว่าง รปภ. กับ แอดมิน">
-          👁️ <span>สลับดูหน้าแอดมิน</span>
+          <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7" rx="1"/>
+            <rect x="14" y="3" width="7" height="7" rx="1"/>
+            <rect x="14" y="14" width="7" height="7" rx="1"/>
+            <rect x="3" y="14" width="7" height="7" rx="1"/>
+          </svg>
+          <span>สลับดูหน้าแอดมิน</span>
         </button>
 
-        <!-- ปุ่มออกจากระบบ (นำข้อความ แอดมิน / หัวหน้าเวร ออกตามคำขอ) -->
+        <!-- ปุ่มออกจากระบบ -->
         <div class="user-pill" id="userPill">
           <button type="button" class="btn-logout-main" id="logoutBtn" onclick="window.appLogout()" title="กดเพื่อออกจากระบบ">
-            🚪 <span>ออกจากระบบ</span>
+            <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+              <polyline points="16 17 21 12 16 7"/>
+              <line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
+            <span>ออกจากระบบ</span>
           </button>
         </div>
 
         <!-- ปุ่มสลับโหมดสีสบายตา / กลางคืน -->
         <button type="button" class="theme-toggle" id="themeToggle" title="สลับโหมดสีหน้าจอ">
-          🌙
+          <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
         </button>
       </div>
     </div>
@@ -115,458 +146,714 @@
     </div>
   </header>
 
-  <!-- เนื้อหาหลักของระบบ -->
+  <!-- เนื้อหาหลักของระบบ (Full-Wide Responsive Container) -->
   <div class="wrap" id="appContent">
     <main>
       <!-- =========================================================
            ส่วนที่ 1: หน้าสำหรับเจ้าหน้าที่ รปภ. (ระบบบันทึกเวียนตรวจ)
-           ดีไซน์ทันสมัย เป็นทางการ สบายตา ใช้งานง่ายสำหรับมือถือ
+           รองรับทั้งจอมือถือ และจอคอมพิวเตอร์/แท็บเล็ตแบบ Full-Wide 2 คอลัมน์
            ========================================================= -->
       <section id="panelGuard" class="tab-panel">
+        <div class="guard-bento-layout">
 
-        <!-- แบนเนอร์หัวข้อระบบเวียนตรวจ รปภ. มรย. -->
-        <div class="role-welcome-banner guard-banner-modern">
-          <div class="banner-icon-modern">🛡️</div>
-          <div class="banner-info">
-            <div class="banner-top-tag">
-              <span class="live-dot"></span>
-              <span>ระบบเวียนตรวจ มหาวิทยาลัยราชภัฏยะลา</span>
+          <!-- พื้นที่ 1: แบนเนอร์หัวข้อระบบเวียนตรวจพร้อม Vector Illustration -->
+          <div class="role-welcome-banner guard-banner-modern guard-area-hero">
+            <div class="banner-icon-modern" aria-hidden="true">
+              <svg viewBox="0 0 64 64" fill="none" class="hero-illust-svg">
+                <circle cx="32" cy="32" r="28" fill="#FFFFFF" fill-opacity="0.12" stroke="#FFFFFF" stroke-opacity="0.25" stroke-width="1.5" stroke-dasharray="4 4"/>
+                <path d="M32 10L50 17V31C50 43.8 42.3 52.8 32 56C21.7 52.8 14 43.8 14 31V17L32 10Z" fill="#14B8A6" fill-opacity="0.28" stroke="#5EEAD4" stroke-width="2.5"/>
+                <path d="M24 32.5L29.5 38L41 26.5" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
             </div>
-            <h2>บันทึกการเวียนตรวจรักษาความปลอดภัย</h2>
-            <p>เลือกผลัดเวร ระบุอาคาร/สถานที่ แนบภาพถ่าย และกดบันทึกรายงานได้ทันที</p>
-          </div>
-        </div>
-
-        <!-- กล่องแจ้งเหตุฉุกเฉินด่วน (SOS Emergency Card) -->
-        <div class="sos-banner-card">
-          <div class="sos-banner-info">
-            <div class="sos-badge-pill">🚨 เหตุฉุกเฉินเร่งด่วน</div>
-            <h3>พบเหตุร้าย หรือต้องการความช่วยเหลือด่วน?</h3>
-            <p>เช่น พบบุคคลน่าสงสัย, อัคคีภัย, การบุกรุก, อุบัติเหตุร้ายแรง กดปุ่มแจ้งเหตุด้านล่างทันที</p>
-          </div>
-          <button type="button" class="btn-sos-modern" id="sosPatrolBtn">
-            <span class="sos-glow-circle"></span>
-            <span class="sos-main-icon">🚨</span>
-            <span class="sos-btn-label">แจ้งเหตุฉุกเฉิน (SOS)</span>
-          </button>
-        </div>
-
-        <!-- การ์ดแบบฟอร์มหลัก (Patrol Recording Form Card) -->
-        <div class="card patrol-card-form">
-
-          <!-- หมวดที่ 1: ข้อมูลกะและเจ้าหน้าที่ -->
-          <div class="form-section-block">
-            <div class="form-section-header">
-              <span class="step-num-badge">1</span>
-              <div>
-                <h3>กะเวลาและเจ้าหน้าที่ รปภ. ผู้ตรวจ</h3>
-                <p>เลือกผลัดเวรที่กำลังปฏิบัติหน้าที่ และตรวจสอบชื่อของท่าน</p>
+            <div class="banner-info">
+              <div class="banner-top-tag">
+                <span class="live-dot"></span>
+                <span>SMART PATROL RECORDING SYSTEM • YRU</span>
               </div>
+              <h2>บันทึกการเวียนตรวจรักษาความปลอดภัย</h2>
+              <p>เลือกผลัดเวร ระบุอาคารสถานที่ แนบภาพถ่ายพร้อมประทับเวลาอัตโนมัติ และส่งรายงานเข้าศูนย์ควบคุมทันที</p>
             </div>
+            <!-- ภาพประกอบกราฟิกด้านขวาของแบนเนอร์ -->
+            <div class="banner-graphic-decor" aria-hidden="true">
+              <svg viewBox="0 0 180 110" fill="none">
+                <circle cx="130" cy="55" r="46" stroke="#5EEAD4" stroke-opacity="0.22" stroke-width="1.5"/>
+                <circle cx="130" cy="55" r="30" stroke="#38BDF8" stroke-opacity="0.3" stroke-width="1.5" stroke-dasharray="4 4"/>
+                <rect x="18" y="24" width="90" height="62" rx="12" fill="#0F172A" fill-opacity="0.35" stroke="#5EEAD4" stroke-opacity="0.4" stroke-width="1.5"/>
+                <circle cx="44" cy="48" r="10" fill="#14B8A6" fill-opacity="0.35"/>
+                <path d="M40 48L43 51L49 45" stroke="#5EEAD4" stroke-width="2" stroke-linecap="round"/>
+                <rect x="60" y="42" width="36" height="6" rx="3" fill="#FFFFFF" fill-opacity="0.8"/>
+                <rect x="60" y="53" width="24" height="5" rx="2.5" fill="#5EEAD4" fill-opacity="0.7"/>
+                <rect x="34" y="68" width="60" height="5" rx="2.5" fill="#94A3B8" fill-opacity="0.45"/>
+              </svg>
+            </div>
+          </div>
 
-            <!-- 1.1 ผลัดเวร (กะการทำงาน) จัดกึ่งกลางสวยงาม -->
-            <div class="field-container shift-field-centered">
-              <div class="shift-header-centered">
-                <div class="shift-title-pill">
-                  <span class="shift-clock-emoji">⏰</span>
-                  <span class="shift-title-text">ผลัดเวร (กะการทำงาน)</span>
+          <!-- พื้นที่ 2: กล่องแจ้งเหตุฉุกเฉินด่วน (SOS Emergency Beacon Card) -->
+          <div class="sos-banner-card guard-area-sos">
+            <div class="sos-banner-info">
+              <div class="sos-badge-pill">
+                <svg class="svg-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                  <line x1="12" y1="9" x2="12" y2="13"/>
+                  <line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+                <span>เหตุฉุกเฉินเร่งด่วน (SOS BEACON)</span>
+              </div>
+              <h3>พบเหตุร้าย หรือต้องการกำลังเสริมด่วน?</h3>
+              <p>พบบุคคลต้องสงสัย อัคคีภัย การบุกรุก หรืออุบัติเหตุร้ายแรง กดปุ่มส่งสัญญาณแจ้งเตือนหัวหน้าเวรทันที</p>
+            </div>
+            <button type="button" class="btn-sos-modern" id="sosPatrolBtn">
+              <span class="sos-glow-circle"></span>
+              <span class="sos-main-icon" aria-hidden="true">
+                <svg class="svg-icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                  <path d="M12 2v4M4.93 4.93l2.83 2.83M2 12h4M18 12h4M16.24 7.76l2.83-2.83"/>
+                  <path d="M7 18v-5a5 5 0 0 1 10 0v5"/>
+                  <rect x="5" y="18" width="14" height="3" rx="1.5"/>
+                </svg>
+              </span>
+              <span class="sos-btn-label">แจ้งเหตุฉุกเฉิน (SOS)</span>
+            </button>
+          </div>
+
+          <!-- พื้นที่ 3: การ์ดแบบฟอร์มหลัก (Patrol Recording Form Card) -->
+          <div class="card patrol-card-form guard-area-form">
+
+            <!-- หมวดที่ 1: ข้อมูลกะและเจ้าหน้าที่ -->
+            <div class="form-section-block">
+              <div class="form-section-header">
+                <span class="step-num-badge">1</span>
+                <div>
+                  <h3>กะเวลาและเจ้าหน้าที่ รปภ. ผู้ตรวจ</h3>
+                  <p>เลือกผลัดเวรที่กำลังปฏิบัติหน้าที่ และตรวจสอบรายชื่อผู้เดินตรวจ</p>
                 </div>
-                <p class="shift-hint-text">แตะเลือกผลัดเวรที่ท่านกำลังปฏิบัติหน้าที่</p>
               </div>
 
-              <div class="seg-shifts-modern" id="shiftPatrolSeg">
-                <button type="button" class="shift-btn shift-morning" aria-pressed="true" data-shift="morning" data-val="เช้า">
-                  <span class="shift-badge-check">✓ กำลังเลือก</span>
-                  <div class="shift-icon-circle">
-                    <span class="shift-emoji">☀️</span>
+              <!-- 1.1 ผลัดเวร (กะการทำงาน) พร้อมไอคอน SVG -->
+              <div class="field-container shift-field-centered">
+                <div class="shift-header-centered">
+                  <div class="shift-title-pill">
+                    <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="10"/>
+                      <polyline points="12 6 12 12 16 14"/>
+                    </svg>
+                    <span class="shift-title-text">ผลัดเวร (กะการทำงาน)</span>
                   </div>
-                  <b class="shift-name-title">กะเช้า</b>
-                  <span class="shift-time-badge">06:00 - 14:00 น.</span>
-                </button>
-                <button type="button" class="shift-btn shift-afternoon" aria-pressed="false" data-shift="afternoon" data-val="บ่าย">
-                  <span class="shift-badge-check">✓ กำลังเลือก</span>
-                  <div class="shift-icon-circle">
-                    <span class="shift-emoji">⛅</span>
-                  </div>
-                  <b class="shift-name-title">กะบ่าย</b>
-                  <span class="shift-time-badge">14:00 - 22:00 น.</span>
-                </button>
-                <button type="button" class="shift-btn shift-night" aria-pressed="false" data-shift="night" data-val="ดึก">
-                  <span class="shift-badge-check">✓ กำลังเลือก</span>
-                  <div class="shift-icon-circle">
-                    <span class="shift-emoji">🌙</span>
-                  </div>
-                  <b class="shift-name-title">กะดึก</b>
-                  <span class="shift-time-badge">22:00 - 06:00 น.</span>
-                </button>
-              </div>
-            </div>
+                  <p class="shift-hint-text">แตะเลือกผลัดเวรที่ท่านกำลังปฏิบัติหน้าที่</p>
+                </div>
 
-            <!-- 1.2 รายชื่อ รปภ. -->
-            <div class="field-container" style="margin-top: 16px;">
-              <label class="lbl-modern" for="guardPatrolSelect">👤 ชื่อเจ้าหน้าที่ รปภ. ผู้เดินตรวจ:</label>
-              <div class="input-select-wrapper">
-                <select id="guardPatrolSelect" class="select-modern">
-                  <option value="" disabled selected>-- แตะเพื่อเลือกรายชื่อเจ้าหน้าที่ --</option>
-                  <option value="1 นายรอแม กามา">1. นายรอแม กามา</option>
-                  <option value="2 นายศิลปชัย ขุนทรัพย์">2. นายศิลปชัย ขุนทรัพย์</option>
-                  <option value="3 นายสุไลมาน สารี">3. นายสุไลมาน สารี</option>
-                  <option value="4 นายกิตติวัฒน์ สระบัว">4. นายกิตติวัฒน์ สระบัว</option>
-                  <option value="5 นายปิยศักดิ์ ศักดิ์สองเมือง">5. นายปิยศักดิ์ ศักดิ์สองเมือง</option>
-                  <option value="6 นายสุกรี เจ๊ะมิง">6. นายสุกรี เจ๊ะมิง</option>
-                  <option value="7 นายซุลกิฟลี วาแฉะ">7. นายซุลกิฟลี วาแฉะ</option>
-                  <option value="8 นางภัณฑิรา วุฒิพงศ์">8. นางภัณฑิรา วุฒิพงศ์</option>
-                  <option value="9 นายนาวาวี เซะ">9. นายนาวาวี เซะ</option>
-                </select>
-              </div>
-            </div>
-          </div>
+                <div class="seg-shifts-modern" id="shiftPatrolSeg">
+                  <button type="button" class="shift-btn shift-morning" aria-pressed="true" data-shift="morning" data-val="เช้า">
+                    <span class="shift-badge-check">
+                      <svg class="svg-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                        <polyline points="20 6 9 17 4 12"/>
+                      </svg>
+                      กำลังเลือก
+                    </span>
+                    <div class="shift-icon-circle">
+                      <svg class="shift-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="5"/>
+                        <line x1="12" y1="1" x2="12" y2="3"/>
+                        <line x1="12" y1="21" x2="12" y2="23"/>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                        <line x1="1" y1="12" x2="3" y2="12"/>
+                        <line x1="21" y1="12" x2="23" y2="12"/>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                      </svg>
+                    </div>
+                    <b class="shift-name-title">กะเช้า</b>
+                    <span class="shift-time-badge">06:00 - 14:00 น.</span>
+                  </button>
 
-          <div class="form-divider"></div>
+                  <button type="button" class="shift-btn shift-afternoon" aria-pressed="false" data-shift="afternoon" data-val="บ่าย">
+                    <span class="shift-badge-check">
+                      <svg class="svg-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                        <polyline points="20 6 9 17 4 12"/>
+                      </svg>
+                      กำลังเลือก
+                    </span>
+                    <div class="shift-icon-circle">
+                      <svg class="shift-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2v2"/>
+                        <path d="m4.93 4.93 1.41 1.41"/>
+                        <path d="M20 12h2"/>
+                        <path d="m19.07 4.93-1.41 1.41"/>
+                        <path d="M15.947 12.65a4 4 0 0 0-5.925-4.128"/>
+                        <path d="M13 22H7a5 5 0 1 1 4.9-6H13a3 3 0 0 1 0 6Z"/>
+                      </svg>
+                    </div>
+                    <b class="shift-name-title">กะบ่าย</b>
+                    <span class="shift-time-badge">14:00 - 22:00 น.</span>
+                  </button>
 
-          <!-- หมวดที่ 2: สถานที่ / อาคาร -->
-          <div class="form-section-block">
-            <div class="form-section-header">
-              <span class="step-num-badge">2</span>
-              <div style="flex: 1;">
-                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-                  <h3>สถานที่ / อาคารจุดตรวจ</h3>
-                  <button type="button" class="btn-toggle-custom" id="toggleCustomLocBtn">
-                    <span>✏️</span> พิมพ์ระบุเอง
+                  <button type="button" class="shift-btn shift-night" aria-pressed="false" data-shift="night" data-val="ดึก">
+                    <span class="shift-badge-check">
+                      <svg class="svg-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                        <polyline points="20 6 9 17 4 12"/>
+                      </svg>
+                      กำลังเลือก
+                    </span>
+                    <div class="shift-icon-circle">
+                      <svg class="shift-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                      </svg>
+                    </div>
+                    <b class="shift-name-title">กะดึก</b>
+                    <span class="shift-time-badge">22:00 - 06:00 น.</span>
                   </button>
                 </div>
-                <p>เลือกอาคารภายในมหาวิทยาลัยราชภัฏยะลา หรือกดพิมพ์ระบุเองหากอยู่นอกจุดตรวจ</p>
+              </div>
+
+              <!-- 1.2 รายชื่อ รปภ. -->
+              <div class="field-container" style="margin-top: 18px;">
+                <label class="lbl-modern" for="guardPatrolSelect">
+                  <svg class="svg-icon-sm label-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                    <circle cx="12" cy="7" r="4"/>
+                  </svg>
+                  <span>ชื่อเจ้าหน้าที่ รปภ. ผู้เดินตรวจ:</span>
+                </label>
+                <div class="input-select-wrapper">
+                  <select id="guardPatrolSelect" class="select-modern">
+                    <option value="" disabled selected>-- แตะเพื่อเลือกรายชื่อเจ้าหน้าที่ --</option>
+                    <option value="1 นายรอแม กามา">1. นายรอแม กามา</option>
+                    <option value="2 นายศิลปชัย ขุนทรัพย์">2. นายศิลปชัย ขุนทรัพย์</option>
+                    <option value="3 นายสุไลมาน สารี">3. นายสุไลมาน สารี</option>
+                    <option value="4 นายกิตติวัฒน์ สระบัว">4. นายกิตติวัฒน์ สระบัว</option>
+                    <option value="5 นายปิยศักดิ์ ศักดิ์สองเมือง">5. นายปิยศักดิ์ ศักดิ์สองเมือง</option>
+                    <option value="6 นายสุกรี เจ๊ะมิง">6. นายสุกรี เจ๊ะมิง</option>
+                    <option value="7 นายซุลกิฟลี วาแฉะ">7. นายซุลกิฟลี วาแฉะ</option>
+                    <option value="8 นางภัณฑิรา วุฒิพงศ์">8. นางภัณฑิรา วุฒิพงศ์</option>
+                    <option value="9 นายนาวาวี เซะ">9. นายนาวาวี เซะ</option>
+                  </select>
+                </div>
               </div>
             </div>
 
-            <div class="field-container">
-              <select id="locPatrolSelect" class="select-modern">
-                <option value="" disabled selected>-- แตะเพื่อเลือกจุดตรวจ (35 อาคารสถานที่) --</option>
-                <optgroup label="🏢 อาคารเรียน สำนักงาน และคณะ">
-                  <option value="อาคารเรียน 1">อาคารเรียน 1</option>
-                  <option value="อาคาร 2 ศูนย์ศิลปวัฒนธรรม">อาคาร 2 ศูนย์ศิลปวัฒนธรรม</option>
-                  <option value="อาคารเรียน 3 วิทยาศาสตร์ฮาลาล">อาคารเรียน 3 วิทยาศาสตร์ฮาลาล</option>
-                  <option value="อาคารเรียน 4 สถาบันวิจัยและพัฒนาชายแดนใต้">อาคารเรียน 4 สถาบันวิจัยและพัฒนาชายแดนใต้</option>
-                  <option value="อาคารเรียน 5 คณะวิทยาศาสตร์เทคโนโลยีและการเกษตร">อาคารเรียน 5 คณะวิทยาศาสตร์เทคโนโลยีและการเกษตร</option>
-                  <option value="อาคารเรียน 6 สาขาวิชาคอมพิวเตอร์">อาคารเรียน 6 สาขาวิชาคอมพิวเตอร์</option>
-                  <option value="อาคาร 7 ศูนย์บรรณสารสนเทศ">อาคาร 7 ศูนย์บรรณสารสนเทศ (หอสมุดกลาง)</option>
-                  <option value="อาคาร 8 ยะลาพาเลส @INN YRU">อาคาร 8 ยะลาพาเลส @INN YRU</option>
-                  <option value="อาคาร 9 ศูนย์วิทยาศาสตร์และวิทยาศาสตร์ประยุกต์">อาคาร 9 ศูนย์วิทยาศาสตร์และวิทยาศาสตร์ประยุกต์</option>
-                  <option value="อาคาร 10A-10B สาขาวิชาศิลปะ">อาคาร 10A-10B สาขาวิชาศิลปะ</option>
-                  <option value="อาคารเรียน 15 สาขาวิชาเกษตรศาสตร์ฯ">อาคารเรียน 15 สาขาวิชาเกษตรศาสตร์ฯ</option>
-                  <option value="อาคารเรียน 16 สาขาวิชาวิทยาศาสตร์และเทคโนโลยีการอาหาร">อาคารเรียน 16 สาขาวิชาวิทยาศาสตร์และเทคโนโลยีการอาหาร</option>
-                  <option value="อาคารเรียน 18">อาคารเรียน 18</option>
-                  <option value="อาคารเรียน 20 อาคารเฉลิมพระเกียรติ 50 พรรษาฯ">อาคารเรียน 20 อาคารเฉลิมพระเกียรติ 50 พรรษาฯ</option>
-                  <option value="อาคาร 21 หอประชุมเฉลิมพระเกียรติ 80 พรรษาฯ">อาคาร 21 หอประชุมเฉลิมพระเกียรติ 80 พรรษาฯ</option>
-                  <option value="อาคาร 23 คณะวิทยาการจัดการ">อาคาร 23 คณะวิทยาการจัดการ</option>
-                  <option value="อาคาร 24 อาคารสังคมศาสตร์">อาคาร 24 อาคารสังคมศาสตร์</option>
-                  <option value="อาคาร 25 อาคารเทคโนโลยีสารสนเทศ">อาคาร 25 อาคารเทคโนโลยีสารสนเทศ</option>
-                </optgroup>
-                <optgroup label="🏠 หอพักนักศึกษาและบุคลากร">
-                  <option value="หอชาย 4 หออินทนิล">หอชาย 4 หออินทนิล</option>
-                  <option value="หอหญิง 5 หอปาริชาติ">หอหญิง 5 หอปาริชาติ</option>
-                  <option value="หอหญิง 6 หอราชพฤกษ์">หอหญิง 6 หอราชพฤกษ์</option>
-                  <option value="หอพักบุคลากร หอจามจุรี">หอพักบุคลากร หอจามจุรี</option>
-                  <option value="อาคาร 26 อาคารชุดที่พักบุคลากร (บ้านจันทน์กะพ้อ)">อาคาร 26 อาคารชุดที่พักบุคลากร (บ้านจันทน์กะพ้อ)</option>
-                  <option value="อาคาร 27 หอพักนักศึกษา A">อาคาร 27 หอพักนักศึกษา A</option>
-                  <option value="อาคาร 28 หอพักนักศึกษา B">อาคาร 28 หอพักนักศึกษา B</option>
-                  <option value="อาคาร 29 หอพักนักศึกษา C">อาคาร 29 หอพักนักศึกษา C</option>
-                  <option value="อาคาร 30 หอพักนักศึกษา D">อาคาร 30 หอพักนักศึกษา D</option>
-                </optgroup>
-                <optgroup label="🍽️ ศูนย์อาหาร กิจกรรม และบริการ">
-                  <option value="อาคาร 22 อาคารกิจกรรมนักศึกษา (Student Union)">อาคาร 22 อาคารกิจกรรมนักศึกษา (Student Union)</option>
-                  <option value="อาคาร 31 ศูนย์แสดงและจำหน่ายผลิตภัณฑ์ฯ YRU FreshMart">อาคาร 31 ศูนย์แสดงและจำหน่ายผลิตภัณฑ์ฯ YRU FreshMart</option>
-                  <option value="อาคาร 32 อาคารห้องปฏิบัติการอาหารและโภชนาการ">อาคาร 32 อาคารห้องปฏิบัติการอาหารและโภชนาการ</option>
-                  <option value="อาคาร 33 อาคารละหมาด">อาคาร 33 อาคารละหมาด</option>
-                  <option value="อาคาร 34 ศูนย์อาหาร มรย.">อาคาร 34 ศูนย์อาหาร มรย.</option>
-                  <option value="อาคาร 35 ห้องฉายภาพยนต์">อาคาร 35 ห้องฉายภาพยนต์</option>
-                  <option value="หอประชุมเล็ก + อาคารประกอบ">หอประชุมเล็ก + อาคารประกอบ</option>
-                </optgroup>
-                <optgroup label="📦 อาคารสนับสนุนและงานสถานที่">
-                  <option value="อาคาร 17 อาคารพัสดุกลางและงานอาคารสถานที่">อาคาร 17 อาคารพัสดุกลางและงานอาคารสถานที่</option>
-                </optgroup>
-              </select>
+            <div class="form-divider"></div>
 
-              <div class="custom-loc-box" id="customLocWrap" style="display:none; margin-top: 10px;">
-                <input type="text" id="customLocPatrolInput" class="input-modern" placeholder="พิมพ์ระบุชื่อสถานที่นอกจุดตรวจ เช่น ลานจอดรถหลังอาคาร 5...">
+            <!-- หมวดที่ 2: สถานที่ / อาคาร -->
+            <div class="form-section-block">
+              <div class="form-section-header">
+                <span class="step-num-badge">2</span>
+                <div style="flex: 1;">
+                  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                    <h3>สถานที่ / อาคารจุดตรวจ</h3>
+                    <button type="button" class="btn-toggle-custom" id="toggleCustomLocBtn">
+                      <svg class="svg-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 20h9"/>
+                        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                      </svg>
+                      <span>พิมพ์ระบุเอง</span>
+                    </button>
+                  </div>
+                  <p>เลือกอาคารภายในมหาวิทยาลัยราชภัฏยะลา หรือกดพิมพ์ระบุเองหากอยู่นอกจุดตรวจ</p>
+                </div>
+              </div>
+
+              <div class="field-container">
+                <select id="locPatrolSelect" class="select-modern">
+                  <option value="" disabled selected>-- แตะเพื่อเลือกจุดตรวจ (35 อาคารสถานที่) --</option>
+                  <optgroup label="อาคารเรียน สำนักงาน และคณะ">
+                    <option value="อาคารเรียน 1">อาคารเรียน 1</option>
+                    <option value="อาคาร 2 ศูนย์ศิลปวัฒนธรรม">อาคาร 2 ศูนย์ศิลปวัฒนธรรม</option>
+                    <option value="อาคารเรียน 3 วิทยาศาสตร์ฮาลาล">อาคารเรียน 3 วิทยาศาสตร์ฮาลาล</option>
+                    <option value="อาคารเรียน 4 สถาบันวิจัยและพัฒนาชายแดนใต้">อาคารเรียน 4 สถาบันวิจัยและพัฒนาชายแดนใต้</option>
+                    <option value="อาคารเรียน 5 คณะวิทยาศาสตร์เทคโนโลยีและการเกษตร">อาคารเรียน 5 คณะวิทยาศาสตร์เทคโนโลยีและการเกษตร</option>
+                    <option value="อาคารเรียน 6 สาขาวิชาคอมพิวเตอร์">อาคารเรียน 6 สาขาวิชาคอมพิวเตอร์</option>
+                    <option value="อาคาร 7 ศูนย์บรรณสารสนเทศ">อาคาร 7 ศูนย์บรรณสารสนเทศ (หอสมุดกลาง)</option>
+                    <option value="อาคาร 8 ยะลาพาเลส @INN YRU">อาคาร 8 ยะลาพาเลส @INN YRU</option>
+                    <option value="อาคาร 9 ศูนย์วิทยาศาสตร์และวิทยาศาสตร์ประยุกต์">อาคาร 9 ศูนย์วิทยาศาสตร์และวิทยาศาสตร์ประยุกต์</option>
+                    <option value="อาคาร 10A-10B สาขาวิชาศิลปะ">อาคาร 10A-10B สาขาวิชาศิลปะ</option>
+                    <option value="อาคารเรียน 15 สาขาวิชาเกษตรศาสตร์ฯ">อาคารเรียน 15 สาขาวิชาเกษตรศาสตร์ฯ</option>
+                    <option value="อาคารเรียน 16 สาขาวิชาวิทยาศาสตร์และเทคโนโลยีการอาหาร">อาคารเรียน 16 สาขาวิชาวิทยาศาสตร์และเทคโนโลยีการอาหาร</option>
+                    <option value="อาคารเรียน 18">อาคารเรียน 18</option>
+                    <option value="อาคารเรียน 20 อาคารเฉลิมพระเกียรติ 50 พรรษาฯ">อาคารเรียน 20 อาคารเฉลิมพระเกียรติ 50 พรรษาฯ</option>
+                    <option value="อาคาร 21 หอประชุมเฉลิมพระเกียรติ 80 พรรษาฯ">อาคาร 21 หอประชุมเฉลิมพระเกียรติ 80 พรรษาฯ</option>
+                    <option value="อาคาร 23 คณะวิทยาการจัดการ">อาคาร 23 คณะวิทยาการจัดการ</option>
+                    <option value="อาคาร 24 อาคารสังคมศาสตร์">อาคาร 24 อาคารสังคมศาสตร์</option>
+                    <option value="อาคาร 25 อาคารเทคโนโลยีสารสนเทศ">อาคาร 25 อาคารเทคโนโลยีสารสนเทศ</option>
+                  </optgroup>
+                  <optgroup label="หอพักนักศึกษาและบุคลากร">
+                    <option value="หอชาย 4 หออินทนิล">หอชาย 4 หออินทนิล</option>
+                    <option value="หอหญิง 5 หอปาริชาติ">หอหญิง 5 หอปาริชาติ</option>
+                    <option value="หอหญิง 6 หอราชพฤกษ์">หอหญิง 6 หอราชพฤกษ์</option>
+                    <option value="หอพักบุคลากร หอจามจุรี">หอพักบุคลากร หอจามจุรี</option>
+                    <option value="อาคาร 26 อาคารชุดที่พักบุคลากร (บ้านจันทน์กะพ้อ)">อาคาร 26 อาคารชุดที่พักบุคลากร (บ้านจันทน์กะพ้อ)</option>
+                    <option value="อาคาร 27 หอพักนักศึกษา A">อาคาร 27 หอพักนักศึกษา A</option>
+                    <option value="อาคาร 28 หอพักนักศึกษา B">อาคาร 28 หอพักนักศึกษา B</option>
+                    <option value="อาคาร 29 หอพักนักศึกษา C">อาคาร 29 หอพักนักศึกษา C</option>
+                    <option value="อาคาร 30 หอพักนักศึกษา D">อาคาร 30 หอพักนักศึกษา D</option>
+                  </optgroup>
+                  <optgroup label="ศูนย์อาหาร กิจกรรม และบริการ">
+                    <option value="อาคาร 22 อาคารกิจกรรมนักศึกษา (Student Union)">อาคาร 22 อาคารกิจกรรมนักศึกษา (Student Union)</option>
+                    <option value="อาคาร 31 ศูนย์แสดงและจำหน่ายผลิตภัณฑ์ฯ YRU FreshMart">อาคาร 31 ศูนย์แสดงและจำหน่ายผลิตภัณฑ์ฯ YRU FreshMart</option>
+                    <option value="อาคาร 32 อาคารห้องปฏิบัติการอาหารและโภชนาการ">อาคาร 32 อาคารห้องปฏิบัติการอาหารและโภชนาการ</option>
+                    <option value="อาคาร 33 อาคารละหมาด">อาคาร 33 อาคารละหมาด</option>
+                    <option value="อาคาร 34 ศูนย์อาหาร มรย.">อาคาร 34 ศูนย์อาหาร มรย.</option>
+                    <option value="อาคาร 35 ห้องฉายภาพยนต์">อาคาร 35 ห้องฉายภาพยนต์</option>
+                    <option value="หอประชุมเล็ก + อาคารประกอบ">หอประชุมเล็ก + อาคารประกอบ</option>
+                  </optgroup>
+                  <optgroup label="อาคารสนับสนุนและงานสถานที่">
+                    <option value="อาคาร 17 อาคารพัสดุกลางและงานอาคารสถานที่">อาคาร 17 อาคารพัสดุกลางและงานอาคารสถานที่</option>
+                  </optgroup>
+                </select>
+
+                <div class="custom-loc-box" id="customLocWrap" style="display:none; margin-top: 10px;">
+                  <input type="text" id="customLocPatrolInput" class="input-modern" placeholder="พิมพ์ระบุชื่อสถานที่นอกจุดตรวจ เช่น ลานจอดรถหลังอาคาร 5...">
+                </div>
               </div>
             </div>
-          </div>
 
-          <div class="form-divider"></div>
+            <div class="form-divider"></div>
 
-          <!-- หมวดที่ 3: ภาพถ่ายและบันทึกเหตุการณ์ -->
-          <div class="form-section-block">
-            <div class="form-section-header">
-              <span class="step-num-badge">3</span>
-              <div>
-                <h3>หลักฐานภาพถ่ายและบันทึกเหตุการณ์</h3>
-                <p>แนบภาพถ่ายหน้างาน และพิมพ์ข้อความหรือกดพูดด้วยเสียง</p>
+            <!-- หมวดที่ 3: ภาพถ่ายและบันทึกเหตุการณ์ -->
+            <div class="form-section-block">
+              <div class="form-section-header">
+                <span class="step-num-badge">3</span>
+                <div>
+                  <h3>หลักฐานภาพถ่ายและบันทึกเหตุการณ์</h3>
+                  <p>แนบภาพถ่ายหน้างานพร้อมประทับเวลาอัตโนมัติ และระบุรายละเอียดการเดินตรวจ</p>
+                </div>
               </div>
-            </div>
 
-            <!-- 3.1 ถ่ายภาพ -->
-            <div class="field-container">
-              <div class="photo-header-row">
-                <label class="lbl-modern" style="margin-bottom:0;">📸 ภาพถ่ายขณะปฏิบัติหน้าที่ (บังคับอย่างน้อย 2 รูปขึ้นไป):</label>
-                <span class="photo-req-badge photo-req-warn" id="photoCountBadge">⚠️ ยังไม่ได้ถ่ายรูป (0/2 รูป)</span>
+              <!-- 3.1 ถ่ายภาพพร้อม Vector Camera Viewfinder Illustration -->
+              <div class="field-container">
+                <div class="photo-header-row">
+                  <label class="lbl-modern" style="margin-bottom:0;">
+                    <svg class="svg-icon-sm label-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                      <circle cx="12" cy="13" r="4"/>
+                    </svg>
+                    <span>ภาพถ่ายขณะปฏิบัติหน้าที่ (บังคับอย่างน้อย 2 รูปขึ้นไป):</span>
+                  </label>
+                  <span class="photo-req-badge photo-req-warn" id="photoCountBadge">ยังไม่ได้ถ่ายรูป (0/2 รูป)</span>
+                </div>
+                
+                <!-- กล้องถ่ายภาพหน้างาน -->
+                <input type="file" accept="image/jpeg,image/png,image/*" capture="environment" id="camPatrolInput" class="visually-hidden-file-input">
+                
+                <label for="camPatrolInput" class="photo-dropzone-btn" id="triggerCamBtn">
+                  <div class="photo-dropzone-icon" aria-hidden="true">
+                    <!-- Custom Vector Camera & Timestamp Illustration -->
+                    <svg viewBox="0 0 56 56" fill="none" class="cam-vector-svg">
+                      <rect x="4" y="4" width="48" height="48" rx="14" fill="currentColor" fill-opacity="0.1"/>
+                      <path d="M18 21H21L23 18H33L35 21H38C39.6569 21 41 22.3431 41 24V36C41 37.6569 39.6569 39 38 39H18C16.3431 39 15 37.6569 15 36V24C15 22.3431 16.3431 21 18 21Z" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/>
+                      <circle cx="28" cy="30" r="5" stroke="currentColor" stroke-width="2.4"/>
+                      <path d="M12 16V12H16M40 12H44V16M12 40V44H16M40 44H44V40" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                    </svg>
+                  </div>
+                  <div class="photo-dropzone-text">
+                    <b id="camBtnMainText">แตะที่นี่เพื่อเปิดกล้องถ่ายภาพหน้างาน</b>
+                    <small id="camBtnSubText">ถ่ายเสร็จจะดึงรูปเข้ามาใส่ทันทีพร้อมประทับเวลาอัตโนมัติ (บังคับถ่าย 2 รูปขึ้นไป)</small>
+                  </div>
+                </label>
+
+                <!-- ช่องแสดงรูปภาพที่ถ่ายแล้ว ดึงเข้ามาแสดงทันทีทีละรูป -->
+                <div class="thumbs-modern" id="thumbPatrolContainer"></div>
               </div>
-              
-              <!-- กล้องถ่ายภาพหน้างาน (แตะเปิดกล้องมือถือถ่ายภาพโดยตรง พร้อมประทับเวลาอัตโนมัติ) -->
-              <input type="file" accept="image/jpeg,image/png,image/*" capture="environment" id="camPatrolInput" class="visually-hidden-file-input">
-              
-              <label for="camPatrolInput" class="photo-dropzone-btn" id="triggerCamBtn">
-                <div class="photo-dropzone-icon">📷</div>
-                <div class="photo-dropzone-text">
-                  <b id="camBtnMainText">แตะที่นี่เพื่อเปิดกล้องถ่ายภาพหน้างาน</b>
-                  <small id="camBtnSubText">ถ่ายเสร็จจะดึงรูปเข้ามาใส่ทันที (บังคับถ่าย 2 รูปขึ้นไป)</small>
+
+              <!-- 3.2 ข้อความบันทึกเหตุการณ์ & ไมค์ -->
+              <div class="field-container" style="margin-top: 22px;">
+                <div class="sec-head">
+                  <label class="lbl-modern" style="margin-bottom:0;" for="notePatrolInput">
+                    <svg class="svg-icon-sm label-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                      <polyline points="14 2 14 8 20 8"/>
+                      <line x1="16" y1="13" x2="8" y2="13"/>
+                      <line x1="16" y1="17" x2="8" y2="17"/>
+                    </svg>
+                    <span>บันทึกเหตุการณ์ / รายละเอียด:</span>
+                  </label>
+                  <span class="mic-hint-badge">
+                    <svg class="svg-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                      <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+                      <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                    </svg>
+                    <span>รองรับพิมพ์ด้วยเสียง</span>
+                  </span>
+                </div>
+
+                <!-- Quick note chips with SVG icons -->
+                <div class="quick-chips-bar">
+                  <span class="quick-chips-lbl">
+                    <svg class="svg-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                    </svg>
+                    <span>ข้อความด่วน:</span>
+                  </span>
+                  <div class="quick-chips-list">
+                    <button type="button" class="chip-quick-note" data-text="เหตุการณ์ปกติ เรียบร้อยดี">
+                      <svg class="svg-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                      <span>ปกติ เรียบร้อย</span>
+                    </button>
+                    <button type="button" class="chip-quick-note" data-text="ตรวจล็อกประตูหน้าต่างเรียบร้อย">
+                      <svg class="svg-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                      <span>ตรวจล็อกแล้ว</span>
+                    </button>
+                    <button type="button" class="chip-quick-note" data-text="พบหลอดไฟทางเดินดับ">
+                      <svg class="svg-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/></svg>
+                      <span>ไฟทางเดินดับ</span>
+                    </button>
+                    <button type="button" class="chip-quick-note" data-text="พบประตูเปิดทิ้งไว้ ไม่ได้ล็อก">
+                      <svg class="svg-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M13 4h3a2 2 0 0 1 2 2v14"/><path d="M2 20h3"/><path d="M13 20h9"/><path d="M10 12v.01"/><path d="M13 4.562v16.157a1 1 0 0 1-1.242.97L5 20V5.562a2 2 0 0 1 1.515-1.94l4-1A2 2 0 0 1 13 4.561Z"/></svg>
+                      <span>ประตูเปิดทิ้งไว้</span>
+                    </button>
+                    <button type="button" class="chip-quick-note" data-text="พบบุคคลภายนอกน่าสงสัย">
+                      <svg class="svg-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 1 0-16 0"/></svg>
+                      <span>พบบุคคลน่าสงสัย</span>
+                    </button>
+                    <button type="button" class="chip-quick-note" data-text="อุปกรณ์ดับเพลิงอยู่ในสภาพพร้อมใช้">
+                      <svg class="svg-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                      <span>ถังดับเพลิงพร้อมใช้</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div class="note-wrap-modern">
+                  <!-- Listening status bar -->
+                  <div id="micListeningBar" class="mic-listening-bar" style="display: none;">
+                    <div class="mic-live-indicator">
+                      <span class="mic-pulse-dot"></span>
+                      <span class="mic-live-label">กำลังฟังเสียงพูดภาษาไทย...</span>
+                    </div>
+                    <div class="sound-wave-anim">
+                      <span></span><span></span><span></span><span></span><span></span>
+                    </div>
+                    <button type="button" class="btn-stop-listening" id="stopListeningBtn">เสร็จสิ้น</button>
+                  </div>
+
+                  <textarea id="notePatrolInput" class="textarea-modern" placeholder="แตะที่นี่เพื่อพิมพ์รายละเอียด หรือกดปุ่มไมโครโฟนด้านล่างขวาเพื่อสั่งงานด้วยเสียงภาษาไทย..."></textarea>
+                  <button type="button" class="mic-modern" id="micPatrolBtn" title="กดเพื่อเริ่มพูดภาษาไทย">
+                    <span class="mic-icon" aria-hidden="true">
+                      <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                        <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                        <line x1="12" y1="19" x2="12" y2="22"/>
+                      </svg>
+                    </span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- 3.3 Checkbox พื้นที่เสี่ยง -->
+              <label class="risk-card-modern" for="riskPatrolChk">
+                <input type="checkbox" id="riskPatrolChk">
+                <div class="risk-card-content">
+                  <div class="risk-title-row">
+                    <span class="risk-icon-shield" aria-hidden="true">
+                      <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                        <line x1="12" y1="9" x2="12" y2="13"/>
+                        <line x1="12" y1="17" x2="12.01" y2="17"/>
+                      </svg>
+                    </span>
+                    <b>ทำเครื่องหมายหากเป็น "พื้นที่เสี่ยง / ควรเฝ้าระวังพิเศษ"</b>
+                  </div>
+                  <p>รายงานนี้จะถูกติดป้ายสถานะสีอำพัน เพื่อให้หัวหน้าเวรและผู้บริหารตรวจสอบเป็นพิเศษ</p>
                 </div>
               </label>
 
-              <!-- ช่องแสดงรูปภาพที่ถ่ายแล้ว ดึงเข้ามาแสดงทันทีทีละรูป -->
-              <div class="thumbs-modern" id="thumbPatrolContainer"></div>
             </div>
 
-            <!-- 3.2 ข้อความบันทึกเหตุการณ์ & ไมค์ -->
-            <div class="field-container" style="margin-top: 20px;">
-              <div class="sec-head">
-                <label class="lbl-modern" style="margin-bottom:0;" for="notePatrolInput">📝 บันทึกเหตุการณ์ / รายละเอียด:</label>
-                <span class="mic-hint-badge">🎙️ มีปุ่มพิมพ์ด้วยเสียง</span>
-              </div>
-
-              <!-- Quick note chips -->
-              <div class="quick-chips-bar">
-                <span class="quick-chips-lbl">⚡ ข้อความด่วน:</span>
-                <div class="quick-chips-list">
-                  <button type="button" class="chip-quick-note" data-text="เหตุการณ์ปกติ เรียบร้อยดี">✅ ปกติ เรียบร้อย</button>
-                  <button type="button" class="chip-quick-note" data-text="ตรวจล็อกประตูหน้าต่างเรียบร้อย">🔒 ตรวจล็อกแล้ว</button>
-                  <button type="button" class="chip-quick-note" data-text="พบหลอดไฟทางเดินดับ">💡 ไฟดับ</button>
-                  <button type="button" class="chip-quick-note" data-text="พบประตูเปิดทิ้งไว้ ไม่ได้ล็อก">🚪 ประตูเปิดทิ้งไว้</button>
-                  <button type="button" class="chip-quick-note" data-text="พบบุคคลภายนอกน่าสงสัย">👤 พบบุคคลน่าสงสัย</button>
-                  <button type="button" class="chip-quick-note" data-text="อุปกรณ์ดับเพลิงอยู่ในสภาพพร้อมใช้">🧯 ถังดับเพลิงพร้อมใช้</button>
-                </div>
-              </div>
-
-              <div class="note-wrap-modern">
-                <!-- Listening status bar -->
-                <div id="micListeningBar" class="mic-listening-bar" style="display: none;">
-                  <div class="mic-live-indicator">
-                    <span class="mic-pulse-dot"></span>
-                    <span class="mic-live-label">กำลังฟังเสียงพูดภาษาไทย...</span>
-                  </div>
-                  <div class="sound-wave-anim">
-                    <span></span><span></span><span></span><span></span><span></span>
-                  </div>
-                  <button type="button" class="btn-stop-listening" id="stopListeningBtn">✓ เสร็จสิ้น</button>
-                </div>
-
-                <textarea id="notePatrolInput" class="textarea-modern" placeholder="แตะที่นี่เพื่อพิมพ์ หรือกดปุ่มไมค์สีเขียวด้านล่างขวาเพื่อพูดภาษาไทย..."></textarea>
-                <button type="button" class="mic-modern" id="micPatrolBtn" title="กดเพื่อเริ่มพูดภาษาไทย">
-                  <span class="mic-icon">🎙️</span>
-                </button>
-              </div>
+            <!-- ปุ่มบันทึกข้อมูลหลัก -->
+            <div class="form-submit-row">
+              <button type="button" class="btn-submit-patrol" id="submitPatrolBtn">
+                <span class="submit-icon" aria-hidden="true">
+                  <svg class="svg-icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                    <polyline points="17 21 17 13 7 13 7 21"/>
+                    <polyline points="7 3 7 8 15 8"/>
+                  </svg>
+                </span>
+                <span class="submit-text">บันทึกข้อมูลเข้าสู่ระบบ</span>
+              </button>
             </div>
-
-            <!-- 3.3 Checkbox พื้นที่เสี่ยง -->
-            <label class="risk-card-modern" for="riskPatrolChk">
-              <input type="checkbox" id="riskPatrolChk">
-              <div class="risk-card-content">
-                <div class="risk-title-row">
-                  <span class="risk-icon-shield">⚠️</span>
-                  <b>ทำเครื่องหมายหากเป็น "พื้นที่เสี่ยง / ควรเฝ้าระวังพิเศษ"</b>
-                </div>
-                <p>รายงานนี้จะถูกติดแท็กสีส้มสะดุดตา เพื่อให้หัวหน้าเวรและผู้บริหารตรวจสอบเป็นพิเศษ</p>
-              </div>
-            </label>
 
           </div>
 
-          <!-- ปุ่มบันทึกข้อมูลหลัก -->
-          <div class="form-submit-row">
-            <button type="button" class="btn-submit-patrol" id="submitPatrolBtn">
-              <span class="submit-icon">💾</span>
-              <span class="submit-text">บันทึกข้อมูลเข้าสู่ระบบ</span>
-            </button>
+          <!-- พื้นที่ 4: รายการประวัติการเวียนตรวจล่าสุดของผลัดนี้ -->
+          <div class="card recent-logs-container guard-area-logs">
+            <div class="recent-logs-header">
+              <div class="recent-logs-title-group">
+                <span class="recent-logs-icon" aria-hidden="true">
+                  <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                    <line x1="16" y1="13" x2="8" y2="13"/>
+                    <line x1="16" y1="17" x2="8" y2="17"/>
+                  </svg>
+                </span>
+                <div>
+                  <h3>ประวัติการบันทึกเวียนตรวจวันนี้</h3>
+                  <p>รายการที่บันทึกแล้วจะซิงค์ไปยังแอดมินทันที</p>
+                </div>
+              </div>
+              <span id="guardLogCount" class="recent-count-tag">0 รายการ</span>
+            </div>
+            <div id="guardRecentLogs" class="recent-logs-feed">
+              <!-- Rendered by JS -->
+            </div>
           </div>
 
         </div>
-
-        <!-- รายการประวัติการเวียนตรวจล่าสุดของผลัดนี้ -->
-        <div class="card recent-logs-container">
-          <div class="recent-logs-header">
-            <div class="recent-logs-title-group">
-              <span class="recent-logs-icon">📋</span>
-              <div>
-                <h3>ประวัติการบันทึกเวียนตรวจล่าสุดของคุณ</h3>
-                <p>ตรวจสอบความถูกต้องของรายการที่บันทึกแล้วในวันนี้</p>
-              </div>
-            </div>
-            <span id="guardLogCount" class="recent-count-tag">0 รายการ</span>
-          </div>
-          <div id="guardRecentLogs" class="recent-logs-feed">
-            <!-- Rendered by JS -->
-          </div>
-        </div>
-
       </section>
 
       <!-- =========================================================
-           ส่วนที่ 2: หน้าสำหรับหัวหน้าเวร / แอดมิน (ตรวจสอบและแก้ไขรายงาน)
+           ส่วนที่ 2: หน้าสำหรับหัวหน้าเวร / แอดมิน (Command Center Dashboard)
+           ออกแบบ Full-Wide 100% สำหรับจอ PC/Tablet และรองรับมือถือครบถ้วน
            ========================================================= -->
       <section id="panelSupervisor" class="tab-panel" hidden>
 
-        <!-- แบนเนอร์หัวข้อระดับผู้บริหาร / หัวหน้าเวร -->
+        <!-- แบนเนอร์หัวข้อระดับผู้บริหาร / หัวหน้าเวร พร้อม Vector Command Illustration -->
         <div class="role-welcome-banner admin-banner">
-          <div class="banner-icon">📋</div>
-          <div class="banner-info">
-            <h2>ระบบจัดการและตรวจสอบรายงานการเดินตรวจ (สำหรับหัวหน้าเวร / แอดมิน)</h2>
-            <p>ตรวจสอบผลการปฏิบัติงานของเจ้าหน้าที่ รปภ., แก้ไขปรับปรุงข้อมูลย้อนหลัง และดาวน์โหลดรายงานสรุปผล</p>
+          <div class="banner-icon" aria-hidden="true">
+            <svg viewBox="0 0 64 64" fill="none" class="hero-illust-svg">
+              <rect x="8" y="12" width="48" height="36" rx="6" fill="#FFFFFF" fill-opacity="0.14" stroke="#5EEAD4" stroke-width="2.5"/>
+              <path d="M18 36L26 28L34 33L46 21" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="46" cy="21" r="3.5" fill="#5EEAD4"/>
+              <path d="M24 54H40M32 48V54" stroke="#5EEAD4" stroke-width="2.5" stroke-linecap="round"/>
+            </svg>
           </div>
-          <div class="banner-badge">👑 สิทธิ์ผู้ดูแลระบบ</div>
+          <div class="banner-info">
+            <div class="banner-top-tag">
+              <span class="live-dot"></span>
+              <span>SECURITY OPERATIONS COMMAND CENTER</span>
+            </div>
+            <h2>ศูนย์บริหารจัดการและตรวจสอบรายงานการเดินตรวจ</h2>
+            <p>ติดตามผลการปฏิบัติงานของเจ้าหน้าที่ รปภ. แบบ Real-time ตรวจสอบภาพถ่ายย้อนหลัง และส่งออกฐานข้อมูลรายงาน</p>
+          </div>
+          <div class="banner-badge">
+            <svg class="svg-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              <path d="m9 12 2 2 4-4"/>
+            </svg>
+            <span>สิทธิ์ผู้ดูแลระบบ</span>
+          </div>
         </div>
 
         <!-- แถบสถานะการเชื่อมต่อและปุ่มซิงค์รับรายงานสดจาก รปภ. ข้ามอุปกรณ์ -->
-        <div class="sync-banner-row" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; padding: 12px 18px; background: var(--surface-alt); border: 1.5px solid var(--line); border-radius: 14px;">
-          <div style="display: flex; align-items: center; gap: 10px;">
-            <span class="sync-dot live" style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: #10b981; box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.25);"></span>
-            <span style="font-weight: 700; color: var(--ink); font-size: 15px;" id="cloudSyncStatusText">ระบบเชื่อมต่อรับรายงานสดจาก รปภ. ตลอดเวลา (Real-time Sync Active)</span>
+        <div class="sync-banner-row">
+          <div class="sync-status-left">
+            <span class="sync-dot live"></span>
+            <span id="cloudSyncStatusText">ระบบเชื่อมต่อรับรายงานสดจาก รปภ. ตลอดเวลา (Real-time Sync Active)</span>
           </div>
-          <div style="display: flex; gap: 8px;">
-            <button type="button" class="btn" id="syncCloudBtn" style="background: var(--navy); color: #fff; min-height: 42px; padding: 6px 16px; font-size: 14px; border-radius: 10px; display: flex; align-items: center; gap: 6px;">
-              <span>🔄</span> <span>ดึงข้อมูลล่าสุดจากคลาวด์</span>
+          <div class="sync-actions-right">
+            <button type="button" class="btn btn-primary-teal" id="syncCloudBtn">
+              <svg class="svg-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <polyline points="23 4 23 10 17 10"/>
+                <polyline points="1 20 1 14 7 14"/>
+                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+              </svg>
+              <span>ดึงข้อมูลล่าสุดจากคลาวด์</span>
             </button>
-            <button type="button" class="btn ghost" id="adminGoToGuardBtn" style="min-height: 42px; padding: 6px 14px; font-size: 14px; border-radius: 10px; display: flex; align-items: center; gap: 6px;">
-              <span>🚶</span> <span>ไปหน้าบันทึก รปภ.</span>
+            <button type="button" class="btn ghost" id="adminGoToGuardBtn">
+              <svg class="svg-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              </svg>
+              <span>ไปหน้าบันทึก รปภ.</span>
             </button>
           </div>
         </div>
 
-        <!-- การ์ดสรุปตัวเลขสถิติ 4 ช่องขนาดใหญ่ มองเห็นชัดเจน -->
+        <!-- การ์ดสรุปตัวเลขสถิติ 4 ช่อง (KPI Bento Cards with Vector SVG Icons) -->
         <div class="stats-grid">
           <div class="stat-card">
-            <div class="stat-icon">📊</div>
+            <div class="stat-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/>
+                <line x1="16" y1="17" x2="8" y2="17"/>
+                <polyline points="10 9 9 9 8 9"/>
+              </svg>
+            </div>
             <div class="stat-meta">
               <span class="stat-label">รายงานบันทึกทั้งหมด</span>
               <b id="statTotal" class="stat-value">0</b>
-              <small>รายการในระบบ</small>
+              <small>รายการในระบบฐานข้อมูล</small>
             </div>
           </div>
 
           <div class="stat-card ok-stat">
-            <div class="stat-icon">✅</div>
+            <div class="stat-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                <polyline points="22 4 12 14.01 9 11.01"/>
+              </svg>
+            </div>
             <div class="stat-meta">
               <span class="stat-label">สถานะปกติเรียบร้อย</span>
               <b id="statOk" class="stat-value">0</b>
-              <small>จุดที่เหตุการณ์ปกติ</small>
+              <small>จุดตรวจที่เหตุการณ์ปกติ</small>
             </div>
           </div>
 
           <div class="stat-card alert-stat">
-            <div class="stat-icon">🚨</div>
+            <div class="stat-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/>
+                <line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+            </div>
             <div class="stat-meta">
               <span class="stat-label">พบปัญหา / ผิดปกติ</span>
               <b id="statAlert" class="stat-value">0</b>
-              <small>รายการที่ต้องตรวจสอบ</small>
+              <small>รายการแจ้งเตือนที่ต้องตรวจสอบ</small>
             </div>
           </div>
 
           <div class="stat-card cp-stat">
-            <div class="stat-icon">📍</div>
+            <div class="stat-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                <circle cx="12" cy="10" r="3"/>
+              </svg>
+            </div>
             <div class="stat-meta">
               <span class="stat-label">จุดตรวจในมหาวิทยาลัย</span>
               <b id="statActiveCp" class="stat-value">10</b>
-              <small>จุดตรวจหลักทั้งหมด</small>
+              <small>จุดตรวจหลักที่เปิดใช้งาน</small>
             </div>
           </div>
         </div>
 
-        <!-- กล่องแจ้งเตือนเหตุผิดปกติล่าสุด (แยกออกมาให้หัวหน้าเวรเห็นชัดเจนอันดับแรก) -->
-        <div class="card incident-section-card">
-          <div class="section-title-row">
-            <div>
-              <h2 class="section-title alert-title">🚨 รายการแจ้งเหตุผิดปกติและเหตุด่วนล่าสุด (รอการตรวจสอบ)</h2>
-              <p class="section-subtitle">รวบรวมเฉพาะจุดที่ รปภ. แจ้งว่าพบปัญหา หรือแจ้งเหตุด่วนนอกจุดตรวจ</p>
+        <!-- แถวคู่สำหรับจอใหญ่: กล่องแจ้งเตือนเหตุผิดปกติ + กล่องค้นหาและกรองข้อมูล -->
+        <div class="admin-panels-grid">
+          <!-- กล่องแจ้งเตือนเหตุผิดปกติล่าสุด -->
+          <div class="card incident-section-card">
+            <div class="section-title-row">
+              <div class="title-with-svg">
+                <div class="section-svg-badge alert-svg-badge">
+                  <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                    <line x1="12" y1="9" x2="12" y2="13"/>
+                    <line x1="12" y1="17" x2="12.01" y2="17"/>
+                  </svg>
+                </div>
+                <div>
+                  <h2 class="section-title alert-title">รายการแจ้งเหตุผิดปกติและเหตุด่วนล่าสุด</h2>
+                  <p class="section-subtitle">รวบรวมเฉพาะจุดที่ รปภ. แจ้งว่าพบปัญหา พื้นที่เสี่ยง หรือแจ้งเหตุด่วนฉุกเฉิน</p>
+                </div>
+              </div>
             </div>
-          </div>
-          <div id="incidentList" class="incident-feed-list">
-            <!-- Rendered by JS -->
-          </div>
-        </div>
-
-        <!-- กล่องค้นหา กรองข้อมูล และดาวน์โหลดไฟล์ Excel -->
-        <div class="card">
-          <div class="section-title-row" style="margin-bottom: 16px;">
-            <div>
-              <h2 class="section-title">🔍 ค้นหาและกรองดูประวัติการเดินตรวจ</h2>
-              <p class="section-subtitle">เลือกวันที่ กะเวลา หรือสถานะที่ต้องการตรวจสอบ ส่งออกไฟล์ Excel หรือดาวน์โหลดฐานข้อมูล SQL</p>
-            </div>
-            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-              <button type="button" class="btn btn-excel" id="exportCsvBtn">
-                📥 ดาวน์โหลดไฟล์ Excel (CSV)
-              </button>
-              <button type="button" class="btn" id="exportSqlBtn" style="background:var(--yru-gray); color:#ffffff; border-color:var(--yru-gray);" title="ดาวน์โหลดคำสั่ง SQL INSERT/CREATE TABLE ทั้งหมด">
-                💾 ส่งออกฐานข้อมูล SQL (.sql)
-              </button>
-              <button type="button" class="btn ghost" id="viewSqlLogsBtn" title="เปิดดูประวัติคำสั่ง SQL ที่รัน">
-                📋 ดูคำสั่ง SQL ล่าสุด
-              </button>
+            <div id="incidentList" class="incident-feed-list">
+              <!-- Rendered by JS -->
             </div>
           </div>
 
-          <div class="filter-controls-grid">
-            <div>
-              <label class="lbl" for="filterDate">📅 เลือกวันที่ต้องการดู:</label>
-              <input type="date" id="filterDate">
+          <!-- กล่องค้นหา กรองข้อมูล และดาวน์โหลดไฟล์ Excel / SQL -->
+          <div class="card filter-section-card">
+            <div class="section-title-row" style="margin-bottom: 18px;">
+              <div class="title-with-svg">
+                <div class="section-svg-badge teal-svg-badge">
+                  <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                    <circle cx="11" cy="11" r="8"/>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                  </svg>
+                </div>
+                <div>
+                  <h2 class="section-title">ค้นหา กรองข้อมูล และส่งออกรายงาน</h2>
+                  <p class="section-subtitle">เลือกวันที่ กะเวลา หรือสถานะที่ต้องการตรวจสอบ พร้อมส่งออกไฟล์ CSV หรือ SQL</p>
+                </div>
+              </div>
+              <div class="export-toolbar-group">
+                <button type="button" class="btn btn-excel" id="exportCsvBtn">
+                  <svg class="svg-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="7 10 12 15 17 10"/>
+                    <line x1="12" y1="15" x2="12" y2="3"/>
+                  </svg>
+                  <span>ดาวน์โหลด Excel (CSV)</span>
+                </button>
+                <button type="button" class="btn btn-indigo" id="exportSqlBtn" title="ดาวน์โหลดคำสั่ง SQL INSERT/CREATE TABLE ทั้งหมด">
+                  <svg class="svg-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <ellipse cx="12" cy="5" rx="9" ry="3"/>
+                    <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+                    <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+                  </svg>
+                  <span>ส่งออกฐานข้อมูล (.sql)</span>
+                </button>
+                <button type="button" class="btn ghost" id="viewSqlLogsBtn" title="เปิดดูประวัติคำสั่ง SQL ที่รัน">
+                  <svg class="svg-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="4 17 10 11 4 5"/>
+                    <line x1="12" y1="19" x2="20" y2="19"/>
+                  </svg>
+                  <span>ดูคำสั่ง SQL</span>
+                </button>
+              </div>
             </div>
-            <div>
-              <label class="lbl" for="filterShift">⏰ เลือกกะทำงาน:</label>
-              <select id="filterShift">
-                <option value="all">แสดงทุกกะทำงาน (เช้า / บ่าย / ดึก)</option>
-                <option value="morning">☀️ เฉพาะกะเช้า (07:00 - 15:00)</option>
-                <option value="afternoon">⛅ เฉพาะกะบ่าย (15:00 - 23:00)</option>
-                <option value="night">🌙 เฉพาะกะดึก (23:00 - 07:00)</option>
-              </select>
-            </div>
-            <div>
-              <label class="lbl" for="filterStatus">📌 เลือกสถานะผลการตรวจ:</label>
-              <select id="filterStatus">
-                <option value="all">แสดงทุกรายการทั้งหมด</option>
-                <option value="ok">✅ เฉพาะรายการที่ปกติเรียบร้อย</option>
-                <option value="alert">🚨 เฉพาะรายการที่พบปัญหา / ผิดปกติ</option>
-                <option value="risk">⚠️ เฉพาะจุดเสี่ยงเฝ้าระวังพิเศษ</option>
-                <option value="off">🚨 เฉพาะเหตุด่วนนอกจุดตรวจ</option>
-              </select>
-            </div>
-            <div style="display: flex; align-items: flex-end;">
-              <button type="button" class="btn ghost" id="resetFilterBtn" style="width: 100%; min-height: 54px;">
-                🔄 แสดงข้อมูลทั้งหมด (ล้างตัวกรอง)
-              </button>
+
+            <div class="filter-controls-grid">
+              <div>
+                <label class="lbl" for="filterDate">เลือกวันที่ต้องการดู:</label>
+                <input type="date" id="filterDate">
+              </div>
+              <div>
+                <label class="lbl" for="filterShift">เลือกกะทำงาน:</label>
+                <select id="filterShift">
+                  <option value="all">แสดงทุกกะทำงาน (เช้า / บ่าย / ดึก)</option>
+                  <option value="morning">เฉพาะกะเช้า (06:00 - 14:00)</option>
+                  <option value="afternoon">เฉพาะกะบ่าย (14:00 - 22:00)</option>
+                  <option value="night">เฉพาะกะดึก (22:00 - 06:00)</option>
+                </select>
+              </div>
+              <div>
+                <label class="lbl" for="filterStatus">เลือกสถานะผลการตรวจ:</label>
+                <select id="filterStatus">
+                  <option value="all">แสดงทุกรายการทั้งหมด</option>
+                  <option value="ok">เฉพาะรายการที่ปกติเรียบร้อย</option>
+                  <option value="alert">เฉพาะรายการที่พบปัญหา / ผิดปกติ</option>
+                  <option value="risk">เฉพาะจุดเสี่ยงเฝ้าระวังพิเศษ</option>
+                  <option value="off">เฉพาะเหตุด่วนนอกจุดตรวจ</option>
+                </select>
+              </div>
+              <div style="display: flex; align-items: flex-end;">
+                <button type="button" class="btn ghost" id="resetFilterBtn" style="width: 100%; min-height: 50px;">
+                  <svg class="svg-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                    <path d="M3 3v5h5"/>
+                  </svg>
+                  <span>ล้างตัวกรองทั้งหมด</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
 
         <!-- ตารางบันทึกการตรวจทั้งหมด พร้อมปุ่มแก้ไข/ลบสำหรับแอดมิน -->
-        <div class="card">
-          <div class="section-title-row" style="margin-bottom: 14px;">
-            <div>
-              <h2 class="section-title">📋 ตารางประวัติการเดินตรวจทั้งหมด</h2>
-              <p class="section-subtitle">หัวหน้าเวรสามารถกดปุ่ม <b>"✏️ แก้ไข"</b> เพื่อปรับปรุงข้อมูล หรือกดปุ่ม <b>"🗑️ ลบ"</b> ในช่องขวามือสุด</p>
+        <div class="card table-section-card">
+          <div class="section-title-row" style="margin-bottom: 16px;">
+            <div class="title-with-svg">
+              <div class="section-svg-badge indigo-svg-badge">
+                <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="3" width="18" height="18" rx="2"/>
+                  <line x1="3" y1="9" x2="21" y2="9"/>
+                  <line x1="9" y1="21" x2="9" y2="9"/>
+                </svg>
+              </div>
+              <div>
+                <h2 class="section-title">ตารางประวัติการเดินตรวจทั้งหมด</h2>
+                <p class="section-subtitle">หัวหน้าเวรสามารถกดปุ่ม <b>"แก้ไขข้อมูล"</b> เพื่อตรวจสอบรูปถ่าย/ปรับปรุงสถานะ หรือกดปุ่ม <b>"ลบ"</b> ในคอลัมน์จัดการ</p>
+              </div>
             </div>
-            <span class="tag ok" id="logCountTag" style="font-size: 16px; padding: 8px 16px;">0 รายการ</span>
+            <span class="tag ok" id="logCountTag" style="font-size: 15px; padding: 8px 16px;">0 รายการ</span>
           </div>
 
           <div class="tbl">
             <table>
               <thead>
                 <tr>
-                  <th style="width: 110px;">วัน / เวลา</th>
-                  <th style="min-width: 200px;">สถานที่ / จุดตรวจ</th>
-                  <th style="min-width: 150px;">รปภ. ผู้ตรวจ</th>
-                  <th style="width: 120px;">กะ / รอบ</th>
-                  <th style="width: 130px;">ผลการตรวจ</th>
-                  <th style="min-width: 220px;">รายละเอียดบันทึก</th>
-                  <th style="width: 90px; text-align: center;">รูปถ่าย</th>
-                  <th style="width: 170px; text-align: center;">การจัดการ (แอดมิน)</th>
+                  <th style="width: 120px;">วัน / เวลา</th>
+                  <th style="min-width: 210px;">สถานที่ / จุดตรวจ</th>
+                  <th style="min-width: 160px;">รปภ. ผู้ตรวจ</th>
+                  <th style="width: 130px;">กะ / รอบ</th>
+                  <th style="width: 140px;">ผลการตรวจ</th>
+                  <th style="min-width: 240px;">รายละเอียดบันทึก</th>
+                  <th style="width: 110px; text-align: center;">หลักฐานภาพ</th>
+                  <th style="width: 180px; text-align: center;">การจัดการ (แอดมิน)</th>
                 </tr>
               </thead>
               <tbody id="reportTableBody">
@@ -599,71 +886,52 @@
         <button type="button" class="sheet-close" id="sheetCloseBtn" aria-label="ปิดหน้าต่าง">✕ ปิด</button>
       </div>
 
-      <!-- สรุปเวลาและผู้ตรวจ -->
       <div class="stamp-info-bar">
         <div>
-          <span class="stamp-label">⏰ เวลาที่บันทึก:</span>
+          <span class="stamp-label">เวลาที่บันทึก:</span>
           <div id="sheetStampTime" class="stamp-val">--:-- น.</div>
         </div>
         <div style="text-align: right;">
-          <span class="stamp-label">👤 เจ้าหน้าที่ผู้บันทึก:</span>
+          <span class="stamp-label">เจ้าหน้าที่ผู้บันทึก:</span>
           <div id="sheetGuardTag" class="stamp-guard">รปภ.</div>
         </div>
       </div>
 
-      <!-- ข้อ 1: เลือกสถานะ (2 ปุ่มยักษ์ กดง่ายที่สุด) -->
       <div class="modal-section-box">
-        <label class="lbl" style="font-size: 18px;">
-          👉 ขั้นที่ 1: กดเลือกผลการตรวจของจุดนี้ (เลือก 1 ปุ่ม):
-        </label>
+        <label class="lbl" style="font-size: 17px;">ขั้นที่ 1: เลือกผลการตรวจของจุดนี้:</label>
         <div class="decision-two">
           <button type="button" class="btn-decision ok" id="statusOkBtn" aria-pressed="true">
-            <span style="font-size: 32px;">✅</span>
+            <svg class="svg-icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
             <span>ปกติ เรียบร้อยดี</span>
             <small style="font-size: 13px; font-weight: 500; opacity: 0.85;">ไม่พบสิ่งผิดปกติ</small>
           </button>
           <button type="button" class="btn-decision alert" id="statusAlertBtn" aria-pressed="false">
-            <span style="font-size: 32px;">🚨</span>
+            <svg class="svg-icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
             <span>พบปัญหา / ผิดปกติ</span>
             <small style="font-size: 13px; font-weight: 500; opacity: 0.85;">ต้องแจ้งหัวหน้าเวร</small>
           </button>
         </div>
       </div>
 
-      <!-- ข้อ 2: บันทึกข้อความ หรือ กดไมค์พูด -->
       <div class="modal-section-box">
-        <label class="lbl" for="sheetNote">
-          📝 ขั้นที่ 2: พิมพ์รายละเอียดเพิ่มเติม (หรือกดปุ่มไมโครโฟนเพื่อพูด):
-        </label>
+        <label class="lbl" for="sheetNote">ขั้นที่ 2: พิมพ์รายละเอียดเพิ่มเติม:</label>
         <textarea id="sheetNote" placeholder="พิมพ์สิ่งที่ตรวจพบ หรือเว้นว่างได้หากเหตุการณ์ปกติ..."></textarea>
-        
-        <!-- ตัวช่วยพูดแทนพิมพ์ -->
         <div class="mic-helper-box">
-          <span style="font-size: 16px; font-weight: 600;">🎙️ ไม่สะดวกพิมพ์? กดปุ่มนี้แล้วพูดได้เลย:</span>
-          <button type="button" class="btn-mic-big" id="micBtn">
-            <span>🎙️</span> กดเพื่อพูดด้วยเสียง
-          </button>
+          <span style="font-size: 15px; font-weight: 600;">สั่งงานด้วยเสียงแทนการพิมพ์:</span>
+          <button type="button" class="btn-mic-big" id="micBtn">กดเพื่อพูดด้วยเสียง</button>
         </div>
       </div>
 
-      <!-- ข้อ 3: แนบรูปถ่าย -->
       <div class="modal-section-box">
-        <label class="lbl">📸 ขั้นที่ 3: ถ่ายภาพประกอบหลักฐาน (ถ้ามี):</label>
+        <label class="lbl">ขั้นที่ 3: ถ่ายภาพประกอบหลักฐาน:</label>
         <input type="file" id="photoInput" accept="image/*" capture="environment" multiple style="display:none;">
-        <button type="button" class="btn ghost btn-photo-upload" id="takePhotoBtn">
-          📷 กดตรงนี้เพื่อเปิดกล้องถ่ายรูป หรือเลือกรูปภาพ
-        </button>
+        <button type="button" class="btn ghost btn-photo-upload" id="takePhotoBtn">กดตรงนี้เพื่อเปิดกล้องถ่ายรูป</button>
         <div class="thumbs" id="photoThumbs"></div>
       </div>
 
-      <!-- ปุ่มยืนยันขนาดใหญ่ -->
       <div class="modal-action-footer">
-        <button type="button" class="btn btn-save-giant" id="saveInspectionBtn">
-          💾 กดปุ่มนี้เพื่อบันทึกข้อมูลส่งหัวหน้าเวร
-        </button>
-        <button type="button" class="btn ghost btn-cancel-giant" id="cancelInspectionBtn">
-          ยกเลิก / ปิดหน้าต่าง
-        </button>
+        <button type="button" class="btn btn-save-giant" id="saveInspectionBtn">บันทึกข้อมูลส่งหัวหน้าเวร</button>
+        <button type="button" class="btn ghost btn-cancel-giant" id="cancelInspectionBtn">ยกเลิก</button>
       </div>
     </div>
   </div>
@@ -676,7 +944,7 @@
       <div class="sheet-head">
         <div>
           <span class="modal-step-tag alert-tag">แจ้งเหตุฉุกเฉินเร่งด่วน</span>
-          <h2 style="font-size: 22px; color: var(--alert); margin-top: 4px;">🚨 แจ้งเหตุด่วน / พบเหตุนอกจุดตรวจ</h2>
+          <h2 style="font-size: 22px; color: var(--alert); margin-top: 4px;">แจ้งเหตุด่วน / พบเหตุนอกจุดตรวจ</h2>
           <div style="font-size: 15px; color: var(--muted); margin-top: 2px;">
             กรอกข้อมูลจุดที่พบเหตุเพื่อส่งแจ้งเตือนไปยังหัวหน้าเวรทันที
           </div>
@@ -684,69 +952,54 @@
         <button type="button" class="sheet-close" id="offCpCloseBtn" aria-label="ปิดหน้าต่าง">✕ ปิด</button>
       </div>
 
-      <!-- สรุปเวลา -->
       <div class="stamp-info-bar alert-stamp">
         <div>
-          <span class="stamp-label">⏰ เวลาที่พบเหตุ:</span>
+          <span class="stamp-label">เวลาที่พบเหตุ:</span>
           <div id="offCpStampTime" class="stamp-val" style="color: var(--alert);">--:-- น.</div>
         </div>
         <div style="text-align: right;">
-          <span class="stamp-label">👤 ผู้แจ้งเหตุ:</span>
+          <span class="stamp-label">ผู้แจ้งเหตุ:</span>
           <div id="offCpGuardTag" class="stamp-guard" style="color: var(--alert);">รปภ.</div>
         </div>
       </div>
 
-      <!-- 1. สถานที่เกิดเหตุ -->
       <div class="modal-section-box">
-        <label class="lbl" for="offCpLocation">📍 ขั้นที่ 1: ระบุสถานที่หรือบริเวณที่พบเหตุ (จำเป็นต้องกรอก):</label>
+        <label class="lbl" for="offCpLocation">ขั้นที่ 1: ระบุสถานที่หรือบริเวณที่พบเหตุ:</label>
         <input type="text" id="offCpLocation" placeholder="ตัวอย่าง: ข้างโรงอาหารกลาง, ริมรั้วหลังหอพัก, ลานจอดรถอาคาร 2" required>
       </div>
 
-      <!-- 2. ประเภทเหตุการณ์ -->
       <div class="modal-section-box">
-        <label class="lbl" for="offCpType">⚠️ ขั้นที่ 2: เลือกประเภทเหตุการณ์ที่พบ:</label>
+        <label class="lbl" for="offCpType">ขั้นที่ 2: เลือกประเภทเหตุการณ์ที่พบ:</label>
         <select id="offCpType">
-          <option value="พบบุคคลภายนอกน่าสงสัย">👤 พบบุคคลภายนอกน่าสงสัย / เดินวนเวียน</option>
-          <option value="การงัดแงะ / ประตูหน้าต่างชำรุด">🚪 การงัดแงะ / ทรัพย์สินเสียหาย / ประตูเปิดทิ้งไว้</option>
-          <option value="กลุ่มควัน / ไฟไหม้ / กลิ่นไหม้">🔥 กลุ่มควัน / กลิ่นไหม้ / ส่อเกิดอัคคีภัย</option>
-          <option value="ไฟฟ้าดับ / สายไฟชำรุด / น้ำท่วมขัง">⚡ ไฟทางเดินดับ / ไฟฟ้าลัดวงจร / ท่อน้ำแตก</option>
-          <option value="พบสัตว์มีพิษ / มีผู้บาดเจ็บ">🐍 พบสัตว์มีพิษ (งู) / มีผู้ประสบอุบัติเหตุ</option>
-          <option value="มั่วสุมยามวิกาล">👥 มีการมั่วสุมยามวิกาล</option>
-          <option value="เหตุผิดปกติอื่นๆ">⚠️ เหตุผิดปกติอื่นๆ</option>
+          <option value="พบบุคคลภายนอกน่าสงสัย">พบบุคคลภายนอกน่าสงสัย / เดินวนเวียน</option>
+          <option value="การงัดแงะ / ประตูหน้าต่างชำรุด">การงัดแงะ / ทรัพย์สินเสียหาย / ประตูเปิดทิ้งไว้</option>
+          <option value="กลุ่มควัน / ไฟไหม้ / กลิ่นไหม้">กลุ่มควัน / กลิ่นไหม้ / ส่อเกิดอัคคีภัย</option>
+          <option value="ไฟฟ้าดับ / สายไฟชำรุด / น้ำท่วมขัง">ไฟทางเดินดับ / ไฟฟ้าลัดวงจร / ท่อน้ำแตก</option>
+          <option value="พบสัตว์มีพิษ / มีผู้บาดเจ็บ">พบสัตว์มีพิษ / มีผู้ประสบอุบัติเหตุ</option>
+          <option value="มั่วสุมยามวิกาล">มีการมั่วสุมยามวิกาล</option>
+          <option value="เหตุผิดปกติอื่นๆ">เหตุผิดปกติอื่นๆ</option>
         </select>
       </div>
 
-      <!-- 3. รายละเอียดเหตุการณ์ -->
       <div class="modal-section-box">
-        <label class="lbl" for="offCpNote">📝 ขั้นที่ 3: อธิบายรายละเอียดสิ่งที่พบเห็น:</label>
-        <textarea id="offCpNote" placeholder="พิมพ์อธิบายเหตุการณ์ หรือกดปุ่มไมโครโฟนด้านล่างเพื่อพูด..."></textarea>
-        
+        <label class="lbl" for="offCpNote">ขั้นที่ 3: อธิบายรายละเอียดสิ่งที่พบเห็น:</label>
+        <textarea id="offCpNote" placeholder="พิมพ์อธิบายเหตุการณ์..."></textarea>
         <div class="mic-helper-box">
-          <span style="font-size: 16px; font-weight: 600;">🎙️ พูดด้วยเสียงแทนการพิมพ์:</span>
-          <button type="button" class="btn-mic-big" id="offCpMicBtn">
-            <span>🎙️</span> กดเพื่อพูดด้วยเสียง
-          </button>
+          <span style="font-size: 15px; font-weight: 600;">พูดด้วยเสียงแทนการพิมพ์:</span>
+          <button type="button" class="btn-mic-big" id="offCpMicBtn">กดเพื่อพูดด้วยเสียง</button>
         </div>
       </div>
 
-      <!-- 4. ถ่ายภาพ -->
       <div class="modal-section-box">
-        <label class="lbl">📸 ขั้นที่ 4: แนบรูปถ่ายสถานที่เกิดเหตุ (ถ้ามี):</label>
+        <label class="lbl">ขั้นที่ 4: แนบรูปถ่ายสถานที่เกิดเหตุ:</label>
         <input type="file" id="offCpPhotoInput" accept="image/*" capture="environment" multiple style="display:none;">
-        <button type="button" class="btn ghost btn-photo-upload" id="offCpTakePhotoBtn">
-          📷 กดตรงนี้เพื่อถ่ายภาพหลักฐาน
-        </button>
+        <button type="button" class="btn ghost btn-photo-upload" id="offCpTakePhotoBtn">กดตรงนี้เพื่อถ่ายภาพหลักฐาน</button>
         <div class="thumbs" id="offCpPhotoThumbs"></div>
       </div>
 
-      <!-- ปุ่มกดยืนยันแจ้งเหตุด่วน -->
       <div class="modal-action-footer">
-        <button type="button" class="btn-emergency-main" id="saveOffCpBtn" style="flex: 2;">
-          🚨 กดยืนยันส่งแจ้งเหตุด่วนทันที
-        </button>
-        <button type="button" class="btn ghost btn-cancel-giant" id="cancelOffCpBtn">
-          ยกเลิก
-        </button>
+        <button type="button" class="btn-emergency-main" id="saveOffCpBtn" style="flex: 2;">ยืนยันส่งแจ้งเหตุด่วนทันที</button>
+        <button type="button" class="btn ghost btn-cancel-giant" id="cancelOffCpBtn">ยกเลิก</button>
       </div>
     </div>
   </div>
@@ -759,8 +1012,8 @@
       <div class="sheet-head">
         <div>
           <span class="modal-step-tag">เฉพาะหัวหน้าเวร / ผู้ดูแลระบบ</span>
-          <h2 style="font-size: 22px; color: var(--accent); margin-top: 4px;">✏️ ตรวจสอบและแก้ไขข้อมูลรายงาน</h2>
-          <div id="adminEditSubtitle" style="font-size: 15px; color: var(--muted); margin-top: 2px;">
+          <h2 style="font-size: 22px; color: var(--primary); margin-top: 4px;">ตรวจสอบและแก้ไขข้อมูลรายงาน</h2>
+          <div id="adminEditSubtitle" style="font-size: 14.5px; color: var(--muted); margin-top: 2px;">
             ท่านสามารถปรับปรุงแก้ไขรายละเอียด สถานะ หรือลบบันทึกรายการนี้ได้
           </div>
         </div>
@@ -771,70 +1024,71 @@
 
       <div class="admin-form-grid">
         <div>
-          <label class="lbl" for="adminEditDate">📅 วันที่ตรวจ:</label>
+          <label class="lbl" for="adminEditDate">วันที่ตรวจ:</label>
           <input type="date" id="adminEditDate">
         </div>
         <div>
-          <label class="lbl" for="adminEditTime">⏰ เวลาที่บันทึก:</label>
+          <label class="lbl" for="adminEditTime">เวลาที่บันทึก:</label>
           <input type="text" id="adminEditTime" placeholder="เช่น 12:30">
         </div>
       </div>
 
       <div>
-        <label class="lbl" for="adminEditCpName">📍 ชื่อจุดตรวจ / สถานที่:</label>
+        <label class="lbl" for="adminEditCpName">ชื่อจุดตรวจ / สถานที่:</label>
         <input type="text" id="adminEditCpName">
       </div>
 
       <div class="admin-form-grid">
         <div>
-          <label class="lbl" for="adminEditGuardName">👤 ชื่อ รปภ. ผู้ตรวจ:</label>
+          <label class="lbl" for="adminEditGuardName">ชื่อ รปภ. ผู้ตรวจ:</label>
           <input type="text" id="adminEditGuardName">
         </div>
         <div>
-          <label class="lbl" for="adminEditShift">⏰ กะทำงาน:</label>
+          <label class="lbl" for="adminEditShift">กะทำงาน:</label>
           <select id="adminEditShift">
-            <option value="morning">☀️ กะเช้า (07:00 - 15:00)</option>
-            <option value="afternoon">⛅ กะบ่าย (15:00 - 23:00)</option>
-            <option value="night">🌙 กะดึก (23:00 - 07:00)</option>
+            <option value="morning">กะเช้า (06:00 - 14:00)</option>
+            <option value="afternoon">กะบ่าย (14:00 - 22:00)</option>
+            <option value="night">กะดึก (22:00 - 06:00)</option>
           </select>
         </div>
       </div>
 
       <div>
-        <label class="lbl" for="adminEditRound">🔄 รอบการตรวจ:</label>
+        <label class="lbl" for="adminEditRound">รอบการตรวจ:</label>
         <input type="text" id="adminEditRound" placeholder="เช่น รอบที่ 1">
       </div>
 
       <div class="modal-section-box">
-        <label class="lbl">👉 สถานะผลการตรวจ:</label>
+        <label class="lbl">สถานะผลการตรวจ:</label>
         <div class="decision-two">
           <button type="button" class="btn-decision ok" id="adminStatusOkBtn">
-            <span style="font-size: 26px;">✅</span>
+            <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
             <span>ปกติ เรียบร้อยดี</span>
           </button>
           <button type="button" class="btn-decision alert" id="adminStatusAlertBtn">
-            <span style="font-size: 26px;">🚨</span>
+            <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
             <span>พบปัญหา / ผิดปกติ</span>
           </button>
         </div>
       </div>
 
       <div>
-        <label class="lbl" for="adminEditNote">📝 รายละเอียดบันทึก / หมายเหตุจากหัวหน้าเวร:</label>
-        <textarea id="adminEditNote" style="min-height: 110px;"></textarea>
+        <label class="lbl" for="adminEditNote">รายละเอียดบันทึก / หมายเหตุจากหัวหน้าเวร:</label>
+        <textarea id="adminEditNote" style="min-height: 100px;"></textarea>
       </div>
 
       <div>
-        <label class="lbl">📸 รูปถ่ายหลักฐานที่แนบไว้:</label>
+        <label class="lbl">รูปถ่ายหลักฐานที่แนบไว้:</label>
         <div class="thumbs" id="adminEditPhotoThumbs"></div>
       </div>
 
       <div class="modal-action-footer">
         <button type="button" class="btn btn-save-giant" id="adminSaveEditBtn" style="flex: 2;">
-          💾 บันทึกการแก้ไขข้อมูล
+          <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>
+          <span>บันทึกการแก้ไขข้อมูล</span>
         </button>
-        <button type="button" class="btn-danger-del" id="adminDeleteRecordBtn" style="flex: 1; min-height: 58px; padding: 0 16px;">
-          🗑️ ลบรายการนี้
+        <button type="button" class="btn-danger-del" id="adminDeleteRecordBtn" style="flex: 1; min-height: 54px; padding: 0 16px;">
+          ลบรายการนี้
         </button>
         <button type="button" class="btn ghost btn-cancel-giant" id="adminCancelEditBtn">
           ยกเลิก
@@ -845,20 +1099,25 @@
 
   <!-- Modal แสดงประวัติคำสั่ง SQL (SQL Query Log Console) -->
   <div class="veil" id="sqlLogsModal" hidden style="display: none;">
-    <div class="sheet" style="max-width: 760px;">
+    <div class="sheet" style="max-width: 780px;">
       <div class="sheet-head">
         <div>
-          <h3>📋 ประวัติคำสั่ง SQL ในระบบ (SQL Query Log)</h3>
-          <p>ประวัติการทำงานของคำสั่ง SQL จริง (DDL, SELECT, INSERT, UPDATE, DELETE)</p>
+          <h3>ประวัติคำสั่ง SQL ในระบบ (SQL Query Log)</h3>
+          <p style="color: var(--muted); font-size: 14px; margin-top: 2px;">ประวัติการทำงานของคำสั่ง SQL จริง (DDL, SELECT, INSERT, UPDATE, DELETE)</p>
         </div>
         <button type="button" class="sheet-close" id="closeSqlLogsBtn">✕ ปิด</button>
       </div>
-      <div id="sqlLogsContainer" style="background:#0f172a; color:#38bdf8; font-family:monospace; font-size:13px; padding:16px; border-radius:12px; max-height:360px; overflow-y:auto; line-height:1.6;">
+      <div id="sqlLogsContainer" style="background:#090D16; color:#2DD4BF; font-family:monospace; font-size:13px; padding:16px; border-radius:12px; max-height:360px; overflow-y:auto; line-height:1.6; border: 1px solid #1E293B;">
         <!-- Log entries -->
       </div>
       <div style="display: flex; justify-content: flex-end; gap: 8px;">
-        <button type="button" class="btn" id="modalExportSqlBtn" style="background:var(--yru-pink); color:#ffffff; border-color:var(--yru-pink);">
-          💾 ดาวน์โหลดสคริปต์ SQL (.sql)
+        <button type="button" class="btn btn-indigo" id="modalExportSqlBtn">
+          <svg class="svg-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          <span>ดาวน์โหลดสคริปต์ SQL (.sql)</span>
         </button>
       </div>
     </div>
@@ -867,22 +1126,38 @@
   <!-- Modal แจ้งเตือนเมื่อบันทึกข้อมูลและส่งรายงานให้แอดมินสำเร็จ -->
   <div class="veil" id="patrolSuccessModal" hidden style="display: none;">
     <div class="sheet" role="dialog" aria-modal="true" style="max-width: 520px; text-align: center;">
-      <div style="font-size: 56px; margin: 4px 0 10px;">✅</div>
-      <h2 style="color: var(--ink); font-size: 24px; margin: 0 0 8px;">บันทึกข้อมูลเข้าสู่ระบบเรียบร้อยแล้ว!</h2>
-      <p style="color: var(--muted); font-size: 15px; margin: 0 0 18px;">
+      <div class="modal-success-illust" aria-hidden="true">
+        <svg viewBox="0 0 80 80" fill="none" style="width: 76px; height: 76px; margin: 0 auto 8px;">
+          <circle cx="40" cy="40" r="36" fill="#10B981" fill-opacity="0.14"/>
+          <circle cx="40" cy="40" r="26" fill="#059669"/>
+          <path d="M28 40.5L36 48.5L53 31.5" stroke="#FFFFFF" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <h2 style="color: var(--ink); font-size: 23px; margin: 0 0 6px;">บันทึกข้อมูลเข้าสู่ระบบเรียบร้อยแล้ว!</h2>
+      <p style="color: var(--muted); font-size: 14.5px; margin: 0 0 16px;">
         ข้อมูลการเวียนตรวจถูกบันทึกลงฐานข้อมูลและส่งรายงานไปยังผู้ดูแลระบบ (แอดมิน) เรียบร้อยแล้ว
       </p>
 
-      <div id="patrolSuccessSummary" style="background: var(--surface-alt); border: 1.5px solid var(--line); border-radius: 14px; padding: 16px; text-align: left; font-size: 15px; margin-bottom: 20px; line-height: 1.8;">
+      <div id="patrolSuccessSummary" style="background: var(--surface-alt); border: 1.5px solid var(--line); border-radius: 14px; padding: 16px; text-align: left; font-size: 15px; margin-bottom: 18px; line-height: 1.8;">
         <!-- Filled dynamically by JavaScript -->
       </div>
 
       <div style="display: flex; flex-direction: column; gap: 10px;">
-        <button type="button" class="btn" id="btnGoToAdminFromModal" style="background: var(--navy); color: #fff; min-height: 50px; font-size: 16px; font-weight: 700; border-radius: 12px; display: flex; align-items: center; justify-content: center; gap: 8px;">
-          <span>👁️</span> <span>เปิดดูหน้าผู้ดูแลระบบทันที</span>
+        <button type="button" class="btn btn-primary-teal" id="btnGoToAdminFromModal" style="min-height: 50px; font-size: 16px; font-weight: 700; border-radius: 12px; width: 100%; justify-content: center;">
+          <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <rect x="3" y="3" width="7" height="7" rx="1"/>
+            <rect x="14" y="3" width="7" height="7" rx="1"/>
+            <rect x="14" y="14" width="7" height="7" rx="1"/>
+            <rect x="3" y="14" width="7" height="7" rx="1"/>
+          </svg>
+          <span>เปิดดูหน้าผู้ดูแลระบบทันที</span>
         </button>
-        <button type="button" class="btn ghost" id="btnCloseSuccessModal" style="min-height: 46px; font-size: 15px; border-radius: 12px;">
-          <span>➕</span> <span>บันทึกจุดตรวจถัดไป</span>
+        <button type="button" class="btn ghost" id="btnCloseSuccessModal" style="min-height: 46px; font-size: 15px; border-radius: 12px; width: 100%; justify-content: center;">
+          <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <line x1="12" y1="5" x2="12" y2="19"/>
+            <line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          <span>บันทึกจุดตรวจถัดไป</span>
         </button>
       </div>
     </div>
@@ -890,13 +1165,13 @@
 
   <!-- Toast แจ้งเตือนข้อความสั้นๆ -->
   <div class="toast" id="toast" hidden style="display: none;">
-    <span id="toastIcon" style="font-size: 24px;">ℹ️</span>
+    <span id="toastIcon" class="toast-svg-wrap"></span>
     <span id="toastMsg">ข้อความ</span>
   </div>
 
-  <!-- Scripts (พร้อม Cache Buster เพื่อบังคับให้โหลดโค้ดใหม่ล่าสุดเสมอ) -->
-  <script src="js/data.js?v=4.2"></script>
-  <script src="js/db.js?v=4.2"></script>
-  <script src="js/app.js?v=4.2"></script>
+  <!-- Scripts -->
+  <script src="js/data.js?v=5.0"></script>
+  <script src="js/db.js?v=5.0"></script>
+  <script src="js/app.js?v=5.0"></script>
 </body>
 </html>

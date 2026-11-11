@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sarabun:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,600&display=swap">
   
   <!-- CSS -->
-  <link rel="stylesheet" href="css/style.css?v=4.1">
+  <link rel="stylesheet" href="css/style.css?v=4.2">
   <!-- Auth Guard: บังคับให้เข้าสู่หน้า login.html ทุกครั้งที่มีการเปิดเข้าดูเว็บ -->
   <script>
     // กำหนดฟังก์ชันออกจากระบบแบบสากลไว้ล่วงหน้า เพื่อให้กดปุ่มออกจากระบบได้ทันที 100%
@@ -86,6 +86,11 @@
             window.__securityPatrolClockStarted = true;
           })();
         </script>
+
+        <!-- ปุ่มสลับมุมมองระหว่าง รปภ. กับ แอดมิน (ช่วยให้สลับตรวจสอบรายงานได้ทันที) -->
+        <button type="button" class="btn-switch-view" id="quickSwitchViewBtn" title="สลับมุมมองระหว่าง รปภ. กับ แอดมิน">
+          👁️ <span>สลับดูหน้าแอดมิน</span>
+        </button>
 
         <!-- ปุ่มออกจากระบบ (นำข้อความ แอดมิน / หัวหน้าเวร ออกตามคำขอ) -->
         <div class="user-pill" id="userPill">
@@ -418,6 +423,22 @@
             <p>ตรวจสอบผลการปฏิบัติงานของเจ้าหน้าที่ รปภ., แก้ไขปรับปรุงข้อมูลย้อนหลัง และดาวน์โหลดรายงานสรุปผล</p>
           </div>
           <div class="banner-badge">👑 สิทธิ์ผู้ดูแลระบบ</div>
+        </div>
+
+        <!-- แถบสถานะการเชื่อมต่อและปุ่มซิงค์รับรายงานสดจาก รปภ. ข้ามอุปกรณ์ -->
+        <div class="sync-banner-row" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; padding: 12px 18px; background: var(--surface-alt); border: 1.5px solid var(--line); border-radius: 14px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span class="sync-dot live" style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: #10b981; box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.25);"></span>
+            <span style="font-weight: 700; color: var(--ink); font-size: 15px;" id="cloudSyncStatusText">ระบบเชื่อมต่อรับรายงานสดจาก รปภ. ตลอดเวลา (Real-time Sync Active)</span>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button type="button" class="btn" id="syncCloudBtn" style="background: var(--navy); color: #fff; min-height: 42px; padding: 6px 16px; font-size: 14px; border-radius: 10px; display: flex; align-items: center; gap: 6px;">
+              <span>🔄</span> <span>ดึงข้อมูลล่าสุดจากคลาวด์</span>
+            </button>
+            <button type="button" class="btn ghost" id="adminGoToGuardBtn" style="min-height: 42px; padding: 6px 14px; font-size: 14px; border-radius: 10px; display: flex; align-items: center; gap: 6px;">
+              <span>🚶</span> <span>ไปหน้าบันทึก รปภ.</span>
+            </button>
+          </div>
         </div>
 
         <!-- การ์ดสรุปตัวเลขสถิติ 4 ช่องขนาดใหญ่ มองเห็นชัดเจน -->
@@ -843,6 +864,30 @@
     </div>
   </div>
 
+  <!-- Modal แจ้งเตือนเมื่อบันทึกข้อมูลและส่งรายงานให้แอดมินสำเร็จ -->
+  <div class="veil" id="patrolSuccessModal" hidden style="display: none;">
+    <div class="sheet" role="dialog" aria-modal="true" style="max-width: 520px; text-align: center;">
+      <div style="font-size: 56px; margin: 4px 0 10px;">✅</div>
+      <h2 style="color: var(--ink); font-size: 24px; margin: 0 0 8px;">บันทึกข้อมูลเข้าสู่ระบบเรียบร้อยแล้ว!</h2>
+      <p style="color: var(--muted); font-size: 15px; margin: 0 0 18px;">
+        ข้อมูลการเวียนตรวจถูกบันทึกลงฐานข้อมูลและส่งรายงานไปยังผู้ดูแลระบบ (แอดมิน) เรียบร้อยแล้ว
+      </p>
+
+      <div id="patrolSuccessSummary" style="background: var(--surface-alt); border: 1.5px solid var(--line); border-radius: 14px; padding: 16px; text-align: left; font-size: 15px; margin-bottom: 20px; line-height: 1.8;">
+        <!-- Filled dynamically by JavaScript -->
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <button type="button" class="btn" id="btnGoToAdminFromModal" style="background: var(--navy); color: #fff; min-height: 50px; font-size: 16px; font-weight: 700; border-radius: 12px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+          <span>👁️</span> <span>เปิดดูหน้าผู้ดูแลระบบทันที</span>
+        </button>
+        <button type="button" class="btn ghost" id="btnCloseSuccessModal" style="min-height: 46px; font-size: 15px; border-radius: 12px;">
+          <span>➕</span> <span>บันทึกจุดตรวจถัดไป</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast แจ้งเตือนข้อความสั้นๆ -->
   <div class="toast" id="toast" hidden style="display: none;">
     <span id="toastIcon" style="font-size: 24px;">ℹ️</span>
@@ -850,8 +895,8 @@
   </div>
 
   <!-- Scripts (พร้อม Cache Buster เพื่อบังคับให้โหลดโค้ดใหม่ล่าสุดเสมอ) -->
-  <script src="js/data.js?v=4.1"></script>
-  <script src="js/db.js?v=4.1"></script>
-  <script src="js/app.js?v=4.1"></script>
+  <script src="js/data.js?v=4.2"></script>
+  <script src="js/db.js?v=4.2"></script>
+  <script src="js/app.js?v=4.2"></script>
 </body>
 </html>

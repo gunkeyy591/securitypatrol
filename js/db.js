@@ -94,7 +94,25 @@
         // ซิงค์ไปยัง legacy key เพื่อความเข้ากันได้
         localStorage.setItem('yru_sp_history', JSON.stringify(this.tables.patrol_records));
       } catch (err) {
-        console.warn('Storage save warn:', err);
+        console.warn('Storage save warn, applying safe compression:', err);
+        try {
+          // หากพื้นที่เบราว์เซอร์ใกล้เต็ม ให้เก็บประวัติทั้งหมดแต่ลดรูปเก่าลงเพื่อป้องกันข้อมูลสูญหาย
+          const trimmedRecords = this.tables.patrol_records.map((r, idx) => {
+            if (idx > 20 && r.images && r.images.length > 0) {
+              return { ...r, images: [] }; // ป้องกัน QuotaExceededError
+            }
+            return r;
+          });
+          const safeTables = {
+            ...this.tables,
+            patrol_records: trimmedRecords,
+            query_logs: (this.tables.query_logs || []).slice(0, 10)
+          };
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(safeTables));
+          localStorage.setItem('yru_sp_history', JSON.stringify(trimmedRecords));
+        } catch (retryErr) {
+          console.error('Fatal storage save failed:', retryErr);
+        }
       }
     }
 

@@ -39,6 +39,7 @@
     userNameTag: document.getElementById('userNameTag'),
     logoutBtn: document.getElementById('logoutBtn'),
     navTabsWrap: document.getElementById('navTabsWrap'),
+    quickSwitchViewBtn: document.getElementById('quickSwitchViewBtn'),
     
     // Tabs
     tabGuard: document.getElementById('tabGuard'),
@@ -66,8 +67,7 @@
     guardRecentLogs: document.getElementById('guardRecentLogs'),
     guardLogCount: document.getElementById('guardLogCount'),
 
-
-    // Supervisor panel
+    // Supervisor panel & Cloud sync
     statTotal: document.getElementById('statTotal'),
     statOk: document.getElementById('statOk'),
     statAlert: document.getElementById('statAlert'),
@@ -86,6 +86,15 @@
     sqlLogsContainer: document.getElementById('sqlLogsContainer'),
     closeSqlLogsBtn: document.getElementById('closeSqlLogsBtn'),
     modalExportSqlBtn: document.getElementById('modalExportSqlBtn'),
+    syncCloudBtn: document.getElementById('syncCloudBtn'),
+    cloudSyncStatusText: document.getElementById('cloudSyncStatusText'),
+    adminGoToGuardBtn: document.getElementById('adminGoToGuardBtn'),
+
+    // Patrol Success Modal
+    patrolSuccessModal: document.getElementById('patrolSuccessModal'),
+    patrolSuccessSummary: document.getElementById('patrolSuccessSummary'),
+    btnGoToAdminFromModal: document.getElementById('btnGoToAdminFromModal'),
+    btnCloseSuccessModal: document.getElementById('btnCloseSuccessModal'),
 
     // Admin Edit Modal
     adminEditVeil: document.getElementById('adminEditVeil'),
@@ -132,6 +141,7 @@
     renderGuardRecentLogs();
     renderSupervisorDashboard();
     applyAuthUI();
+    setupCloudSyncReceiver();
 
     // กำหนดหน้าเริ่มต้นตามบทบาทของผู้ใช้งาน
     if (state.currentUser && state.currentUser.role === 'admin') {
@@ -204,7 +214,18 @@
       localStorage.setItem('yru_sp_history', JSON.stringify(state.history));
       localStorage.setItem('yru_sp_round_checks', JSON.stringify(state.roundChecks));
     } catch (err) {
-      console.warn('Storage save failed:', err);
+      console.warn('Storage save failed, applying fallback compression:', err);
+      try {
+        const trimmedHistory = state.history.map((r, idx) => {
+          if (idx > 20 && r.images && r.images.length > 0) {
+            return { ...r, images: [] }; // ลดรูปถ่ายเก่าป้องกัน quota เต็ม
+          }
+          return r;
+        });
+        localStorage.setItem('yru_sp_history', JSON.stringify(trimmedHistory));
+      } catch (fallbackErr) {
+        console.error('Fatal storage save failed:', fallbackErr);
+      }
     }
   }
 
@@ -398,6 +419,38 @@
         }
       });
     }
+
+    // Quick switch role / view button
+    if (el.quickSwitchViewBtn) {
+      el.quickSwitchViewBtn.addEventListener('click', toggleQuickView);
+    }
+    if (el.adminGoToGuardBtn) {
+      el.adminGoToGuardBtn.addEventListener('click', () => switchTab('guard'));
+    }
+    if (el.syncCloudBtn) {
+      el.syncCloudBtn.addEventListener('click', syncLatestFromCloud);
+    }
+    if (el.btnGoToAdminFromModal) {
+      el.btnGoToAdminFromModal.addEventListener('click', () => {
+        closePatrolSuccessModal();
+        switchTab('supervisor');
+      });
+    }
+    if (el.btnCloseSuccessModal) {
+      el.btnCloseSuccessModal.addEventListener('click', () => {
+        closePatrolSuccessModal();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    }
+  }
+
+  function toggleQuickView() {
+    const isGuardVisible = el.panelGuard && !el.panelGuard.hasAttribute('hidden') && el.panelGuard.style.display !== 'none';
+    if (isGuardVisible) {
+      switchTab('supervisor');
+    } else {
+      switchTab('guard');
+    }
   }
 
   // --- AUTHENTICATION & ACCESS CONTROL ---
@@ -427,10 +480,8 @@
     }
 
     if (isAdmin) {
-      // แอดมิน: แสดงเฉพาะหน้าแดชบอร์ดสรุปผลของหัวหน้าเวร (ซ่อนหน้าสำหรับ รปภ. โดยสิ้นเชิง)
       switchTab('supervisor');
     } else {
-      // รปภ.: แสดงเฉพาะหน้าระบบบันทึกเวียนตรวจ (ซ่อนหน้าแดชบอร์ดสรุปผลโดยสิ้นเชิง)
       switchTab('guard');
       renderGuardRecentLogs();
     }
@@ -448,28 +499,46 @@
 
   // --- TAB SWITCHING ---
   function switchTab(tabName) {
-    const isAdmin = state.currentUser && state.currentUser.role === 'admin';
-
-    // บังคับแยกตามสิทธิ์ชัดเจน:
-    // แอดมินดูได้เฉพาะหน้า supervisor (แดชบอร์ดสรุปผล)
-    // รปภ. ดูได้เฉพาะหน้า guard (เดินตรวจบันทึกจุดตรวจ)
-    const effectiveTab = isAdmin ? 'supervisor' : 'guard';
+    let target = tabName || (state.currentUser && state.currentUser.role === 'admin' ? 'supervisor' : 'guard');
 
     if (window.history && window.history.replaceState) {
-      window.history.replaceState(null, '', '#' + effectiveTab);
+      window.history.replaceState(null, '', '#' + target);
     }
 
-    const isGuard = effectiveTab === 'guard';
+    const isGuard = target === 'guard';
 
     if (isGuard) {
-      el.panelGuard.removeAttribute('hidden');
-      el.panelSupervisor.setAttribute('hidden', '');
+      if (el.panelGuard) {
+        el.panelGuard.removeAttribute('hidden');
+        el.panelGuard.style.display = 'block';
+      }
+      if (el.panelSupervisor) {
+        el.panelSupervisor.setAttribute('hidden', '');
+        el.panelSupervisor.style.display = 'none';
+      }
       document.body.classList.remove('wide');
+      renderGuardRecentLogs();
     } else {
-      el.panelGuard.setAttribute('hidden', '');
-      el.panelSupervisor.removeAttribute('hidden');
+      if (el.panelGuard) {
+        el.panelGuard.setAttribute('hidden', '');
+        el.panelGuard.style.display = 'none';
+      }
+      if (el.panelSupervisor) {
+        el.panelSupervisor.removeAttribute('hidden');
+        el.panelSupervisor.style.display = 'block';
+      }
       document.body.classList.add('wide');
       renderSupervisorDashboard();
+    }
+
+    if (el.quickSwitchViewBtn) {
+      if (isGuard) {
+        el.quickSwitchViewBtn.innerHTML = '👁️ <span>สลับดูหน้าแอดมิน</span>';
+        el.quickSwitchViewBtn.title = 'สลับไปดูหน้าสรุปผลและรายงานสำหรับผู้ดูแลระบบ';
+      } else {
+        el.quickSwitchViewBtn.innerHTML = '🚶 <span>สลับไปหน้า รปภ.</span>';
+        el.quickSwitchViewBtn.title = 'สลับไปหน้าแบบฟอร์มบันทึกเวียนตรวจของ รปภ.';
+      }
     }
   }
 
@@ -510,20 +579,35 @@
       });
     }
 
-    // 2. Guard select: Pre-select current user if name matches
+    // 2. Guard select: Pre-select current user or default to first guard
     if (el.guardPatrolSelect) {
+      let matched = false;
       if (state.currentUser && state.currentUser.name) {
         for (let opt of el.guardPatrolSelect.options) {
-          if (opt.value.includes(state.currentUser.name)) {
+          if (opt.value && (opt.value.includes(state.currentUser.name) || state.currentUser.name.includes(opt.value))) {
             opt.selected = true;
             state.currentGuardName = opt.value;
+            matched = true;
             break;
           }
         }
       }
+      // หากไม่มีชื่อตรง ให้เลือกเจ้าหน้าที่นายแรกเป็นค่าเริ่มต้น (1 นายรอแม กามา) ทันที
+      if (!matched && el.guardPatrolSelect.options.length > 1) {
+        el.guardPatrolSelect.selectedIndex = 1;
+        state.currentGuardName = el.guardPatrolSelect.value;
+      }
+
       el.guardPatrolSelect.addEventListener('change', (e) => {
         state.currentGuardName = e.target.value;
+        el.guardPatrolSelect.classList.remove('shake-highlight', 'field-error');
         showToast(`เลือกเจ้าหน้าที่: ${e.target.value}`);
+      });
+    }
+
+    if (el.locPatrolSelect) {
+      el.locPatrolSelect.addEventListener('change', () => {
+        el.locPatrolSelect.classList.remove('shake-highlight', 'field-error');
       });
     }
 
@@ -736,7 +820,7 @@
       function drawAndWatermark(imgSource, originalW, originalH, cleanupCallback) {
         try {
           const canvas = document.createElement('canvas');
-          const MAX_SIZE = 1000;
+          const MAX_SIZE = 640;
           let width = originalW;
           let height = originalH;
 
@@ -789,7 +873,7 @@
           ctx.textBaseline = 'middle';
           ctx.fillText(stampText, boxX + padX, boxY + (boxH / 2));
 
-          const base64 = canvas.toDataURL('image/jpeg', 0.72);
+          const base64 = canvas.toDataURL('image/jpeg', 0.65);
           done({
             dataUrl: base64,
             timeStr: timeOnlyStr,
@@ -1076,7 +1160,7 @@
 
   async function savePatrolRecord(isSOS = false) {
     const btn = el.submitPatrolBtn;
-    const guardVal = el.guardPatrolSelect ? el.guardPatrolSelect.value : '';
+    let guardVal = el.guardPatrolSelect ? el.guardPatrolSelect.value : '';
     let locVal = el.locPatrolSelect ? el.locPatrolSelect.value : '';
     const customLocVal = el.customLocPatrolInput ? el.customLocPatrolInput.value.trim() : '';
     let notes = el.notePatrolInput ? el.notePatrolInput.value.trim() : '';
@@ -1087,10 +1171,34 @@
       locVal = customLocVal + ' (นอกจุดตรวจ)';
     }
 
+    // Auto-select guard if empty
+    if (!guardVal && el.guardPatrolSelect && el.guardPatrolSelect.options.length > 1) {
+      el.guardPatrolSelect.selectedIndex = 1;
+      guardVal = el.guardPatrolSelect.value;
+      state.currentGuardName = guardVal;
+    }
+
     // Validation
-    if (!isSOS && (!guardVal || (!locVal && !customLocVal))) {
-      showToast('⚠️ กรุณาเลือกชื่อเจ้าหน้าที่ รปภ. และระบุสถานที่/อาคารให้ชัดเจน', '⚠️');
-      return;
+    if (!isSOS) {
+      if (!guardVal) {
+        showToast('⚠️ กรุณาเลือกชื่อเจ้าหน้าที่ รปภ.', '⚠️');
+        if (el.guardPatrolSelect) {
+          el.guardPatrolSelect.classList.add('shake-highlight', 'field-error');
+          el.guardPatrolSelect.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          setTimeout(() => el.guardPatrolSelect.classList.remove('shake-highlight'), 1200);
+        }
+        return;
+      }
+
+      if (!locVal && !customLocVal) {
+        showToast('⚠️ กรุณาแตะเลือกสถานที่/อาคารจุดตรวจให้ชัดเจน', '⚠️');
+        if (el.locPatrolSelect) {
+          el.locPatrolSelect.classList.add('shake-highlight', 'field-error');
+          el.locPatrolSelect.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          setTimeout(() => el.locPatrolSelect.classList.remove('shake-highlight'), 1200);
+        }
+        return;
+      }
     }
 
     // Validation: บังคับถ่ายรูป 2 รูปขึ้นไปเพื่อเป็นหลักฐาน
@@ -1116,7 +1224,7 @@
 
     if (!isSOS && btn) {
       btn.disabled = true;
-      btn.textContent = '⏳ กำลังบันทึกข้อมูล...';
+      btn.textContent = '⏳ กำลังบันทึกข้อมูลและส่งรายงาน...';
     }
 
     const now = new Date();
@@ -1167,10 +1275,14 @@
 
     // บันทึกลงฐานข้อมูล SQL (SQL INSERT INTO patrol_records)
     if (window.AppDB) {
-      await window.AppDB.query(
-        `INSERT INTO patrol_records (id, date, time, shift, round, guard_id, guard_name, cp_id, cp_code, cp_name, is_risk, is_off_checkpoint, status, note, images, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [record.id, record.date, record.time, record.shift, record.round, record.guardId, record.guardName, record.cpId, record.cpCode, record.cpName, record.isRisk ? 1 : 0, record.isOffCheckpoint ? 1 : 0, record.status, record.note, record.images, new Date().toISOString()]
-      );
+      try {
+        await window.AppDB.query(
+          `INSERT INTO patrol_records (id, date, time, shift, round, guard_id, guard_name, cp_id, cp_code, cp_name, is_risk, is_off_checkpoint, status, note, images, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [record.id, record.date, record.time, record.shift, record.round, record.guardId, record.guardName, record.cpId, record.cpCode, record.cpName, record.isRisk ? 1 : 0, record.isOffCheckpoint ? 1 : 0, record.status, record.note, record.images, new Date().toISOString()]
+        );
+      } catch (dbErr) {
+        console.warn('AppDB insert error:', dbErr);
+      }
     }
 
     // Save record to history
@@ -1181,11 +1293,17 @@
     renderSupervisorDashboard();
     renderGuardRecentLogs();
 
+    // Broadcast to other open tabs and send to cloud
+    broadcastPatrolRecord(record);
+
     if (isSOS) {
       showToast('🚨 ส่งแจ้งเหตุฉุกเฉินเรียบร้อยแล้ว!', '🚨');
     } else {
       showToast(`✅ บันทึกเวียนตรวจเรียบร้อย: ${locVal} (${timeStr} น.)`, '✅');
     }
+
+    // Show prominent confirmation modal
+    showPatrolSuccessModal(record, isSOS);
 
     // Reset fields for next checkpoint
     const wrap = document.getElementById('customLocWrap');
@@ -1280,6 +1398,254 @@
         </div>
       `;
     }).join('');
+  }
+
+  // --- PATROL SUCCESS MODAL (ยืนยันผลการบันทึกและส่งรายงานให้แอดมิน) ---
+  function showPatrolSuccessModal(record, isSOS) {
+    if (!el.patrolSuccessModal) return;
+
+    const shiftMap = { morning: 'กะเช้า (07:00 - 15:00 น.)', afternoon: 'กะบ่าย (15:00 - 23:00 น.)', night: 'กะดึก (23:00 - 07:00 น.)' };
+
+    if (el.patrolSuccessSummary) {
+      el.patrolSuccessSummary.innerHTML = `
+        <div style="display:flex; justify-content:space-between; margin-bottom: 6px; font-size:15px;">
+          <span style="color:var(--muted);">🏢 สถานที่ / อาคาร:</span>
+          <b>${escapeHtml(record.cpName)}</b>
+        </div>
+        <div style="display:flex; justify-content:space-between; margin-bottom: 6px; font-size:15px;">
+          <span style="color:var(--muted);">👤 รปภ. ผู้ตรวจ:</span>
+          <b>${escapeHtml(record.guardName)}</b>
+        </div>
+        <div style="display:flex; justify-content:space-between; margin-bottom: 6px; font-size:15px;">
+          <span style="color:var(--muted);">⏰ เวลา / ผลัดเวร:</span>
+          <b>${record.time} น. (${shiftMap[record.shift] || record.shift})</b>
+        </div>
+        <div style="display:flex; justify-content:space-between; margin-bottom: 6px; font-size:15px;">
+          <span style="color:var(--muted);">📸 ภาพถ่ายหลักฐาน:</span>
+          <b style="color:var(--ok);">${record.images ? record.images.length : 0} รูปภาพ (ประทับเวลาสด)</b>
+        </div>
+        <div style="display:flex; justify-content:space-between; margin-bottom: 6px; font-size:15px;">
+          <span style="color:var(--muted);">📌 สถานะผลตรวจ:</span>
+          <b>${record.status === 'ok' ? '✅ เหตุการณ์ปกติ เรียบร้อยดี' : '🚨 พบปัญหา / ผิดปกติ'}</b>
+        </div>
+        <div style="margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line); display:flex; align-items:center; gap:8px; color:var(--ok); font-weight:700; font-size:14px;">
+          <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#10b981; flex-shrink:0;"></span>
+          <span>ส่งข้อมูลเข้าสู่ระบบและแจ้งเตือนผู้ดูแลระบบ (แอดมิน) เรียบร้อยแล้ว</span>
+        </div>
+      `;
+    }
+
+    el.patrolSuccessModal.removeAttribute('hidden');
+    el.patrolSuccessModal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closePatrolSuccessModal() {
+    if (el.patrolSuccessModal) {
+      el.patrolSuccessModal.setAttribute('hidden', '');
+      el.patrolSuccessModal.style.display = 'none';
+      document.body.style.overflow = '';
+    }
+  }
+
+  // --- REAL-TIME MULTI-DEVICE & CLOUD SYNC ENGINE ---
+  const CLOUD_SYNC_URL = 'https://ntfy.sh/yru_sp_sync_channel_live_2026';
+  let cloudEventSource = null;
+
+  async function broadcastPatrolRecord(record) {
+    // 1. Same-device multi-tab broadcast via BroadcastChannel
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        const bc = new BroadcastChannel('yru_patrol_channel');
+        bc.postMessage({ type: 'NEW_RECORD', record: record });
+        setTimeout(() => bc.close(), 1000);
+      }
+    } catch (e) {
+      console.warn('BroadcastChannel error:', e);
+    }
+
+    // 2. Cross-device Cloud Pub/Sub broadcast via ntfy.sh (Guard phone -> PC Admin)
+    try {
+      const payload = JSON.stringify({
+        type: 'patrol_record',
+        record: record,
+        timestamp: Date.now()
+      });
+
+      fetch(CLOUD_SYNC_URL, {
+        method: 'POST',
+        headers: {
+          'Title': `รายงานเวียนตรวจ: ${record.cpName}`,
+          'Priority': record.isRisk || record.status === 'alert' ? 'urgent' : 'default',
+          'Tags': record.status === 'alert' ? 'warning,shield' : 'white_check_mark,shield'
+        },
+        body: payload
+      }).catch(err => console.warn('Cloud sync post warning:', err));
+    } catch (netErr) {
+      console.warn('Cloud broadcast error:', netErr);
+    }
+  }
+
+  function setupCloudSyncReceiver() {
+    // 1. Listen for local tab broadcasts (zero latency)
+    if (typeof BroadcastChannel !== 'undefined') {
+      try {
+        const bc = new BroadcastChannel('yru_patrol_channel');
+        bc.onmessage = (event) => {
+          if (event.data && event.data.type === 'NEW_RECORD') {
+            handleIncomingRecord(event.data.record);
+          }
+        };
+      } catch (e) {}
+    }
+
+    // 2. Listen for storage events (legacy cross-tab support)
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'yru_sp_history' || e.key === 'yru_sp_sql_db') {
+        reloadFromStorageAndRender();
+      }
+    });
+
+    // 3. Real-Time Cloud SSE Receiver (cross-device: mobile phone -> PC/Laptop Admin)
+    if (typeof EventSource !== 'undefined') {
+      try {
+        if (cloudEventSource) {
+          try { cloudEventSource.close(); } catch (e) {}
+        }
+        cloudEventSource = new EventSource(`${CLOUD_SYNC_URL}/sse`);
+
+        cloudEventSource.onopen = () => {
+          updateCloudSyncUI('connected');
+        };
+
+        cloudEventSource.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            if (data && data.message) {
+              const parsed = JSON.parse(data.message);
+              if (parsed.type === 'patrol_record' && parsed.record) {
+                handleIncomingRecord(parsed.record);
+              }
+            }
+          } catch (err) {}
+        };
+
+        cloudEventSource.onerror = () => {
+          updateCloudSyncUI('reconnecting');
+        };
+      } catch (e) {
+        console.warn('SSE setup error:', e);
+      }
+    }
+
+    // Auto poll last 24h of messages upon startup
+    pollRecentCloudRecords();
+  }
+
+  function updateCloudSyncUI(status) {
+    if (el.cloudSyncStatusText) {
+      if (status === 'connected') {
+        el.cloudSyncStatusText.textContent = '🟢 ระบบเชื่อมต่อรับรายงานสดจาก รปภ. ตลอดเวลา (Real-time Sync Active)';
+      } else {
+        el.cloudSyncStatusText.textContent = '🟡 กำลังเชื่อมต่อระบบคลาวด์รับรายงาน...';
+      }
+    }
+  }
+
+  async function handleIncomingRecord(incoming) {
+    if (!incoming || !incoming.id) return;
+
+    const exists = state.history.some(r => r.id === incoming.id);
+    if (exists) return;
+
+    state.history.unshift(incoming);
+
+    if (window.AppDB) {
+      try {
+        await window.AppDB.query(
+          `INSERT INTO patrol_records (id, date, time, shift, round, guard_id, guard_name, cp_id, cp_code, cp_name, is_risk, is_off_checkpoint, status, note, images, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [incoming.id, incoming.date, incoming.time, incoming.shift, incoming.round, incoming.guardId, incoming.guardName, incoming.cpId, incoming.cpCode, incoming.cpName, incoming.isRisk ? 1 : 0, incoming.isOffCheckpoint ? 1 : 0, incoming.status, incoming.note, incoming.images, incoming.createdAt || new Date().toISOString()]
+        );
+      } catch (e) {}
+    }
+
+    saveToLocalStorage();
+    renderSupervisorDashboard();
+    renderGuardRecentLogs();
+
+    showToast(`🔔 ได้รับรายงานเวียนตรวจใหม่: ${incoming.cpName} (${incoming.guardName})`, '🔔');
+  }
+
+  async function pollRecentCloudRecords() {
+    try {
+      const resp = await fetch(`${CLOUD_SYNC_URL}/json?poll=1&since=24h`);
+      if (resp.ok) {
+        const text = await resp.text();
+        const lines = text.trim().split('\n').filter(Boolean);
+        let added = 0;
+        for (const line of lines) {
+          try {
+            const data = JSON.parse(line);
+            if (data && data.message) {
+              const parsed = JSON.parse(data.message);
+              if (parsed.type === 'patrol_record' && parsed.record) {
+                const rec = parsed.record;
+                if (!state.history.some(r => r.id === rec.id)) {
+                  state.history.unshift(rec);
+                  if (window.AppDB) {
+                    await window.AppDB.query(
+                      `INSERT INTO patrol_records (id, date, time, shift, round, guard_id, guard_name, cp_id, cp_code, cp_name, is_risk, is_off_checkpoint, status, note, images, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                      [rec.id, rec.date, rec.time, rec.shift, rec.round, rec.guardId, rec.guardName, rec.cpId, rec.cpCode, rec.cpName, rec.isRisk ? 1 : 0, rec.isOffCheckpoint ? 1 : 0, rec.status, rec.note, rec.images, rec.createdAt || new Date().toISOString()]
+                    );
+                  }
+                  added++;
+                }
+              }
+            }
+          } catch (e) {}
+        }
+        if (added > 0) {
+          saveToLocalStorage();
+          renderSupervisorDashboard();
+          renderGuardRecentLogs();
+        }
+      }
+    } catch (e) {}
+  }
+
+  async function syncLatestFromCloud() {
+    const btn = el.syncCloudBtn;
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<span>⏳</span> <span>กำลังดึงข้อมูล...</span>';
+    }
+    try {
+      await pollRecentCloudRecords();
+      showToast('✅ ข้อมูลทั้งหมดอัปเดตเป็นปัจจุบันเรียบร้อยแล้ว', '✅');
+    } catch (e) {
+      showToast('⚠️ ไม่สามารถเชื่อมต่อระบบคลาวด์ได้ในขณะนี้');
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '<span>🔄</span> <span>ดึงข้อมูลล่าสุดจากคลาวด์</span>';
+      }
+    }
+  }
+
+  async function reloadFromStorageAndRender() {
+    if (window.AppDB) {
+      try {
+        const records = await window.AppDB.query("SELECT * FROM patrol_records ORDER BY date DESC, time DESC");
+        state.history = records || [];
+      } catch (e) {}
+    } else {
+      const h = localStorage.getItem('yru_sp_history');
+      if (h) {
+        try { state.history = JSON.parse(h); } catch (e) {}
+      }
+    }
+    renderSupervisorDashboard();
+    renderGuardRecentLogs();
   }
 
   // --- SUPERVISOR DASHBOARD ---

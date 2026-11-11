@@ -151,3 +151,14 @@ const DEFAULT_CHECKPOINTS = [
 
 // บันทึกประวัติเริ่มต้น (ค่าเริ่มต้นว่างเปล่าสำหรับฐานข้อมูลจริง)
 const DEFAULT_HISTORY = [];
+
+// แนบตัวแปรเข้า window เพื่อให้เข้าถึงได้ 100% ในทุกสคริปต์
+if (typeof window !== 'undefined') {
+  window.DATA_VERSION = DATA_VERSION;
+  window.DEFAULT_ACCOUNTS = DEFAULT_ACCOUNTS;
+  window.DEFAULT_SHIFTS = DEFAULT_SHIFTS;
+  window.DEFAULT_GUARDS = DEFAULT_GUARDS;
+  window.DEFAULT_CHECKPOINTS = DEFAULT_CHECKPOINTS;
+  window.DEFAULT_HISTORY = DEFAULT_HISTORY;
+}
+

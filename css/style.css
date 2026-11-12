@@ -2669,3 +2669,87 @@ tbody tr:hover {
   justify-content: center;
   box-shadow: 0 4px 14px rgba(216, 27, 96, 0.5);
 }
+
+.live-cam-error {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  background: rgba(9, 11, 16, 0.96);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px 22px;
+  text-align: center;
+  color: #ffffff;
+}
+
+.live-cam-error svg {
+  color: #ff80ab;
+}
+
+.live-cam-error b {
+  font-size: 18px;
+}
+
+.live-cam-error p {
+  margin: 0 0 6px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.82);
+  max-width: 420px;
+}
+
+.live-cam-error-btn {
+  appearance: none;
+  width: 100%;
+  max-width: 340px;
+  min-height: 48px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.live-cam-error-btn.primary {
+  background: var(--primary, #D81B60);
+  border-color: var(--primary, #D81B60);
+  box-shadow: 0 4px 14px rgba(216, 27, 96, 0.45);
+}
+
+.live-sync-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+.live-sync-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #9ca3af;
+  display: inline-block;
+}
+
+.live-sync-dot.on {
+  background: #10B981;
+  box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6);
+  animation: live-sync-pulse 1.6s infinite;
+}
+
+@keyframes live-sync-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6); }
+  70% { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}

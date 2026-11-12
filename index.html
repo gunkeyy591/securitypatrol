@@ -10,8 +10,10 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Sarabun:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,600&display=swap">
   
+  <!-- เปิดในเบราว์เซอร์หลักของเครื่องอัตโนมัติเมื่อเข้าผ่าน LINE / แอปอื่น (เพื่อให้เปิดกล้องได้โดยตรง) -->
+  <script src="js/browser-escape.js?v=6.5"></script>
   <!-- CSS -->
-  <link rel="stylesheet" href="css/style.css?v=6.4">
+  <link rel="stylesheet" href="css/style.css?v=6.5">
   <!-- Auth Guard: บังคับให้เข้าสู่หน้า login.html ทุกครั้งที่มีการเปิดเข้าดูเว็บ -->
   <script>
     window.appLogout = function () {
@@ -1215,6 +1217,19 @@
       </div>
       <div class="live-cam-flash" id="liveCamFlash" aria-hidden="true"></div>
       <div class="live-cam-strip" id="liveCamStrip"></div>
+
+      <!-- แผงแจ้งเตือนเมื่อเบราว์เซอร์นี้เปิดกล้องโดยตรงไม่ได้ (เช่น เปิดผ่านแอป LINE / Facebook) -->
+      <div class="live-cam-error" id="liveCamErrorPanel" hidden style="display: none;">
+        <svg viewBox="0 0 24 24" width="46" height="46" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+          <line x1="2" y1="2" x2="22" y2="22"/>
+        </svg>
+        <b id="liveCamErrorTitle">ไม่สามารถเปิดกล้องได้</b>
+        <p id="liveCamErrorMsg">กรุณาอนุญาตการใช้งานกล้องให้กับเว็บไซต์นี้</p>
+        <button type="button" class="live-cam-error-btn primary" id="btnOpenExternalBrowser" hidden style="display: none;">เปิดในเบราว์เซอร์ Chrome / Safari</button>
+        <button type="button" class="live-cam-error-btn" id="btnRetryLiveCam">ลองเปิดกล้องอีกครั้ง</button>
+        <label for="camPatrolInput" class="live-cam-error-btn" id="btnNativeCamFallback">ใช้แอปกล้องของเครื่อง</label>
+      </div>
     </div>
 
     <div class="live-cam-controls">
@@ -1253,8 +1268,8 @@
   </div>
 
   <!-- Scripts -->
-  <script src="js/data.js?v=6.4"></script>
-  <script src="js/db.js?v=6.4"></script>
-  <script src="js/app.js?v=6.4"></script>
+  <script src="js/data.js?v=6.5"></script>
+  <script src="js/db.js?v=6.5"></script>
+  <script src="js/app.js?v=6.5"></script>
 </body>
 </html>

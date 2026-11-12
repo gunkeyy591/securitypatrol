@@ -742,6 +742,53 @@
     if (switchBtn) {
       switchBtn.addEventListener('click', () => switchLiveCameraFacing());
     }
+
+    const retryBtn = document.getElementById('btnRetryLiveCam');
+    if (retryBtn) {
+      retryBtn.addEventListener('click', async () => {
+        try {
+          await startLiveCameraInModal();
+        } catch (err) {
+          stopLiveCameraStreamOnly();
+          showLiveCamError(err);
+        }
+      });
+    }
+
+    const extBtn = document.getElementById('btnOpenExternalBrowser');
+    if (extBtn) {
+      extBtn.addEventListener('click', () => {
+        savePatrolFormDraft();
+        if (window.YRUBrowser && typeof window.YRUBrowser.openInExternalBrowser === 'function') {
+          window.YRUBrowser.openInExternalBrowser();
+        }
+      });
+    }
+
+    const nativeBtn = document.getElementById('btnNativeCamFallback');
+    if (nativeBtn) {
+      nativeBtn.addEventListener('click', () => {
+        savePatrolFormDraft();
+        // ปิดหน้ากล้องสดหลังจากเปิดแอปกล้องของเครื่องแล้ว
+        setTimeout(() => closeLivePatrolCamera(true), 300);
+      });
+    }
+
+    // หยุดกล้องเมื่อสลับแอป/ล็อกจอ ป้องกันกล้องค้างและแบตหมด แล้วเปิดใหม่เมื่อกลับมา
+    document.addEventListener('visibilitychange', async () => {
+      const modal = document.getElementById('liveCameraModal');
+      const isOpen = modal && modal.style.display !== 'none' && !modal.hidden;
+      if (!isOpen) return;
+      if (document.hidden) {
+        stopLiveCameraStreamOnly();
+      } else {
+        try {
+          await startLiveCameraInModal();
+        } catch (err) {
+          showLiveCamError(err);
+        }
+      }
+    });
   }
 
   async function startCameraMediaStream(facingMode) {
@@ -786,48 +833,129 @@
         if (stream) return stream;
       } catch (err) {
         lastErr = err;
+        // ถ้าผู้ใช้/แอปปฏิเสธสิทธิ์กล้อง ไม่ต้องลองซ้ำ
+        if (err && (err.name === 'NotAllowedError' || err.name === 'SecurityError' || err.name === 'PermissionDeniedError')) {
+          break;
+        }
       }
     }
     throw lastErr || new Error('ไม่สามารถเปิดเลนส์กล้องได้');
   }
 
+  function hideLiveCamError() {
+    const panel = document.getElementById('liveCamErrorPanel');
+    if (panel) {
+      panel.hidden = true;
+      panel.style.display = 'none';
+    }
+  }
+
+  function showLiveCamError(err) {
+    const panel = document.getElementById('liveCamErrorPanel');
+    const titleEl = document.getElementById('liveCamErrorTitle');
+    const msgEl = document.getElementById('liveCamErrorMsg');
+    const extBtn = document.getElementById('btnOpenExternalBrowser');
+    const nativeBtn = document.getElementById('btnNativeCamFallback');
+    const browser = window.YRUBrowser || {};
+    const errName = err && err.name ? err.name : '';
+
+    let title = 'ไม่สามารถเปิดกล้องได้';
+    let msg = 'กรุณาอนุญาตการใช้งานกล้องให้กับเว็บไซต์นี้ แล้วแตะ "ลองเปิดกล้องอีกครั้ง"';
+
+    if (browser.isInApp) {
+      title = 'เบราว์เซอร์ในแอปนี้ไม่อนุญาตให้เปิดกล้องโดยตรง';
+      msg = 'คุณกำลังเปิดเว็บผ่านแอป (เช่น LINE / Facebook) ซึ่งจะเปิดอัลบั้มรูปแทนกล้อง กรุณาแตะปุ่มด้านล่างเพื่อเปิดใน Chrome (Android) หรือ Safari (iPhone) แล้วจะเปิดกล้องได้ทันที';
+    } else if (!window.isSecureContext) {
+      title = 'ต้องเปิดผ่านลิงก์ HTTPS';
+      msg = 'เบราว์เซอร์อนุญาตให้เปิดกล้องเฉพาะเว็บที่เป็น https:// เท่านั้น กรุณาเปิดผ่าน https://gunkeyy591.github.io/securitypatrol/';
+    } else if (errName === 'NotAllowedError' || errName === 'PermissionDeniedError') {
+      title = 'ยังไม่ได้อนุญาตให้ใช้กล้อง';
+      msg = browser.isIOS
+        ? 'ไปที่ การตั้งค่า > Safari > กล้อง แล้วเลือก "อนุญาต" จากนั้นแตะ "ลองเปิดกล้องอีกครั้ง"'
+        : 'แตะไอคอนแม่กุญแจ 🔒 ข้างแถบที่อยู่เว็บ > สิทธิ์ > กล้อง > "อนุญาต" จากนั้นแตะ "ลองเปิดกล้องอีกครั้ง"';
+    } else if (errName === 'NotReadableError' || errName === 'TrackStartError') {
+      title = 'กล้องกำลังถูกใช้งานโดยแอปอื่น';
+      msg = 'กรุณาปิดแอปอื่นที่ใช้กล้องอยู่ (เช่น แอปกล้อง / วิดีโอคอล) แล้วแตะ "ลองเปิดกล้องอีกครั้ง"';
+    } else if (errName === 'NotFoundError' || errName === 'DevicesNotFoundError') {
+      title = 'ไม่พบกล้องบนอุปกรณ์นี้';
+      msg = 'กรุณาใช้อุปกรณ์ที่มีกล้อง หรือแตะ "ใช้แอปกล้องของเครื่อง"';
+    }
+
+    if (titleEl) titleEl.textContent = title;
+    if (msgEl) msgEl.textContent = msg;
+    if (extBtn) {
+      const showExt = Boolean(browser.isInApp);
+      extBtn.hidden = !showExt;
+      extBtn.style.display = showExt ? 'inline-flex' : 'none';
+    }
+    // ในแอป LINE/Facebook ปุ่มแอปกล้องของเครื่องจะเด้งไปอัลบั้ม จึงซ่อนไว้
+    if (nativeBtn) {
+      nativeBtn.style.display = browser.isInApp ? 'none' : 'inline-flex';
+    }
+    if (panel) {
+      panel.hidden = false;
+      panel.style.display = 'flex';
+    }
+  }
+
+  async function startLiveCameraInModal() {
+    const video = document.getElementById('liveCameraVideo');
+    hideLiveCamError();
+    liveCameraStream = await startCameraMediaStream(liveCameraFacingMode);
+    if (video) {
+      video.setAttribute('playsinline', 'true');
+      video.setAttribute('webkit-playsinline', 'true');
+      video.muted = true;
+      video.srcObject = liveCameraStream;
+      await video.play().catch(() => {});
+    }
+    updateLiveCameraModalUI();
+  }
+
   async function openLivePatrolCamera() {
     const modal = document.getElementById('liveCameraModal');
     const video = document.getElementById('liveCameraVideo');
+    const browser = window.YRUBrowser || {};
+    const hasGUM = Boolean(navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === 'function');
 
-    // หากเบราว์เซอร์รองรับ MediaDevices.getUserMedia ให้เปิดกล้องสดโดยตรงทันที (ไม่เปิดอัลบั้มเด็ดขาด)
-    if (modal && video && navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === 'function') {
-      try {
-        modal.hidden = false;
-        modal.style.display = 'flex';
-        updateLiveCameraModalUI();
-
-        liveCameraClockTimer = setInterval(() => {
-          const clockEl = document.getElementById('liveCamClockText');
-          if (clockEl) {
-            const meta = buildPatrolTimestampMeta();
-            clockEl.textContent = `🕒 ${meta.fullStamp}`;
-          }
-        }, 500);
-
-        liveCameraStream = await startCameraMediaStream(liveCameraFacingMode);
-        video.srcObject = liveCameraStream;
-        video.setAttribute('playsinline', 'true');
-        video.muted = true;
-        await video.play().catch(() => {});
-        updateLiveCameraModalUI();
-        return;
-      } catch (camErr) {
-        console.warn('Direct live camera failed, falling back to native capture input:', camErr);
-        closeLivePatrolCamera(true);
-      }
+    if (!modal || !video) {
+      if (el.camPatrolInput) el.camPatrolInput.click();
+      return;
     }
 
-    // Fallback เฉพาะกรณีที่อุปกรณ์บล็อกสิทธิ์ getUserMedia หรือไม่ได้เปิดผ่าน HTTPS/localhost
-    if (el.camPatrolInput) {
-      el.camPatrolInput.setAttribute('capture', 'environment');
-      el.camPatrolInput.setAttribute('accept', 'image/*');
-      el.camPatrolInput.click();
+    // เปิดหน้ากล้องสดเต็มจอ (ไม่ผ่านอัลบั้มรูปภาพ)
+    modal.hidden = false;
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+    updateLiveCameraModalUI();
+
+    if (liveCameraClockTimer) clearInterval(liveCameraClockTimer);
+    liveCameraClockTimer = setInterval(() => {
+      const clockEl = document.getElementById('liveCamClockText');
+      if (clockEl) {
+        const meta = buildPatrolTimestampMeta();
+        clockEl.textContent = `🕒 ${meta.fullStamp}`;
+      }
+    }, 500);
+
+    if (!hasGUM) {
+      // Chrome/Safari ปกติที่ไม่รองรับ getUserMedia (หายากมาก) -> ใช้ input capture ซึ่งจะเปิดแอปกล้องโดยตรง
+      if (!browser.isInApp && el.camPatrolInput) {
+        closeLivePatrolCamera(true);
+        el.camPatrolInput.click();
+        return;
+      }
+      showLiveCamError(null);
+      return;
+    }
+
+    try {
+      await startLiveCameraInModal();
+    } catch (camErr) {
+      console.warn('Direct live camera failed:', camErr);
+      stopLiveCameraStreamOnly();
+      // ไม่เด้งไปอัลบั้มรูปอัตโนมัติอีกต่อไป — แสดงคำแนะนำและทางเลือกที่ถูกต้องแทน
+      showLiveCamError(camErr);
     }
   }
 
@@ -853,6 +981,8 @@
       liveCameraClockTimer = null;
     }
     stopLiveCameraStreamOnly();
+    hideLiveCamError();
+    document.body.style.overflow = '';
     const modal = document.getElementById('liveCameraModal');
     if (modal) {
       modal.hidden = true;
@@ -1693,7 +1823,7 @@
     const roundNo = sameShiftCount + 1;
 
     const record = {
-      id: 'rec-' + Date.now(),
+      id: 'rec-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7),
       date: isoDate,
       time: timeStr,
       shift: shiftCode,
@@ -1736,13 +1866,15 @@
     renderSupervisorDashboard();
     renderGuardRecentLogs();
 
-    // Broadcast to other open tabs and send to cloud SQL channel
-    await broadcastPatrolRecord(record);
+    // Broadcast to other open tabs and send to cloud SQL channel (ส่งถึงแอดมินทันที + คิวส่งซ้ำอัตโนมัติ)
+    const deliveredToAdmin = await broadcastPatrolRecord(record);
 
     if (isSOS) {
-      showToast('🚨 ส่งแจ้งเหตุฉุกเฉินเรียบร้อยแล้ว!', '🚨');
+      showToast(deliveredToAdmin ? '🚨 ส่งแจ้งเหตุฉุกเฉินถึงแอดมินเรียบร้อยแล้ว!' : '🚨 บันทึกแจ้งเหตุแล้ว ระบบกำลังส่งถึงแอดมินอัตโนมัติ...', '🚨');
+    } else if (deliveredToAdmin) {
+      showToast(`✅ บันทึกและส่งถึงแอดมินแล้ว: ${locVal} (${timeStr} น.)`, '✅');
     } else {
-      showToast(`✅ บันทึกเวียนตรวจเรียบร้อย: ${locVal} (${timeStr} น.)`, '✅');
+      showToast('📶 บันทึกแล้ว — สัญญาณอินเทอร์เน็ตไม่เสถียร ระบบจะส่งถึงแอดมินอัตโนมัติทันทีที่มีสัญญาณ', '⚠️');
     }
 
     // Show prominent confirmation modal
@@ -1897,10 +2029,129 @@
   }
 
   // --- REAL-TIME MULTI-DEVICE & CLOUD SQL SYNC ENGINE ---
+  // รปภ. (Android / iOS) -> ntfy.sh Cloud Pub/Sub -> แอดมิน (SSE Push แบบ Real-time + Incremental Poll สำรอง)
   const CLOUD_SYNC_URL = 'https://ntfy.sh/yru_sp_sync_channel_live_2026';
+  const OUTBOX_STORAGE_KEY = 'yru_sp_outbox';
+  const NTFY_LAST_ID_KEY = 'yru_sp_ntfy_last_id';
+  const NTFY_SEEN_KEY = 'yru_sp_ntfy_seen';
   let cloudEventSource = null;
   let syncIntervalId = null;
+  let outboxTimerId = null;
+  let sseReconnectTimer = null;
+  let sseBackoffMs = 1000;
+  let sseLastActivity = 0;
+  let sseConnected = false;
+  let isPollingCloud = false;
+  let isFlushingOutbox = false;
+  let lastCloudUpdateAt = null;
+  let memoryOutbox = null; // ใช้เมื่อ localStorage เต็ม
+  const seenNtfyIds = new Set();
 
+  try {
+    const seenRaw = localStorage.getItem(NTFY_SEEN_KEY);
+    if (seenRaw) JSON.parse(seenRaw).forEach(id => seenNtfyIds.add(id));
+  } catch (e) {}
+
+  function persistSeenNtfyIds() {
+    try {
+      const arr = Array.from(seenNtfyIds);
+      const trimmed = arr.slice(-600);
+      if (trimmed.length !== arr.length) {
+        seenNtfyIds.clear();
+        trimmed.forEach(id => seenNtfyIds.add(id));
+      }
+      localStorage.setItem(NTFY_SEEN_KEY, JSON.stringify(trimmed));
+    } catch (e) {}
+  }
+
+  function getLastNtfyId() {
+    try { return localStorage.getItem(NTFY_LAST_ID_KEY) || ''; } catch (e) { return ''; }
+  }
+
+  function setLastNtfyId(id) {
+    if (!id) return;
+    try { localStorage.setItem(NTFY_LAST_ID_KEY, id); } catch (e) {}
+  }
+
+  // ---------- OUTBOX (คิวส่งข้อมูลถึงแอดมิน ไม่ให้ข้อมูลหายแม้สัญญาณหลุด / iOS พักแอป) ----------
+  function readOutbox() {
+    if (memoryOutbox) return memoryOutbox;
+    try {
+      const raw = localStorage.getItem(OUTBOX_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function writeOutbox(items) {
+    try {
+      localStorage.setItem(OUTBOX_STORAGE_KEY, JSON.stringify(items));
+      memoryOutbox = null;
+    } catch (e) {
+      // localStorage เต็ม (รูปภาพใหญ่) -> เก็บไว้ในหน่วยความจำแทน
+      memoryOutbox = items;
+    }
+  }
+
+  async function postToCloud(item, timeoutMs = 15000) {
+    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const timer = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
+    try {
+      const resp = await fetch(CLOUD_SYNC_URL, {
+        method: 'POST',
+        headers: item.headers,
+        body: item.body,
+        cache: 'no-store',
+        signal: controller ? controller.signal : undefined
+      });
+      return resp.ok;
+    } catch (e) {
+      return false;
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
+  }
+
+  async function flushOutbox() {
+    if (isFlushingOutbox) return;
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) return;
+    const items = readOutbox();
+    if (!items.length) return;
+
+    isFlushingOutbox = true;
+    try {
+      const remaining = [];
+      for (const item of items) {
+        const ok = await postToCloud(item);
+        if (ok) {
+          if (item.actionType === 'patrol_record') {
+            showToast('📤 ส่งข้อมูลที่ค้างอยู่ถึงแอดมินเรียบร้อยแล้ว', '✅');
+          }
+        } else {
+          item.tries = (item.tries || 0) + 1;
+          remaining.push(item);
+        }
+      }
+      writeOutbox(remaining);
+    } finally {
+      isFlushingOutbox = false;
+    }
+  }
+
+  function startOutboxWorker() {
+    if (outboxTimerId) clearInterval(outboxTimerId);
+    outboxTimerId = setInterval(flushOutbox, 5000);
+    window.addEventListener('online', flushOutbox);
+    window.addEventListener('pageshow', flushOutbox);
+    window.addEventListener('focus', flushOutbox);
+    flushOutbox();
+  }
+
+  /**
+   * ส่งข้อมูลถึงแอดมินทันที คืนค่า true เมื่อส่งถึงคลาวด์สำเร็จ
+   * หากส่งไม่สำเร็จจะเก็บเข้าคิวและส่งซ้ำอัตโนมัติทุก 5 วินาที / เมื่อกลับมาออนไลน์
+   */
   async function broadcastPatrolRecord(record, actionType = 'patrol_record') {
     // 1. Same-device multi-tab broadcast via BroadcastChannel
     try {
@@ -1913,27 +2164,40 @@
       console.warn('BroadcastChannel error:', e);
     }
 
-    // 2. Cross-device Cloud Pub/Sub broadcast via ntfy.sh (Guard phone -> PC Admin)
-    // ใช้เฉพาะ ASCII Headers เท่านั้นเพื่อป้องกัน Fetch TypeError และรองรับไฟล์ JSON ขนาดใหญ่ที่มีรูปภาพ Base64
-    try {
-      const payload = JSON.stringify({
+    // 2. Cross-device Cloud Pub/Sub broadcast via ntfy.sh (Guard phone -> Admin)
+    // ใช้เฉพาะ ASCII Headers เท่านั้นเพื่อป้องกัน Fetch TypeError บน iOS Safari และ Android WebView
+    const item = {
+      qid: 'q-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7),
+      actionType: actionType,
+      tries: 0,
+      headers: {
+        'Filename': `patrol_${(record && record.id) || Date.now()}.json`,
+        'Priority': record && (record.isRisk || record.status === 'alert') ? 'urgent' : 'default',
+        'Tags': record && record.status === 'alert' ? 'warning,shield' : 'white_check_mark,shield'
+      },
+      body: JSON.stringify({
         type: actionType,
         record: record,
         timestamp: Date.now()
-      });
+      })
+    };
 
-      await fetch(CLOUD_SYNC_URL, {
-        method: 'POST',
-        headers: {
-          'Filename': `patrol_${record.id || Date.now()}.json`,
-          'Priority': record.isRisk || record.status === 'alert' ? 'urgent' : 'default',
-          'Tags': record.status === 'alert' ? 'warning,shield' : 'white_check_mark,shield'
-        },
-        body: payload
-      });
-    } catch (netErr) {
-      console.warn('Cloud broadcast warning:', netErr);
+    // ส่งรายการที่ค้างอยู่ก่อน เพื่อรักษาลำดับข้อมูล
+    await flushOutbox();
+
+    let ok = await postToCloud(item, 10000);
+    if (!ok) {
+      // ลองซ้ำทันทีอีก 1 ครั้ง (กรณีสัญญาณมือถือสะดุดชั่วขณะ)
+      await new Promise(r => setTimeout(r, 1200));
+      ok = await postToCloud(item, 8000);
     }
+
+    if (!ok) {
+      const items = readOutbox();
+      items.push(item);
+      writeOutbox(items);
+    }
+    return ok;
   }
 
   /**
@@ -1944,10 +2208,11 @@
     try {
       // กรณีมีรูปภาพหลักฐาน (>4KB) ntfy.sh จะเก็บ JSON ไว้ใน data.attachment.url
       if (data.attachment && data.attachment.url) {
-        const attResp = await fetch(data.attachment.url);
+        const attResp = await fetch(data.attachment.url, { cache: 'no-store' });
         if (attResp.ok) {
           return await attResp.json();
         }
+        return null;
       }
       // กรณีข้อความสั้นอยู่ใน data.message
       if (data.message && typeof data.message === 'string' && data.message.trim().startsWith('{')) {
@@ -1955,6 +2220,103 @@
       }
     } catch (e) {}
     return null;
+  }
+
+  /**
+   * ประมวลผลข้อความจาก ntfy ทีละรายการ (ข้ามรายการที่เคยประมวลผลแล้ว ไม่ดาวน์โหลดซ้ำ -> เร็วขึ้นมาก)
+   */
+  async function processNtfyMessage(data, options = {}) {
+    if (!data || !data.id) return false;
+    if (data.event && data.event !== 'message') return false;
+    if (seenNtfyIds.has(data.id)) {
+      setLastNtfyId(data.id);
+      return false;
+    }
+
+    const parsed = await extractNtfyPayload(data);
+    if (!parsed) {
+      // ถ้าดาวน์โหลดไฟล์แนบไม่สำเร็จ ไม่บันทึกว่าเคยเห็น เพื่อให้รอบถัดไปลองใหม่
+      if (data.attachment && data.attachment.url) return false;
+      seenNtfyIds.add(data.id);
+      persistSeenNtfyIds();
+      return false;
+    }
+
+    let changed = false;
+    if (parsed.record) {
+      if (parsed.type === 'patrol_record' || parsed.type === 'patrol_update') {
+        changed = await handleIncomingRecord(parsed.record, parsed.type === 'patrol_update', options);
+      } else if (parsed.type === 'patrol_delete') {
+        changed = await handleIncomingDelete(parsed.record.ids || parsed.record.id);
+      }
+    }
+
+    seenNtfyIds.add(data.id);
+    persistSeenNtfyIds();
+    setLastNtfyId(data.id);
+    markCloudUpdated();
+    return changed;
+  }
+
+  function markCloudUpdated() {
+    lastCloudUpdateAt = new Date();
+    updateCloudSyncUI(sseConnected ? 'connected' : 'polling');
+  }
+
+  function scheduleSseReconnect() {
+    if (sseReconnectTimer) return;
+    const delay = sseBackoffMs;
+    sseBackoffMs = Math.min(sseBackoffMs * 2, 15000);
+    sseReconnectTimer = setTimeout(() => {
+      sseReconnectTimer = null;
+      connectCloudSSE();
+    }, delay);
+  }
+
+  function connectCloudSSE() {
+    if (typeof EventSource === 'undefined') return;
+    try {
+      if (cloudEventSource) {
+        try { cloudEventSource.close(); } catch (e) {}
+        cloudEventSource = null;
+      }
+      // since=<lastId> ทำให้ได้รับข้อความที่พลาดไประหว่างหลุดการเชื่อมต่อครบทุกรายการ
+      const since = getLastNtfyId() || '10m';
+      const es = new EventSource(`${CLOUD_SYNC_URL}/sse?since=${encodeURIComponent(since)}`);
+      cloudEventSource = es;
+      sseLastActivity = Date.now();
+
+      const touch = () => { sseLastActivity = Date.now(); };
+
+      es.onopen = () => {
+        touch();
+        sseConnected = true;
+        sseBackoffMs = 1000;
+        updateCloudSyncUI('connected');
+      };
+      es.addEventListener('open', touch);
+      es.addEventListener('keepalive', touch);
+
+      es.onmessage = async (event) => {
+        touch();
+        try {
+          const data = JSON.parse(event.data);
+          await processNtfyMessage(data, { notify: true });
+        } catch (err) {}
+      };
+
+      es.onerror = () => {
+        sseConnected = false;
+        updateCloudSyncUI('reconnecting');
+        // ปิดแล้วเชื่อมใหม่เองพร้อม since ล่าสุด (EventSource ในตัวเบราว์เซอร์จะไม่ส่ง since ให้)
+        try { es.close(); } catch (e) {}
+        if (cloudEventSource === es) cloudEventSource = null;
+        scheduleSseReconnect();
+      };
+    } catch (e) {
+      console.warn('SSE setup error:', e);
+      scheduleSseReconnect();
+    }
   }
 
   function setupCloudSyncReceiver() {
@@ -1965,7 +2327,7 @@
         bc.onmessage = (event) => {
           if (!event.data) return;
           if (event.data.type === 'patrol_record' || event.data.type === 'NEW_RECORD' || event.data.type === 'patrol_update') {
-            handleIncomingRecord(event.data.record, event.data.type === 'patrol_update');
+            handleIncomingRecord(event.data.record, event.data.type === 'patrol_update', { notify: true });
           } else if (event.data.type === 'patrol_delete' && event.data.record) {
             handleIncomingDelete(event.data.record.ids || event.data.record.id);
           }
@@ -1980,61 +2342,105 @@
       }
     });
 
-    // 3. Real-Time Cloud SSE Receiver (cross-device: mobile phone -> PC/Laptop Admin)
-    if (typeof EventSource !== 'undefined') {
-      try {
-        if (cloudEventSource) {
-          try { cloudEventSource.close(); } catch (e) {}
-        }
-        cloudEventSource = new EventSource(`${CLOUD_SYNC_URL}/sse`);
+    // 3. Real-Time Cloud SSE Receiver (cross-device: Android / iOS -> Admin)
+    connectCloudSSE();
 
-        cloudEventSource.onopen = () => {
-          updateCloudSyncUI('connected');
-        };
-
-        cloudEventSource.onmessage = async (event) => {
-          try {
-            const data = JSON.parse(event.data);
-            const parsed = await extractNtfyPayload(data);
-            if (parsed && parsed.record) {
-              if (parsed.type === 'patrol_record' || parsed.type === 'patrol_update') {
-                await handleIncomingRecord(parsed.record, parsed.type === 'patrol_update');
-              } else if (parsed.type === 'patrol_delete') {
-                await handleIncomingDelete(parsed.record.ids || parsed.record.id);
-              }
-            }
-          } catch (err) {}
-        };
-
-        cloudEventSource.onerror = () => {
-          updateCloudSyncUI('reconnecting');
-        };
-      } catch (e) {
-        console.warn('SSE setup error:', e);
-      }
-    }
-
-    // 4. Auto poll last 24h of messages upon startup & every 8 seconds for Admin real-time table updates
-    pollRecentCloudRecords();
+    // 4. ดึงข้อมูลย้อนหลัง 24 ชม. ครั้งแรก แล้วดึงแบบ Incremental (เฉพาะรายการใหม่) เป็นระบบสำรอง
+    pollRecentCloudRecords(true);
     if (syncIntervalId) clearInterval(syncIntervalId);
+    let tickCount = 0;
     syncIntervalId = setInterval(() => {
-      reloadFromStorageAndRender();
-      pollRecentCloudRecords();
-    }, 8000);
+      tickCount++;
+      // Watchdog: ถ้า SSE เงียบเกิน 75 วินาที (ntfy ส่ง keepalive ทุก ~45 วินาที) ให้เชื่อมต่อใหม่
+      if (typeof EventSource !== 'undefined' && Date.now() - sseLastActivity > 75000) {
+        sseConnected = false;
+        connectCloudSSE();
+      }
+      // SSE ปกติ -> poll สำรองทุก 30 วินาที, SSE หลุด -> poll ทุก 5 วินาที
+      if (!sseConnected || tickCount % 6 === 0) {
+        pollRecentCloudRecords(false);
+      }
+      if (tickCount % 6 === 0) {
+        reloadFromStorageAndRender();
+      }
+      updateCloudSyncUI(sseConnected ? 'connected' : 'polling');
+    }, 5000);
+
+    // 5. iOS / Android มักตัดการเชื่อมต่อเมื่อพักหน้าจอ -> กลับมาแล้วซิงค์ทันที
+    const resyncNow = () => {
+      if (document.hidden) return;
+      if (!sseConnected || Date.now() - sseLastActivity > 20000) {
+        connectCloudSSE();
+      }
+      pollRecentCloudRecords(false);
+      flushOutbox();
+    };
+    document.addEventListener('visibilitychange', resyncNow);
+    window.addEventListener('online', resyncNow);
+    window.addEventListener('pageshow', resyncNow);
+    window.addEventListener('focus', resyncNow);
+
+    // 6. เริ่มคิวส่งข้อมูลถึงแอดมิน (ฝั่ง รปภ.)
+    startOutboxWorker();
+
+    // 7. ขออนุญาตแจ้งเตือนสำหรับแอดมิน (แตะครั้งแรกบนหน้าจอ)
+    if (state.currentUser && state.currentUser.role === 'admin' && typeof Notification !== 'undefined' && Notification.permission === 'default') {
+      const askOnce = () => {
+        try { Notification.requestPermission(); } catch (e) {}
+        document.removeEventListener('click', askOnce);
+      };
+      document.addEventListener('click', askOnce);
+    }
   }
 
   function updateCloudSyncUI(status) {
-    if (el.cloudSyncStatusText) {
-      if (status === 'connected') {
-        el.cloudSyncStatusText.textContent = 'เชื่อมต่อฐานข้อมูล SQL (patrol_records & patrol_images) พร้อมรับข้อมูลและรูปภาพจาก รปภ. แบบ Real-time';
-      } else {
-        el.cloudSyncStatusText.textContent = 'เชื่อมต่อฐานข้อมูล SQL ภายในเครื่องแล้ว (กำลังซิงค์คลาวด์...)';
-      }
+    if (!el.cloudSyncStatusText) return;
+    const t = lastCloudUpdateAt
+      ? ` • อัปเดตล่าสุด ${String(lastCloudUpdateAt.getHours()).padStart(2, '0')}:${String(lastCloudUpdateAt.getMinutes()).padStart(2, '0')}:${String(lastCloudUpdateAt.getSeconds()).padStart(2, '0')} น.`
+      : '';
+    if (status === 'connected') {
+      el.cloudSyncStatusText.innerHTML = `<span class="live-sync-pill"><span class="live-sync-dot on"></span>LIVE</span> รับข้อมูลและรูปภาพจาก รปภ. แบบ Real-time (ทันทีที่กดบันทึก)${t}`;
+    } else if (status === 'polling') {
+      el.cloudSyncStatusText.innerHTML = `<span class="live-sync-pill"><span class="live-sync-dot"></span>SYNC</span> กำลังรับข้อมูลอัตโนมัติทุก 5 วินาที (กำลังเชื่อมต่อ Real-time ใหม่)${t}`;
+    } else {
+      el.cloudSyncStatusText.innerHTML = `<span class="live-sync-pill"><span class="live-sync-dot"></span>SYNC</span> กำลังเชื่อมต่อระบบ Real-time ใหม่...${t}`;
     }
   }
 
+  let newRecordAudioCtx = null;
+  function alertAdminNewRecord(incoming) {
+    if (!state.currentUser || state.currentUser.role !== 'admin') return;
+    // เสียงแจ้งเตือนสั้นๆ
+    try {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (Ctx) {
+        newRecordAudioCtx = newRecordAudioCtx || new Ctx();
+        const ctx = newRecordAudioCtx;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = incoming.status === 'alert' ? 980 : 760;
+        gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.25, ctx.currentTime + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.35);
+        osc.connect(gain).connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.4);
+      }
+    } catch (e) {}
+    // แจ้งเตือนระบบ เมื่อแอดมินเปิดแท็บอื่นอยู่
+    try {
+      if (document.hidden && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+        new Notification(incoming.status === 'alert' ? '🚨 แจ้งเหตุ / จุดเสี่ยง' : '✅ รายงานเวียนตรวจใหม่', {
+          body: `${incoming.cpName || ''} • ${incoming.guardName || ''} • ${incoming.time || ''}`,
+          tag: String(incoming.id)
+        });
+      }
+    } catch (e) {}
+  }
+
   async function handleIncomingDelete(idOrIds) {
-    if (!idOrIds) return;
+    if (!idOrIds) return false;
     const ids = Array.isArray(idOrIds) ? idOrIds : [idOrIds];
     if (window.AppDB && typeof window.AppDB.markIdsDeleted === 'function') {
       window.AppDB.markIdsDeleted(ids);
@@ -2053,13 +2459,15 @@
       saveToLocalStorage();
       renderSupervisorDashboard();
       renderGuardRecentLogs();
+      return true;
     }
+    return false;
   }
 
-  async function handleIncomingRecord(incoming, isUpdate = false) {
-    if (!incoming || !incoming.id) return;
+  async function handleIncomingRecord(incoming, isUpdate = false, options = {}) {
+    if (!incoming || !incoming.id) return false;
     if (window.AppDB && typeof window.AppDB.isIdDeleted === 'function' && window.AppDB.isIdDeleted(incoming.id)) {
-      return;
+      return false;
     }
 
     const existingIdx = state.history.findIndex(r => r.id === incoming.id);
@@ -2067,7 +2475,7 @@
       // หากมีอยู่แล้วแต่ข้อมูลใหม่มีรูปภาพครบกว่า ให้อัปเดต
       const exImgs = (state.history[existingIdx].images || []).length;
       const incImgs = (incoming.images || []).length;
-      if (incImgs <= exImgs) return;
+      if (incImgs <= exImgs) return false;
     }
 
     if (existingIdx !== -1) {
@@ -2089,89 +2497,86 @@
     renderSupervisorDashboard();
     renderGuardRecentLogs();
 
-    if (existingIdx === -1) {
+    if (existingIdx === -1 && options.notify !== false) {
       showToast(`ได้รับรายงานเวียนตรวจใหม่: ${incoming.cpName} (${incoming.guardName})`, 'ok');
+      alertAdminNewRecord(incoming);
     }
+    return true;
   }
 
-  async function pollRecentCloudRecords() {
+  async function pollRecentCloudRecords(isInitial = false) {
+    if (isPollingCloud) return;
+    isPollingCloud = true;
     try {
-      const resp = await fetch(`${CLOUD_SYNC_URL}/json?poll=1&since=24h`);
-      if (resp.ok) {
-        const text = await resp.text();
-        const lines = text.trim().split('\n').filter(Boolean);
-        let changed = 0;
+      const lastId = getLastNtfyId();
+      // ครั้งแรกดึงย้อนหลัง 24 ชม. / ครั้งต่อไปดึงเฉพาะข้อความใหม่หลังรายการล่าสุด (เร็วและไม่โดนจำกัดการใช้งาน)
+      const since = isInitial || !lastId ? '24h' : lastId;
+      const resp = await fetch(`${CLOUD_SYNC_URL}/json?poll=1&since=${encodeURIComponent(since)}`, { cache: 'no-store' });
+      if (!resp.ok) return;
 
-        // Pass 1: อ่านข้อมูลทั้งหมดและรวบรวม ID ที่ถูกลบ (patrol_delete / patrol_clear_all) ก่อนเป็นอันดับแรก
-        const parsedEvents = [];
-        const deletedIds = window.AppDB && typeof window.AppDB.getDeletedIdsSet === 'function'
-          ? window.AppDB.getDeletedIdsSet()
-          : new Set();
+      const text = await resp.text();
+      const lines = text.trim().split('\n').filter(Boolean);
+      const messages = [];
+      for (const line of lines) {
+        try {
+          const data = JSON.parse(line);
+          if (data && data.id && (!data.event || data.event === 'message')) messages.push(data);
+        } catch (e) {}
+      }
 
-        for (const line of lines) {
-          try {
-            const data = JSON.parse(line);
-            const parsed = await extractNtfyPayload(data);
-            if (!parsed) continue;
-            parsedEvents.push(parsed);
+      // Pass 1: ประมวลผลคำสั่งลบก่อน (รายการที่ถูกลบจะไม่กลับมาแสดงอีก)
+      const unseen = messages.filter(m => !seenNtfyIds.has(m.id));
+      const parsedList = [];
+      for (const m of unseen) {
+        const parsed = await extractNtfyPayload(m);
+        parsedList.push({ msg: m, parsed });
+      }
 
-            if (parsed.type === 'patrol_delete' && parsed.record) {
-              if (Array.isArray(parsed.record.ids)) {
-                parsed.record.ids.forEach(id => deletedIds.add(String(id)));
-              } else if (parsed.record.id) {
-                deletedIds.add(String(parsed.record.id));
-              }
-            }
-          } catch (e) {}
-        }
-
-        if (window.AppDB && typeof window.AppDB.markIdsDeleted === 'function' && deletedIds.size > 0) {
-          window.AppDB.markIdsDeleted(Array.from(deletedIds));
-        }
-
-        // ลบรายการที่อยู่ในบัญชีถูกลบออกจาก state.history ทันที
-        for (const delId of deletedIds) {
-          if (state.history.some(r => r.id === delId)) {
-            state.history = state.history.filter(r => r.id !== delId);
-            if (window.AppDB) {
-              await window.AppDB.query(`DELETE FROM patrol_records WHERE id = ?`, [delId]);
-            }
-            changed++;
-          }
-        }
-
-        // Pass 2: นำเข้าเฉพาะรายการที่ยังไม่ถูกลบเท่านั้น
-        for (const parsed of parsedEvents) {
-          try {
-            if ((parsed.type === 'patrol_record' || parsed.type === 'patrol_update') && parsed.record) {
-              const rec = parsed.record;
-              if (!rec.id || deletedIds.has(String(rec.id))) continue;
-              const existingIdx = state.history.findIndex(r => r.id === rec.id);
-              if (existingIdx === -1 || parsed.type === 'patrol_update') {
-                if (existingIdx !== -1) {
-                  state.history[existingIdx] = rec;
-                } else {
-                  state.history.unshift(rec);
-                }
-                if (window.AppDB) {
-                  await window.AppDB.query(
-                    `INSERT INTO patrol_records (id, date, time, shift, round, guard_id, guard_name, cp_id, cp_code, cp_name, is_risk, is_off_checkpoint, status, note, images, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-                    [rec.id, rec.date, rec.time, rec.shift, rec.round, rec.guardId, rec.guardName, rec.cpId, rec.cpCode, rec.cpName, rec.isRisk ? 1 : 0, rec.isOffCheckpoint ? 1 : 0, rec.status, rec.note, rec.images, rec.createdAt || new Date().toISOString(), rec.roundNo || 1]
-                  );
-                }
-                changed++;
-              }
-            }
-          } catch (e) {}
-        }
-
-        if (changed > 0) {
-          saveToLocalStorage();
-          renderSupervisorDashboard();
-          renderGuardRecentLogs();
+      const deletedIds = window.AppDB && typeof window.AppDB.getDeletedIdsSet === 'function'
+        ? window.AppDB.getDeletedIdsSet()
+        : new Set();
+      for (const { parsed } of parsedList) {
+        if (parsed && parsed.type === 'patrol_delete' && parsed.record) {
+          if (Array.isArray(parsed.record.ids)) parsed.record.ids.forEach(id => deletedIds.add(String(id)));
+          else if (parsed.record.id) deletedIds.add(String(parsed.record.id));
         }
       }
-    } catch (e) {}
+      if (deletedIds.size > 0) {
+        await handleIncomingDelete(Array.from(deletedIds));
+      }
+
+      // Pass 2: นำเข้ารายการใหม่ / แก้ไข
+      const failedIds = new Set();
+      for (const { msg, parsed } of parsedList) {
+        if (!parsed) {
+          if (msg.attachment && msg.attachment.url) failedIds.add(msg.id);
+          else seenNtfyIds.add(msg.id);
+          continue;
+        }
+        if ((parsed.type === 'patrol_record' || parsed.type === 'patrol_update') && parsed.record) {
+          if (!deletedIds.has(String(parsed.record.id))) {
+            await handleIncomingRecord(parsed.record, parsed.type === 'patrol_update', { notify: !isInitial });
+          }
+        }
+        seenNtfyIds.add(msg.id);
+      }
+
+      // เลื่อนตำแหน่งล่าสุดไปจนถึงก่อนรายการแรกที่ดาวน์โหลดไม่สำเร็จ (รอบถัดไปจะดึงรายการนั้นใหม่)
+      let lastGoodId = '';
+      for (const m of messages) {
+        if (failedIds.has(m.id)) break;
+        lastGoodId = m.id;
+      }
+      if (lastGoodId) {
+        setLastNtfyId(lastGoodId);
+      }
+      persistSeenNtfyIds();
+      markCloudUpdated();
+    } catch (e) {
+      // เครือข่ายขัดข้องชั่วคราว รอบถัดไปจะลองใหม่อัตโนมัติ
+    } finally {
+      isPollingCloud = false;
+    }
   }
 
   async function syncLatestFromCloud() {
@@ -2183,7 +2588,8 @@
     }
     try {
       await reloadFromStorageAndRender();
-      await pollRecentCloudRecords();
+      await pollRecentCloudRecords(true);
+      await flushOutbox();
       showToast('ซิงค์ฐานข้อมูล SQL และรูปภาพทั้งหมดเป็นปัจจุบันเรียบร้อยแล้ว', 'ok');
     } catch (e) {
       showToast('อัปเดตข้อมูลจากฐานข้อมูล SQL ในเครื่องเรียบร้อยแล้ว', 'ok');

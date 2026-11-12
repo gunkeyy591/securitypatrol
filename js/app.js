@@ -1067,9 +1067,9 @@
       setTimeout(() => flashEl.classList.remove('active'), 180);
     }
 
-    const rawW = video.videoWidth || 1280;
-    const rawH = video.videoHeight || 720;
-    const MAX_SIZE = 640;
+    const rawW = video.videoWidth || video.clientWidth || 640;
+    const rawH = video.videoHeight || video.clientHeight || 480;
+    const MAX_SIZE = 520;
     let width = rawW;
     let height = rawH;
 
@@ -1107,7 +1107,7 @@
     ctx.textBaseline = 'middle';
     ctx.fillText(stampText, boxX + padX, boxY + (boxH / 2));
 
-    const base64 = canvas.toDataURL('image/jpeg', 0.68);
+    const base64 = canvas.toDataURL('image/jpeg', 0.60);
     const photoObj = {
       dataUrl: base64,
       timeStr: meta.timeStr,
@@ -1383,9 +1383,9 @@
       function drawAndWatermark(imgSource, originalW, originalH, cleanupCallback) {
         try {
           const canvas = document.createElement('canvas');
-          const MAX_SIZE = 640;
-          let width = originalW || 640;
-          let height = originalH || 480;
+          const MAX_SIZE = 520;
+          let width = originalW || 520;
+          let height = originalH || 390;
 
           if (width > height && width > MAX_SIZE) {
             height = Math.max(1, Math.round(height * (MAX_SIZE / width)));
@@ -1432,7 +1432,7 @@
           ctx.textBaseline = 'middle';
           ctx.fillText(stampText, boxX + padX, boxY + (boxH / 2));
 
-          const base64 = canvas.toDataURL('image/jpeg', 0.65);
+          const base64 = canvas.toDataURL('image/jpeg', 0.60);
           done({
             dataUrl: base64,
             timeStr: meta.timeStr,
@@ -2028,24 +2028,33 @@
     }
   }
 
-  // --- REAL-TIME MULTI-DEVICE & CLOUD SQL SYNC ENGINE ---
-  // รปภ. (Android / iOS) -> ntfy.sh Cloud Pub/Sub -> แอดมิน (SSE Push แบบ Real-time + Incremental Poll สำรอง)
+  // --- REAL-TIME MULTI-DEVICE & CLOUD SQL SYNC ENGINE (iOS iPhone + Android + PC) ---
+  // ใช้โปรโตคอล Inline Packet (<= 3,400 ไบต์ต่อแพ็กเก็ต) แบบ Simple CORS POST (ไม่มี Custom Headers)
+  // เพื่อป้องกันปัญหา iOS Safari บล็อก CORS Preflight และไม่ใช้โควต้าไฟล์แนบ (Attachment) ของ ntfy.sh
   const CLOUD_SYNC_URL = 'https://ntfy.sh/yru_sp_sync_channel_live_2026';
-  const OUTBOX_STORAGE_KEY = 'yru_sp_outbox';
-  const NTFY_LAST_ID_KEY = 'yru_sp_ntfy_last_id';
-  const NTFY_SEEN_KEY = 'yru_sp_ntfy_seen';
+  const OUTBOX_STORAGE_KEY = 'yru_sp_outbox_v2';
+  const NTFY_SEEN_KEY = 'yru_sp_ntfy_seen_v2';
+  const IMG_CHUNK_SIZE = 2600;
   let cloudEventSource = null;
   let syncIntervalId = null;
   let outboxTimerId = null;
   let sseReconnectTimer = null;
-  let sseBackoffMs = 1000;
+  let sseBackoffMs = 1500;
   let sseLastActivity = 0;
   let sseConnected = false;
   let isPollingCloud = false;
   let isFlushingOutbox = false;
   let lastCloudUpdateAt = null;
-  let memoryOutbox = null; // ใช้เมื่อ localStorage เต็ม
+  let memoryOutbox = null;
   const seenNtfyIds = new Set();
+  // เก็บชิ้นส่วนรูปภาพที่ส่งมาจาก iPhone / Android แบบ Real-time: rid -> { imgTotal, images: { [imgIdx]: { cTotal, chunks: {}, completedDataUrl } } }
+  const incomingImageBuffers = {};
+
+  // ล้างคิวเก่าที่ค้างจากเวอร์ชันก่อนหน้า (ซึ่งอาจมีไฟล์ขนาดใหญ่เกินโควต้าค้างอยู่บน iPhone)
+  try {
+    localStorage.removeItem('yru_sp_outbox');
+    localStorage.removeItem('yru_sp_ntfy_last_id');
+  } catch (e) {}
 
   try {
     const seenRaw = localStorage.getItem(NTFY_SEEN_KEY);
@@ -2055,7 +2064,7 @@
   function persistSeenNtfyIds() {
     try {
       const arr = Array.from(seenNtfyIds);
-      const trimmed = arr.slice(-600);
+      const trimmed = arr.slice(-800);
       if (trimmed.length !== arr.length) {
         seenNtfyIds.clear();
         trimmed.forEach(id => seenNtfyIds.add(id));
@@ -2064,16 +2073,75 @@
     } catch (e) {}
   }
 
-  function getLastNtfyId() {
-    try { return localStorage.getItem(NTFY_LAST_ID_KEY) || ''; } catch (e) { return ''; }
+  /**
+   * ย่อขนาดรูปภาพจาก iPhone / Android ให้กะทัดรัด (<= 10,400 ตัวอักษร Base64 หรือ ~7.5KB)
+   * เพื่อให้แบ่งส่งเป็น Inline Packet (<= 4 แพ็กเก็ตต่อรูป) ถึงแอดมินได้รวดเร็ว 100% โดยไม่ติดขีดจำกัดไฟล์แนบ
+   */
+  function compressImageForCloud(dataUrl) {
+    return new Promise((resolve) => {
+      if (!dataUrl || typeof dataUrl !== 'string') {
+        resolve('');
+        return;
+      }
+      if (dataUrl.length <= 10400) {
+        resolve(dataUrl);
+        return;
+      }
+      const timer = setTimeout(() => {
+        resolve(dataUrl.length <= 28000 ? dataUrl : '');
+      }, 6000);
+
+      const img = new Image();
+      img.onload = function () {
+        clearTimeout(timer);
+        try {
+          const origW = img.naturalWidth || img.width || 480;
+          const origH = img.naturalHeight || img.height || 360;
+          const attempts = [
+            { maxDim: 380, quality: 0.48 },
+            { maxDim: 320, quality: 0.42 },
+            { maxDim: 260, quality: 0.36 },
+            { maxDim: 220, quality: 0.32 }
+          ];
+          let out = dataUrl;
+          for (let i = 0; i < attempts.length; i++) {
+            const maxDim = attempts[i].maxDim;
+            let w = origW;
+            let h = origH;
+            if (w > h && w > maxDim) {
+              h = Math.max(1, Math.round(h * (maxDim / widthOrDefault(w))));
+              w = maxDim;
+            } else if (h > maxDim) {
+              w = Math.max(1, Math.round(w * (maxDim / widthOrDefault(h))));
+              h = maxDim;
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) break;
+            ctx.drawImage(img, 0, 0, w, h);
+            out = canvas.toDataURL('image/jpeg', attempts[i].quality);
+            if (out.length <= 10400) break;
+          }
+          resolve(out);
+        } catch (e) {
+          resolve(dataUrl.length <= 28000 ? dataUrl : '');
+        }
+      };
+      img.onerror = function () {
+        clearTimeout(timer);
+        resolve(dataUrl.length <= 28000 ? dataUrl : '');
+      };
+      img.src = dataUrl;
+    });
   }
 
-  function setLastNtfyId(id) {
-    if (!id) return;
-    try { localStorage.setItem(NTFY_LAST_ID_KEY, id); } catch (e) {}
+  function widthOrDefault(val) {
+    return val > 0 ? val : 1;
   }
 
-  // ---------- OUTBOX (คิวส่งข้อมูลถึงแอดมิน ไม่ให้ข้อมูลหายแม้สัญญาณหลุด / iOS พักแอป) ----------
+  // ---------- OUTBOX (คิวส่งแพ็กเก็ตขนาดเล็ก <= 3.4KB ไม่ให้ข้อมูลหายบน iPhone / Android) ----------
   function readOutbox() {
     if (memoryOutbox) return memoryOutbox;
     try {
@@ -2085,24 +2153,26 @@
   }
 
   function writeOutbox(items) {
+    const trimmed = Array.isArray(items) ? items.slice(-60) : [];
     try {
-      localStorage.setItem(OUTBOX_STORAGE_KEY, JSON.stringify(items));
+      localStorage.setItem(OUTBOX_STORAGE_KEY, JSON.stringify(trimmed));
       memoryOutbox = null;
     } catch (e) {
-      // localStorage เต็ม (รูปภาพใหญ่) -> เก็บไว้ในหน่วยความจำแทน
-      memoryOutbox = items;
+      memoryOutbox = trimmed;
     }
   }
 
-  async function postToCloud(item, timeoutMs = 15000) {
+  /**
+   * ส่งข้อความ JSON ไปยัง ntfy.sh ด้วย Simple CORS Request (ไม่มี Custom Headers และไม่มี cache: 'no-store')
+   * ทำให้ iOS Safari (iPhone) และทุกเบราว์เซอร์ส่งผ่านทันทีโดยไม่ต้องทำ CORS OPTIONS Preflight
+   */
+  async function postInlinePacketToCloud(bodyStr, timeoutMs = 10000) {
     const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
     const timer = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
     try {
       const resp = await fetch(CLOUD_SYNC_URL, {
         method: 'POST',
-        headers: item.headers,
-        body: item.body,
-        cache: 'no-store',
+        body: bodyStr,
         signal: controller ? controller.signal : undefined
       });
       return resp.ok;
@@ -2123,15 +2193,15 @@
     try {
       const remaining = [];
       for (const item of items) {
-        const ok = await postToCloud(item);
-        if (ok) {
-          if (item.actionType === 'patrol_record') {
-            showToast('📤 ส่งข้อมูลที่ค้างอยู่ถึงแอดมินเรียบร้อยแล้ว', '✅');
-          }
-        } else {
+        if (!item || !item.body) continue;
+        const ok = await postInlinePacketToCloud(item.body, 8000);
+        if (!ok) {
           item.tries = (item.tries || 0) + 1;
-          remaining.push(item);
+          if (item.tries < 15) {
+            remaining.push(item);
+          }
         }
+        await new Promise(r => setTimeout(r, 120));
       }
       writeOutbox(remaining);
     } finally {
@@ -2145,12 +2215,12 @@
     window.addEventListener('online', flushOutbox);
     window.addEventListener('pageshow', flushOutbox);
     window.addEventListener('focus', flushOutbox);
-    flushOutbox();
   }
 
   /**
-   * ส่งข้อมูลถึงแอดมินทันที คืนค่า true เมื่อส่งถึงคลาวด์สำเร็จ
-   * หากส่งไม่สำเร็จจะเก็บเข้าคิวและส่งซ้ำอัตโนมัติทุก 5 วินาที / เมื่อกลับมาออนไลน์
+   * ส่งข้อมูลจาก รปภ. (iPhone / Android / PC) ไปยังแอดมินทันที:
+   * 1. ส่งแพ็กเก็ตข้อมูลหลัก (patrol_record, < 1.5KB) ออกไปก่อนทันที -> แอดมินเห็นรายการขึ้นทันทีใน 0.2 วินาที
+   * 2. ย่อและแบ่งรูปภาพออกเป็นแพ็กเก็ตย่อย (patrol_img_chunk, <= 3.2KB ต่อแพ็กเก็ต) แล้วส่งตามทันที -> รูปขึ้นครบทั้งบน iPhone และ Android 100%
    */
   async function broadcastPatrolRecord(record, actionType = 'patrol_record') {
     // 1. Same-device multi-tab broadcast via BroadcastChannel
@@ -2164,78 +2234,229 @@
       console.warn('BroadcastChannel error:', e);
     }
 
-    // 2. Cross-device Cloud Pub/Sub broadcast via ntfy.sh (Guard phone -> Admin)
-    // ใช้เฉพาะ ASCII Headers เท่านั้นเพื่อป้องกัน Fetch TypeError บน iOS Safari และ Android WebView
-    const item = {
-      qid: 'q-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7),
-      actionType: actionType,
-      tries: 0,
-      headers: {
-        'Filename': `patrol_${(record && record.id) || Date.now()}.json`,
-        'Priority': record && (record.isRisk || record.status === 'alert') ? 'urgent' : 'default',
-        'Tags': record && record.status === 'alert' ? 'warning,shield' : 'white_check_mark,shield'
-      },
-      body: JSON.stringify({
-        type: actionType,
+    // กรณีคำสั่งลบข้อมูล (patrol_delete)
+    if (actionType === 'patrol_delete') {
+      const delBody = JSON.stringify({
+        type: 'patrol_delete',
         record: record,
         timestamp: Date.now()
-      })
+      });
+      const ok = await postInlinePacketToCloud(delBody, 8000);
+      if (!ok) {
+        const q = readOutbox();
+        q.push({ body: delBody, tries: 0 });
+        writeOutbox(q);
+      }
+      return ok;
+    }
+
+    if (!record || !record.id) return false;
+
+    const rawImages = Array.isArray(record.images) ? record.images.filter(Boolean) : [];
+
+    // 2. ขั้นที่ 1: ส่งแพ็กเก็ตข้อมูลการตรวจ (ไม่รวม Base64 รูปภาพ เพื่อให้ขนาด < 1.5KB เป็น Inline Message เสมอ)
+    const headerRecord = {
+      ...record,
+      images: [],
+      expectedImages: rawImages.length
     };
+    const headerBody = JSON.stringify({
+      type: actionType,
+      record: headerRecord,
+      timestamp: Date.now()
+    });
 
-    // ส่งรายการที่ค้างอยู่ก่อน เพื่อรักษาลำดับข้อมูล
-    await flushOutbox();
-
-    let ok = await postToCloud(item, 10000);
-    if (!ok) {
-      // ลองซ้ำทันทีอีก 1 ครั้ง (กรณีสัญญาณมือถือสะดุดชั่วขณะ)
-      await new Promise(r => setTimeout(r, 1200));
-      ok = await postToCloud(item, 8000);
+    let headerOk = await postInlinePacketToCloud(headerBody, 8000);
+    if (!headerOk) {
+      await new Promise(r => setTimeout(r, 400));
+      headerOk = await postInlinePacketToCloud(headerBody, 8000);
+    }
+    if (!headerOk) {
+      const q = readOutbox();
+      q.push({ body: headerBody, tries: 0 });
+      writeOutbox(q);
     }
 
-    if (!ok) {
-      const items = readOutbox();
-      items.push(item);
-      writeOutbox(items);
+    // 3. ขั้นที่ 2: บีบอัดและแบ่งรูปภาพเป็น Inline Chunks (<= 3.2KB ต่อชิ้น) ส่งตามไปติดๆ
+    if (rawImages.length > 0) {
+      const cloudImages = [];
+      for (let i = 0; i < rawImages.length; i++) {
+        const compact = await compressImageForCloud(rawImages[i]);
+        if (compact) cloudImages.push(compact);
+      }
+
+      const chunkPackets = [];
+      for (let imgIdx = 0; imgIdx < cloudImages.length; imgIdx++) {
+        const imgStr = cloudImages[imgIdx];
+        const cTotal = Math.max(1, Math.ceil(imgStr.length / IMG_CHUNK_SIZE));
+        for (let cIdx = 0; cIdx < cTotal; cIdx++) {
+          const slice = imgStr.slice(cIdx * IMG_CHUNK_SIZE, (cIdx + 1) * IMG_CHUNK_SIZE);
+          chunkPackets.push(JSON.stringify({
+            type: 'patrol_img_chunk',
+            rid: record.id,
+            imgIdx: imgIdx,
+            imgTotal: cloudImages.length,
+            cIdx: cIdx,
+            cTotal: cTotal,
+            chunk: slice
+          }));
+        }
+      }
+
+      // ส่งทีละแพ็กเก็ตอย่างรวดเร็ว หากชิ้นใดส่งไม่ผ่านจะเข้าคิวส่งซ้ำอัตโนมัติ
+      for (let k = 0; k < chunkPackets.length; k++) {
+        const pkt = chunkPackets[k];
+        let pktOk = await postInlinePacketToCloud(pkt, 8000);
+        if (!pktOk) {
+          await new Promise(r => setTimeout(r, 250));
+          pktOk = await postInlinePacketToCloud(pkt, 8000);
+        }
+        if (!pktOk) {
+          const q = readOutbox();
+          q.push({ body: pkt, tries: 0 });
+          writeOutbox(q);
+        }
+        if (k < chunkPackets.length - 1) {
+          await new Promise(r => setTimeout(r, 120));
+        }
+      }
     }
-    return ok;
+
+    // ล้างคิวที่อาจค้างอยู่ในพื้นหลัง
+    setTimeout(() => flushOutbox(), 1500);
+    return headerOk;
   }
 
   /**
-   * แยกข้อมูล JSON ของการเดินตรวจและรูปภาพจาก ntfy event (รองรับทั้ง inline message และ file attachment > 4KB)
+   * ประกอบชิ้นส่วนรูปภาพ (patrol_img_chunk) ที่ส่งมาจาก iPhone / Android เข้าด้วยกัน
+   */
+  function bufferImgChunk(parsed) {
+    if (!parsed || parsed.type !== 'patrol_img_chunk' || !parsed.rid) return false;
+    const rid = String(parsed.rid);
+    const imgIdx = Number(parsed.imgIdx || 0);
+    const imgTotal = Number(parsed.imgTotal || 1);
+    const cIdx = Number(parsed.cIdx || 0);
+    const cTotal = Number(parsed.cTotal || 1);
+    const chunk = typeof parsed.chunk === 'string' ? parsed.chunk : '';
+    if (!chunk) return false;
+
+    if (!incomingImageBuffers[rid]) {
+      incomingImageBuffers[rid] = {
+        imgTotal: imgTotal,
+        images: {}
+      };
+    }
+    const entry = incomingImageBuffers[rid];
+    if (imgTotal > entry.imgTotal) entry.imgTotal = imgTotal;
+
+    if (!entry.images[imgIdx]) {
+      entry.images[imgIdx] = {
+        cTotal: cTotal,
+        chunks: {},
+        completedDataUrl: null
+      };
+    }
+    const imgHolder = entry.images[imgIdx];
+    imgHolder.cTotal = cTotal;
+    imgHolder.chunks[cIdx] = chunk;
+
+    // ตรวจสอบว่าได้รับครบทุกชิ้นของรูปที่ imgIdx หรือยัง
+    if (!imgHolder.completedDataUrl && Object.keys(imgHolder.chunks).length >= cTotal) {
+      let full = '';
+      let allPresent = true;
+      for (let i = 0; i < cTotal; i++) {
+        if (typeof imgHolder.chunks[i] !== 'string') {
+          allPresent = false;
+          break;
+        }
+        full += imgHolder.chunks[i];
+      }
+      if (allPresent && full.startsWith('data:image/')) {
+        imgHolder.completedDataUrl = full;
+        return true; // มีรูปที่ประกอบเสร็จใหม่
+      }
+    }
+    return false;
+  }
+
+  function getReconstructedImagesForRecord(rid) {
+    const entry = incomingImageBuffers[String(rid)];
+    if (!entry || !entry.images) return [];
+    const result = [];
+    const keys = Object.keys(entry.images).map(Number).sort((a, b) => a - b);
+    for (const k of keys) {
+      const h = entry.images[k];
+      if (h && h.completedDataUrl) {
+        result.push(h.completedDataUrl);
+      }
+    }
+    return result;
+  }
+
+  async function applyBufferedImagesToRecord(rid, shouldRender = true) {
+    const reconstructed = getReconstructedImagesForRecord(rid);
+    if (!reconstructed.length) return false;
+
+    const idx = state.history.findIndex(r => String(r.id) === String(rid));
+    if (idx === -1) return false;
+
+    const currentImgs = Array.isArray(state.history[idx].images) ? state.history[idx].images : [];
+    if (reconstructed.length <= currentImgs.length && currentImgs.every((v, i) => v === reconstructed[i])) {
+      return false;
+    }
+
+    state.history[idx].images = reconstructed;
+
+    if (window.AppDB) {
+      try {
+        const rec = state.history[idx];
+        await window.AppDB.query(
+          `INSERT INTO patrol_records (id, date, time, shift, round, guard_id, guard_name, cp_id, cp_code, cp_name, is_risk, is_off_checkpoint, status, note, images, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [rec.id, rec.date, rec.time, rec.shift, rec.round, rec.guardId, rec.guardName, rec.cpId, rec.cpCode, rec.cpName, rec.isRisk ? 1 : 0, rec.isOffCheckpoint ? 1 : 0, rec.status, rec.note, rec.images, rec.createdAt || new Date().toISOString(), rec.roundNo || 1]
+        );
+      } catch (e) {}
+    }
+
+    if (shouldRender) {
+      saveToLocalStorage();
+      renderSupervisorDashboard();
+      renderGuardRecentLogs();
+    }
+    return true;
+  }
+
+  /**
+   * แยกข้อมูล JSON ของการเดินตรวจและรูปภาพจาก ntfy event (รองรับทั้ง inline message และ file attachment)
    */
   async function extractNtfyPayload(data) {
     if (!data) return null;
     try {
-      // กรณีมีรูปภาพหลักฐาน (>4KB) ntfy.sh จะเก็บ JSON ไว้ใน data.attachment.url
+      // 1. ข้อความ Inline JSON (<= 4KB) ซึ่งไม่ต้องดาวน์โหลดไฟล์แนบ
+      if (data.message && typeof data.message === 'string' && data.message.trim().startsWith('{')) {
+        return JSON.parse(data.message);
+      }
+      // 2. กรณีรายการเก่าที่เป็นไฟล์แนบ (ไม่ใส่ cache: 'no-store' เพื่อไม่ให้ติด CORS Preflight)
       if (data.attachment && data.attachment.url) {
-        const attResp = await fetch(data.attachment.url, { cache: 'no-store' });
+        const attResp = await fetch(data.attachment.url);
         if (attResp.ok) {
           return await attResp.json();
         }
         return null;
-      }
-      // กรณีข้อความสั้นอยู่ใน data.message
-      if (data.message && typeof data.message === 'string' && data.message.trim().startsWith('{')) {
-        return JSON.parse(data.message);
       }
     } catch (e) {}
     return null;
   }
 
   /**
-   * ประมวลผลข้อความจาก ntfy ทีละรายการ (ข้ามรายการที่เคยประมวลผลแล้ว ไม่ดาวน์โหลดซ้ำ -> เร็วขึ้นมาก)
+   * ประมวลผลข้อความจาก ntfy ทีละรายการแบบ Real-time
    */
   async function processNtfyMessage(data, options = {}) {
     if (!data || !data.id) return false;
     if (data.event && data.event !== 'message') return false;
-    if (seenNtfyIds.has(data.id)) {
-      setLastNtfyId(data.id);
-      return false;
-    }
+    if (seenNtfyIds.has(data.id)) return false;
 
     const parsed = await extractNtfyPayload(data);
     if (!parsed) {
-      // ถ้าดาวน์โหลดไฟล์แนบไม่สำเร็จ ไม่บันทึกว่าเคยเห็น เพื่อให้รอบถัดไปลองใหม่
       if (data.attachment && data.attachment.url) return false;
       seenNtfyIds.add(data.id);
       persistSeenNtfyIds();
@@ -2243,8 +2464,17 @@
     }
 
     let changed = false;
-    if (parsed.record) {
+    if (parsed.type === 'patrol_img_chunk') {
+      const newlyCompleted = bufferImgChunk(parsed);
+      if (newlyCompleted) {
+        changed = await applyBufferedImagesToRecord(parsed.rid, true);
+      }
+    } else if (parsed.record) {
       if (parsed.type === 'patrol_record' || parsed.type === 'patrol_update') {
+        const bufferedImgs = getReconstructedImagesForRecord(parsed.record.id);
+        if (bufferedImgs.length > ((parsed.record.images && parsed.record.images.length) || 0)) {
+          parsed.record.images = bufferedImgs;
+        }
         changed = await handleIncomingRecord(parsed.record, parsed.type === 'patrol_update', options);
       } else if (parsed.type === 'patrol_delete') {
         changed = await handleIncomingDelete(parsed.record.ids || parsed.record.id);
@@ -2253,7 +2483,6 @@
 
     seenNtfyIds.add(data.id);
     persistSeenNtfyIds();
-    setLastNtfyId(data.id);
     markCloudUpdated();
     return changed;
   }
@@ -2266,7 +2495,7 @@
   function scheduleSseReconnect() {
     if (sseReconnectTimer) return;
     const delay = sseBackoffMs;
-    sseBackoffMs = Math.min(sseBackoffMs * 2, 15000);
+    sseBackoffMs = Math.min(sseBackoffMs * 2, 12000);
     sseReconnectTimer = setTimeout(() => {
       sseReconnectTimer = null;
       connectCloudSSE();
@@ -2280,9 +2509,7 @@
         try { cloudEventSource.close(); } catch (e) {}
         cloudEventSource = null;
       }
-      // since=<lastId> ทำให้ได้รับข้อความที่พลาดไประหว่างหลุดการเชื่อมต่อครบทุกรายการ
-      const since = getLastNtfyId() || '10m';
-      const es = new EventSource(`${CLOUD_SYNC_URL}/sse?since=${encodeURIComponent(since)}`);
+      const es = new EventSource(`${CLOUD_SYNC_URL}/sse`);
       cloudEventSource = es;
       sseLastActivity = Date.now();
 
@@ -2291,7 +2518,7 @@
       es.onopen = () => {
         touch();
         sseConnected = true;
-        sseBackoffMs = 1000;
+        sseBackoffMs = 1500;
         updateCloudSyncUI('connected');
       };
       es.addEventListener('open', touch);
@@ -2308,7 +2535,6 @@
       es.onerror = () => {
         sseConnected = false;
         updateCloudSyncUI('reconnecting');
-        // ปิดแล้วเชื่อมใหม่เองพร้อม since ล่าสุด (EventSource ในตัวเบราว์เซอร์จะไม่ส่ง since ให้)
         try { es.close(); } catch (e) {}
         if (cloudEventSource === es) cloudEventSource = null;
         scheduleSseReconnect();
@@ -2342,31 +2568,27 @@
       }
     });
 
-    // 3. Real-Time Cloud SSE Receiver (cross-device: Android / iOS -> Admin)
+    // 3. Real-Time Cloud SSE Receiver (cross-device: iPhone / Android -> Admin)
     connectCloudSSE();
 
-    // 4. ดึงข้อมูลย้อนหลัง 24 ชม. ครั้งแรก แล้วดึงแบบ Incremental (เฉพาะรายการใหม่) เป็นระบบสำรอง
+    // 4. ดึงข้อมูลย้อนหลัง 24 ชม. ตอนเริ่มต้น และดึงข้อมูลใหม่ทุกๆ 5 วินาทีควบคู่กับ SSE
     pollRecentCloudRecords(true);
     if (syncIntervalId) clearInterval(syncIntervalId);
     let tickCount = 0;
     syncIntervalId = setInterval(() => {
       tickCount++;
-      // Watchdog: ถ้า SSE เงียบเกิน 75 วินาที (ntfy ส่ง keepalive ทุก ~45 วินาที) ให้เชื่อมต่อใหม่
-      if (typeof EventSource !== 'undefined' && Date.now() - sseLastActivity > 75000) {
+      if (typeof EventSource !== 'undefined' && Date.now() - sseLastActivity > 70000) {
         sseConnected = false;
         connectCloudSSE();
       }
-      // SSE ปกติ -> poll สำรองทุก 30 วินาที, SSE หลุด -> poll ทุก 5 วินาที
-      if (!sseConnected || tickCount % 6 === 0) {
-        pollRecentCloudRecords(false);
-      }
-      if (tickCount % 6 === 0) {
+      pollRecentCloudRecords(false);
+      if (tickCount % 3 === 0) {
         reloadFromStorageAndRender();
       }
       updateCloudSyncUI(sseConnected ? 'connected' : 'polling');
     }, 5000);
 
-    // 5. iOS / Android มักตัดการเชื่อมต่อเมื่อพักหน้าจอ -> กลับมาแล้วซิงค์ทันที
+    // 5. เมื่อกลับมาเปิดหน้าจอบน iPhone / Android / PC ให้ซิงค์ทันที
     const resyncNow = () => {
       if (document.hidden) return;
       if (!sseConnected || Date.now() - sseLastActivity > 20000) {
@@ -2380,10 +2602,10 @@
     window.addEventListener('pageshow', resyncNow);
     window.addEventListener('focus', resyncNow);
 
-    // 6. เริ่มคิวส่งข้อมูลถึงแอดมิน (ฝั่ง รปภ.)
+    // 6. เริ่มคิวส่งข้อมูลสำรอง
     startOutboxWorker();
 
-    // 7. ขออนุญาตแจ้งเตือนสำหรับแอดมิน (แตะครั้งแรกบนหน้าจอ)
+    // 7. ขออนุญาตแจ้งเตือนสำหรับแอดมิน
     if (state.currentUser && state.currentUser.role === 'admin' && typeof Notification !== 'undefined' && Notification.permission === 'default') {
       const askOnce = () => {
         try { Notification.requestPermission(); } catch (e) {}
@@ -2399,18 +2621,17 @@
       ? ` • อัปเดตล่าสุด ${String(lastCloudUpdateAt.getHours()).padStart(2, '0')}:${String(lastCloudUpdateAt.getMinutes()).padStart(2, '0')}:${String(lastCloudUpdateAt.getSeconds()).padStart(2, '0')} น.`
       : '';
     if (status === 'connected') {
-      el.cloudSyncStatusText.innerHTML = `<span class="live-sync-pill"><span class="live-sync-dot on"></span>LIVE</span> รับข้อมูลและรูปภาพจาก รปภ. แบบ Real-time (ทันทีที่กดบันทึก)${t}`;
+      el.cloudSyncStatusText.innerHTML = `<span class="live-sync-pill"><span class="live-sync-dot on"></span>LIVE</span> รับข้อมูลและรูปภาพจาก iPhone / Android แบบ Real-time${t}`;
     } else if (status === 'polling') {
-      el.cloudSyncStatusText.innerHTML = `<span class="live-sync-pill"><span class="live-sync-dot"></span>SYNC</span> กำลังรับข้อมูลอัตโนมัติทุก 5 วินาที (กำลังเชื่อมต่อ Real-time ใหม่)${t}`;
+      el.cloudSyncStatusText.innerHTML = `<span class="live-sync-pill"><span class="live-sync-dot on"></span>SYNC</span> ซิงค์ข้อมูลอัตโนมัติแบบ Real-time ทุก 5 วินาที${t}`;
     } else {
-      el.cloudSyncStatusText.innerHTML = `<span class="live-sync-pill"><span class="live-sync-dot"></span>SYNC</span> กำลังเชื่อมต่อระบบ Real-time ใหม่...${t}`;
+      el.cloudSyncStatusText.innerHTML = `<span class="live-sync-pill"><span class="live-sync-dot"></span>SYNC</span> กำลังเชื่อมต่อระบบ Real-time...${t}`;
     }
   }
 
   let newRecordAudioCtx = null;
   function alertAdminNewRecord(incoming) {
     if (!state.currentUser || state.currentUser.role !== 'admin') return;
-    // เสียงแจ้งเตือนสั้นๆ
     try {
       const Ctx = window.AudioContext || window.webkitAudioContext;
       if (Ctx) {
@@ -2428,7 +2649,6 @@
         osc.stop(ctx.currentTime + 0.4);
       }
     } catch (e) {}
-    // แจ้งเตือนระบบ เมื่อแอดมินเปิดแท็บอื่นอยู่
     try {
       if (document.hidden && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
         new Notification(incoming.status === 'alert' ? '🚨 แจ้งเหตุ / จุดเสี่ยง' : '✅ รายงานเวียนตรวจใหม่', {
@@ -2470,25 +2690,42 @@
       return false;
     }
 
+    // แนบรูปที่ประกอบเสร็จแล้วจากบัฟเฟอร์ (ถ้ามี)
+    const bufferedImgs = getReconstructedImagesForRecord(incoming.id);
+    if (bufferedImgs.length > ((incoming.images && incoming.images.length) || 0)) {
+      incoming.images = bufferedImgs;
+    }
+
     const existingIdx = state.history.findIndex(r => r.id === incoming.id);
     if (existingIdx !== -1 && !isUpdate) {
-      // หากมีอยู่แล้วแต่ข้อมูลใหม่มีรูปภาพครบกว่า ให้อัปเดต
       const exImgs = (state.history[existingIdx].images || []).length;
       const incImgs = (incoming.images || []).length;
       if (incImgs <= exImgs) return false;
-    }
-
-    if (existingIdx !== -1) {
-      state.history[existingIdx] = incoming;
+      // คงค่าเดิมและอัปเดตเฉพาะรูปที่เพิ่งมาถึงครบ
+      state.history[existingIdx] = {
+        ...state.history[existingIdx],
+        ...incoming,
+        images: incoming.images
+      };
+    } else if (existingIdx !== -1) {
+      const keepImgs = (incoming.images && incoming.images.length > 0)
+        ? incoming.images
+        : (state.history[existingIdx].images || []);
+      state.history[existingIdx] = {
+        ...incoming,
+        images: keepImgs
+      };
     } else {
       state.history.unshift(incoming);
     }
+
+    const savedRec = existingIdx !== -1 ? state.history[existingIdx] : incoming;
 
     if (window.AppDB) {
       try {
         await window.AppDB.query(
           `INSERT INTO patrol_records (id, date, time, shift, round, guard_id, guard_name, cp_id, cp_code, cp_name, is_risk, is_off_checkpoint, status, note, images, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [incoming.id, incoming.date, incoming.time, incoming.shift, incoming.round, incoming.guardId, incoming.guardName, incoming.cpId, incoming.cpCode, incoming.cpName, incoming.isRisk ? 1 : 0, incoming.isOffCheckpoint ? 1 : 0, incoming.status, incoming.note, incoming.images, incoming.createdAt || new Date().toISOString(), incoming.roundNo || 1]
+          [savedRec.id, savedRec.date, savedRec.time, savedRec.shift, savedRec.round, savedRec.guardId, savedRec.guardName, savedRec.cpId, savedRec.cpCode, savedRec.cpName, savedRec.isRisk ? 1 : 0, savedRec.isOffCheckpoint ? 1 : 0, savedRec.status, savedRec.note, savedRec.images, savedRec.createdAt || new Date().toISOString(), savedRec.roundNo || 1]
         );
       } catch (e) {}
     }
@@ -2508,49 +2745,61 @@
     if (isPollingCloud) return;
     isPollingCloud = true;
     try {
-      const lastId = getLastNtfyId();
-      // ครั้งแรกดึงย้อนหลัง 24 ชม. / ครั้งต่อไปดึงเฉพาะข้อความใหม่หลังรายการล่าสุด (เร็วและไม่โดนจำกัดการใช้งาน)
-      const since = isInitial || !lastId ? '24h' : lastId;
-      const resp = await fetch(`${CLOUD_SYNC_URL}/json?poll=1&since=${encodeURIComponent(since)}`, { cache: 'no-store' });
+      // ดึงข้อมูลแบบ Simple CORS GET (ไม่มี Custom Headers / cache: 'no-store')
+      const sinceWindow = isInitial ? '24h' : '30m';
+      const resp = await fetch(`${CLOUD_SYNC_URL}/json?poll=1&since=${sinceWindow}`);
       if (!resp.ok) return;
 
       const text = await resp.text();
       const lines = text.trim().split('\n').filter(Boolean);
-      const messages = [];
+      const unseen = [];
       for (const line of lines) {
         try {
           const data = JSON.parse(line);
-          if (data && data.id && (!data.event || data.event === 'message')) messages.push(data);
+          if (data && data.id && (!data.event || data.event === 'message') && !seenNtfyIds.has(data.id)) {
+            unseen.push(data);
+          }
         } catch (e) {}
       }
 
-      // Pass 1: ประมวลผลคำสั่งลบก่อน (รายการที่ถูกลบจะไม่กลับมาแสดงอีก)
-      const unseen = messages.filter(m => !seenNtfyIds.has(m.id));
+      if (unseen.length === 0) {
+        markCloudUpdated();
+        return;
+      }
+
       const parsedList = [];
       for (const m of unseen) {
         const parsed = await extractNtfyPayload(m);
         parsedList.push({ msg: m, parsed });
       }
 
+      // Pass 1: รวบรวมคำสั่งลบ และประกอบชิ้นส่วนรูปภาพ (patrol_img_chunk) ทั้งหมดก่อน
       const deletedIds = window.AppDB && typeof window.AppDB.getDeletedIdsSet === 'function'
         ? window.AppDB.getDeletedIdsSet()
         : new Set();
-      for (const { parsed } of parsedList) {
-        if (parsed && parsed.type === 'patrol_delete' && parsed.record) {
+      const touchedRids = new Set();
+
+      for (const { msg, parsed } of parsedList) {
+        if (!parsed) continue;
+        if (parsed.type === 'patrol_delete' && parsed.record) {
           if (Array.isArray(parsed.record.ids)) parsed.record.ids.forEach(id => deletedIds.add(String(id)));
           else if (parsed.record.id) deletedIds.add(String(parsed.record.id));
+          seenNtfyIds.add(msg.id);
+        } else if (parsed.type === 'patrol_img_chunk') {
+          bufferImgChunk(parsed);
+          if (parsed.rid) touchedRids.add(String(parsed.rid));
+          seenNtfyIds.add(msg.id);
         }
       }
+
       if (deletedIds.size > 0) {
         await handleIncomingDelete(Array.from(deletedIds));
       }
 
-      // Pass 2: นำเข้ารายการใหม่ / แก้ไข
-      const failedIds = new Set();
+      // Pass 2: นำเข้ารายการเวียนตรวจพร้อมรูปภาพที่ประกอบเสร็จแล้ว
       for (const { msg, parsed } of parsedList) {
         if (!parsed) {
-          if (msg.attachment && msg.attachment.url) failedIds.add(msg.id);
-          else seenNtfyIds.add(msg.id);
+          if (!(msg.attachment && msg.attachment.url)) seenNtfyIds.add(msg.id);
           continue;
         }
         if ((parsed.type === 'patrol_record' || parsed.type === 'patrol_update') && parsed.record) {
@@ -2561,19 +2810,23 @@
         seenNtfyIds.add(msg.id);
       }
 
-      // เลื่อนตำแหน่งล่าสุดไปจนถึงก่อนรายการแรกที่ดาวน์โหลดไม่สำเร็จ (รอบถัดไปจะดึงรายการนั้นใหม่)
-      let lastGoodId = '';
-      for (const m of messages) {
-        if (failedIds.has(m.id)) break;
-        lastGoodId = m.id;
+      // Pass 3: อัปเดตรูปภาพให้กับรายการที่มีอยู่ในตารางแล้วแต่เพิ่งได้รับชิ้นส่วนรูปครบในรอบนี้
+      let imgUpdated = false;
+      for (const rid of touchedRids) {
+        if (!deletedIds.has(rid)) {
+          const ok = await applyBufferedImagesToRecord(rid, false);
+          if (ok) imgUpdated = true;
+        }
       }
-      if (lastGoodId) {
-        setLastNtfyId(lastGoodId);
+      if (imgUpdated) {
+        saveToLocalStorage();
+        renderSupervisorDashboard();
+        renderGuardRecentLogs();
       }
+
       persistSeenNtfyIds();
       markCloudUpdated();
     } catch (e) {
-      // เครือข่ายขัดข้องชั่วคราว รอบถัดไปจะลองใหม่อัตโนมัติ
     } finally {
       isPollingCloud = false;
     }

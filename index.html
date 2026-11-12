@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Sarabun:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,600&display=swap">
   
   <!-- CSS -->
-  <link rel="stylesheet" href="css/style.css?v=6.3">
+  <link rel="stylesheet" href="css/style.css?v=6.4">
   <!-- Auth Guard: บังคับให้เข้าสู่หน้า login.html ทุกครั้งที่มีการเปิดเข้าดูเว็บ -->
   <script>
     window.appLogout = function () {
@@ -409,16 +409,8 @@
                   <span class="photo-req-badge photo-req-warn" id="photoCountBadge">ยังไม่ได้ถ่ายรูป (0/2 รูป)</span>
                 </div>
                 
-                <!-- ปุ่มเปิดกล้องถ่ายภาพหน้างาน (รองรับทั้ง Android, iOS, แท็บเล็ต และ PC ทุกเบราว์เซอร์) -->
-                <div class="photo-dropzone-btn" id="triggerCamBtn" role="button" tabindex="0" aria-label="แตะที่นี่เพื่อเปิดกล้องถ่ายภาพหน้างาน">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    capture="environment"
-                    id="camPatrolInput"
-                    class="overlay-file-input"
-                    aria-label="เปิดกล้องถ่ายภาพหน้างาน"
-                  >
+                <!-- ปุ่มเปิดกล้องถ่ายภาพหน้างานโดยตรง (เปิดกล้องหลังทันที ไม่ผ่านอัลบั้มรูป) -->
+                <button type="button" class="photo-dropzone-btn" id="triggerCamBtn" aria-label="แตะที่นี่เพื่อเปิดกล้องถ่ายภาพหน้างาน">
                   <div class="photo-dropzone-icon" aria-hidden="true">
                     <!-- Custom Vector Camera & Timestamp Illustration -->
                     <svg viewBox="0 0 56 56" fill="none" class="cam-vector-svg">
@@ -432,7 +424,17 @@
                     <b id="camBtnMainText">แตะที่นี่เพื่อเปิดกล้องถ่ายภาพหน้างาน</b>
                     <small id="camBtnSubText">ถ่ายเสร็จจะดึงรูปเข้ามาใส่ทันทีพร้อมประทับเวลาอัตโนมัติ (บังคับถ่าย 2 รูปขึ้นไป)</small>
                   </div>
-                </div>
+                </button>
+                <!-- Fallback Native Camera Input (ใช้เฉพาะกรณีเบราว์เซอร์ไม่รองรับ Live Camera Stream) -->
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  id="camPatrolInput"
+                  hidden
+                  style="display: none;"
+                  aria-label="เปิดกล้องถ่ายภาพหน้างาน"
+                >
 
                 <!-- ช่องแสดงรูปภาพที่ถ่ายแล้ว ดึงเข้ามาแสดงทันทีทีละรูป -->
                 <div class="thumbs-modern" id="thumbPatrolContainer"></div>
@@ -1193,6 +1195,57 @@
     </div>
   </div>
 
+  <!-- Modal กล้องถ่ายภาพสดหน้างานโดยตรง (Direct Live Camera สำหรับ Android & iOS ไม่ผ่านอัลบั้มรูป) -->
+  <div class="live-cam-modal" id="liveCameraModal" hidden style="display: none;" role="dialog" aria-modal="true" aria-label="กล้องถ่ายภาพหน้างาน">
+    <div class="live-cam-header">
+      <div class="live-cam-meta">
+        <span class="live-cam-badge" id="liveCamCounterBadge">ถ่ายแล้ว 0/2 รูป</span>
+        <span class="live-cam-clock" id="liveCamClockText">🕒 กำลังเชื่อมต่อกล้อง...</span>
+      </div>
+      <button type="button" class="live-cam-close-btn" id="btnCloseLiveCam" aria-label="ปิดกล้อง">✕ ปิดกล้อง</button>
+    </div>
+
+    <div class="live-cam-stage">
+      <video id="liveCameraVideo" autoplay playsinline muted webkit-playsinline></video>
+      <div class="live-cam-reticle" aria-hidden="true">
+        <span class="reticle-corner tl"></span>
+        <span class="reticle-corner tr"></span>
+        <span class="reticle-corner bl"></span>
+        <span class="reticle-corner br"></span>
+      </div>
+      <div class="live-cam-flash" id="liveCamFlash" aria-hidden="true"></div>
+      <div class="live-cam-strip" id="liveCamStrip"></div>
+    </div>
+
+    <div class="live-cam-controls">
+      <button type="button" class="live-cam-action-btn" id="btnSwitchCamera" aria-label="สลับกล้องหน้า-หลัง">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 16v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-4"/>
+          <path d="M4 8V4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v4"/>
+          <polyline points="16 5 19 8 22 5"/>
+          <polyline points="8 19 5 16 2 19"/>
+        </svg>
+        <span>สลับกล้อง</span>
+      </button>
+
+      <button type="button" class="live-cam-shutter-btn" id="btnSnapLivePhoto" aria-label="กดถ่ายภาพ">
+        <span class="live-cam-shutter-inner">
+          <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+            <circle cx="12" cy="13" r="4"/>
+          </svg>
+        </span>
+      </button>
+
+      <button type="button" class="live-cam-done-btn" id="btnDoneLiveCam" aria-label="ใช้รูปภาพและปิดกล้อง">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+        <span id="btnDoneLiveCamText">เสร็จสิ้น</span>
+      </button>
+    </div>
+  </div>
+
   <!-- Toast แจ้งเตือนข้อความสั้นๆ -->
   <div class="toast" id="toast" hidden style="display: none;">
     <span id="toastIcon" class="toast-svg-wrap"></span>
@@ -1200,8 +1253,8 @@
   </div>
 
   <!-- Scripts -->
-  <script src="js/data.js?v=6.3"></script>
-  <script src="js/db.js?v=6.3"></script>
-  <script src="js/app.js?v=6.3"></script>
+  <script src="js/data.js?v=6.4"></script>
+  <script src="js/db.js?v=6.4"></script>
+  <script src="js/app.js?v=6.4"></script>
 </body>
 </html>

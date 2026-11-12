@@ -682,23 +682,22 @@
     });
 
     // 4. Camera & Image Compression with Watermark Timestamp & Multi-photo support (Android + iOS + Desktop)
-    if (el.camPatrolInput) {
-      const ua = navigator.userAgent || '';
-      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(ua) ||
-        (navigator.maxTouchPoints && navigator.maxTouchPoints > 1);
-      if (isMobile) {
-        el.camPatrolInput.setAttribute('capture', 'environment');
-        el.camPatrolInput.setAttribute('accept', 'image/*');
-      } else {
-        el.camPatrolInput.removeAttribute('capture');
-      }
-      // บันทึก Draft ก่อนเปิดแอปกล้องบน Android เผื่อระบบปฏิบัติการคืนค่าหน่วยความจำเมื่อสลับแอป
-      el.camPatrolInput.addEventListener('click', () => {
+    if (el.triggerCamBtn) {
+      el.triggerCamBtn.addEventListener('click', (e) => {
+        e.preventDefault();
         savePatrolFormDraft();
+        openLivePatrolCamera();
       });
-      // ใช้เฉพาะ event 'change' เพื่อไม่ให้เกิดปัญหาซ้ำซ้อนกับ 'input' บน Chrome Android
+    }
+
+    if (el.camPatrolInput) {
+      // บังคับตั้งค่า capture="environment" เสมอสำหรับ Fallback เพื่อให้เปิดกล้องหลังโดยตรง
+      el.camPatrolInput.setAttribute('capture', 'environment');
+      el.camPatrolInput.setAttribute('accept', 'image/*');
       el.camPatrolInput.addEventListener('change', handlePatrolCameraUpload);
     }
+
+    setupLiveCameraModalEvents();
 
     // กู้คืนข้อมูลและรูปที่ถ่ายค้างไว้ (กรณีมือถือ Android รีโหลดหน้าเว็บหลังกลับจากแอปกล้อง)
     restorePatrolFormDraft();
@@ -718,9 +717,291 @@
     }
   }
 
-  // --- CAMERA & PHOTO PROCESSING (รองรับ Android ทุกรุ่น + iOS + ประทับเวลาอัตโนมัติ + ป้องกันรูปหายเมื่อสลับแอปกล้อง) ---
+  // --- CAMERA & PHOTO PROCESSING (เปิดกล้องสดโดยตรงบน Android ทุกรุ่น + iOS ไม่ผ่านอัลบั้มรูป + ประทับเวลาอัตโนมัติ) ---
   const PATROL_DRAFT_STORAGE_KEY = 'yru_sp_patrol_draft';
   let isProcessingPatrolCamera = false;
+  let liveCameraStream = null;
+  let liveCameraFacingMode = 'environment';
+  let liveCameraClockTimer = null;
+
+  function setupLiveCameraModalEvents() {
+    const closeBtn = document.getElementById('btnCloseLiveCam');
+    const doneBtn = document.getElementById('btnDoneLiveCam');
+    const snapBtn = document.getElementById('btnSnapLivePhoto');
+    const switchBtn = document.getElementById('btnSwitchCamera');
+
+    if (closeBtn) {
+      closeBtn.addEventListener('click', () => closeLivePatrolCamera());
+    }
+    if (doneBtn) {
+      doneBtn.addEventListener('click', () => closeLivePatrolCamera());
+    }
+    if (snapBtn) {
+      snapBtn.addEventListener('click', () => snapLivePatrolPhoto());
+    }
+    if (switchBtn) {
+      switchBtn.addEventListener('click', () => switchLiveCameraFacing());
+    }
+  }
+
+  async function startCameraMediaStream(facingMode) {
+    if (!navigator.mediaDevices || typeof navigator.mediaDevices.getUserMedia !== 'function') {
+      throw new Error('getUserMedia not supported');
+    }
+
+    stopLiveCameraStreamOnly();
+
+    // ลำดับการขอเปิดกล้องหลัง (environment) บน Android ให้แม่นยำที่สุด
+    const constraintCandidates = [
+      {
+        audio: false,
+        video: {
+          facingMode: { exact: facingMode },
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        }
+      },
+      {
+        audio: false,
+        video: {
+          facingMode: { ideal: facingMode },
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        }
+      },
+      {
+        audio: false,
+        video: { facingMode: facingMode }
+      },
+      {
+        audio: false,
+        video: true
+      }
+    ];
+
+    let lastErr = null;
+    for (let i = 0; i < constraintCandidates.length; i++) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia(constraintCandidates[i]);
+        if (stream) return stream;
+      } catch (err) {
+        lastErr = err;
+      }
+    }
+    throw lastErr || new Error('ไม่สามารถเปิดเลนส์กล้องได้');
+  }
+
+  async function openLivePatrolCamera() {
+    const modal = document.getElementById('liveCameraModal');
+    const video = document.getElementById('liveCameraVideo');
+
+    // หากเบราว์เซอร์รองรับ MediaDevices.getUserMedia ให้เปิดกล้องสดโดยตรงทันที (ไม่เปิดอัลบั้มเด็ดขาด)
+    if (modal && video && navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === 'function') {
+      try {
+        modal.hidden = false;
+        modal.style.display = 'flex';
+        updateLiveCameraModalUI();
+
+        liveCameraClockTimer = setInterval(() => {
+          const clockEl = document.getElementById('liveCamClockText');
+          if (clockEl) {
+            const meta = buildPatrolTimestampMeta();
+            clockEl.textContent = `🕒 ${meta.fullStamp}`;
+          }
+        }, 500);
+
+        liveCameraStream = await startCameraMediaStream(liveCameraFacingMode);
+        video.srcObject = liveCameraStream;
+        video.setAttribute('playsinline', 'true');
+        video.muted = true;
+        await video.play().catch(() => {});
+        updateLiveCameraModalUI();
+        return;
+      } catch (camErr) {
+        console.warn('Direct live camera failed, falling back to native capture input:', camErr);
+        closeLivePatrolCamera(true);
+      }
+    }
+
+    // Fallback เฉพาะกรณีที่อุปกรณ์บล็อกสิทธิ์ getUserMedia หรือไม่ได้เปิดผ่าน HTTPS/localhost
+    if (el.camPatrolInput) {
+      el.camPatrolInput.setAttribute('capture', 'environment');
+      el.camPatrolInput.setAttribute('accept', 'image/*');
+      el.camPatrolInput.click();
+    }
+  }
+
+  function stopLiveCameraStreamOnly() {
+    if (liveCameraStream) {
+      try {
+        liveCameraStream.getTracks().forEach(track => track.stop());
+      } catch (e) {}
+      liveCameraStream = null;
+    }
+    const video = document.getElementById('liveCameraVideo');
+    if (video) {
+      try {
+        video.pause();
+        video.srcObject = null;
+      } catch (e) {}
+    }
+  }
+
+  function closeLivePatrolCamera(silent) {
+    if (liveCameraClockTimer) {
+      clearInterval(liveCameraClockTimer);
+      liveCameraClockTimer = null;
+    }
+    stopLiveCameraStreamOnly();
+    const modal = document.getElementById('liveCameraModal');
+    if (modal) {
+      modal.hidden = true;
+      modal.style.display = 'none';
+    }
+    if (!silent) {
+      renderPatrolThumbnails();
+    }
+  }
+
+  async function switchLiveCameraFacing() {
+    liveCameraFacingMode = liveCameraFacingMode === 'environment' ? 'user' : 'environment';
+    const video = document.getElementById('liveCameraVideo');
+    try {
+      liveCameraStream = await startCameraMediaStream(liveCameraFacingMode);
+      if (video) {
+        video.srcObject = liveCameraStream;
+        await video.play().catch(() => {});
+      }
+      showToast(liveCameraFacingMode === 'environment' ? 'สลับเป็นกล้องหลังแล้ว' : 'สลับเป็นกล้องหน้าแล้ว', '📷');
+    } catch (err) {
+      console.warn('Switch camera error:', err);
+      showToast('ไม่สามารถสลับกล้องได้บนอุปกรณ์นี้', '⚠️');
+    }
+  }
+
+  function updateLiveCameraModalUI() {
+    const count = Array.isArray(state.capturedImages) ? state.capturedImages.length : 0;
+    const badgeEl = document.getElementById('liveCamCounterBadge');
+    const doneBtn = document.getElementById('btnDoneLiveCam');
+    const doneText = document.getElementById('btnDoneLiveCamText');
+    const stripEl = document.getElementById('liveCamStrip');
+    const clockEl = document.getElementById('liveCamClockText');
+
+    if (clockEl) {
+      const meta = buildPatrolTimestampMeta();
+      clockEl.textContent = `🕒 ${meta.fullStamp}`;
+    }
+
+    if (badgeEl) {
+      if (count < 2) {
+        badgeEl.className = 'live-cam-badge';
+        badgeEl.textContent = `📸 ถ่ายแล้ว ${count}/2 รูป (ต้องอย่างน้อย 2 รูป)`;
+      } else {
+        badgeEl.className = 'live-cam-badge is-complete';
+        badgeEl.textContent = `✅ ถ่ายครบเกณฑ์แล้ว (${count} รูป)`;
+      }
+    }
+
+    if (doneBtn && doneText) {
+      if (count >= 2) {
+        doneBtn.classList.add('ready');
+        doneText.textContent = `ใช้รูปภาพ (${count})`;
+      } else {
+        doneBtn.classList.remove('ready');
+        doneText.textContent = count > 0 ? `เสร็จสิ้น (${count})` : 'ปิดกล้อง';
+      }
+    }
+
+    if (stripEl) {
+      if (count === 0) {
+        stripEl.innerHTML = '';
+      } else {
+        stripEl.innerHTML = state.capturedImages.map((imgObj, idx) => `
+          <div class="live-cam-mini-thumb">
+            <img src="${imgObj.dataUrl}" alt="รูปที่ ${idx + 1}">
+            <span class="live-cam-mini-num">#${idx + 1}</span>
+          </div>
+        `).join('');
+        stripEl.scrollLeft = stripEl.scrollWidth;
+      }
+    }
+  }
+
+  function snapLivePatrolPhoto() {
+    const video = document.getElementById('liveCameraVideo');
+    if (!video || !liveCameraStream) return;
+
+    const flashEl = document.getElementById('liveCamFlash');
+    if (flashEl) {
+      flashEl.classList.add('active');
+      setTimeout(() => flashEl.classList.remove('active'), 180);
+    }
+
+    const rawW = video.videoWidth || 1280;
+    const rawH = video.videoHeight || 720;
+    const MAX_SIZE = 640;
+    let width = rawW;
+    let height = rawH;
+
+    if (width > height && width > MAX_SIZE) {
+      height = Math.max(1, Math.round(height * (MAX_SIZE / width)));
+      width = MAX_SIZE;
+    } else if (height > MAX_SIZE) {
+      width = Math.max(1, Math.round(width * (MAX_SIZE / height)));
+      height = MAX_SIZE;
+    }
+
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    ctx.drawImage(video, 0, 0, width, height);
+
+    const meta = buildPatrolTimestampMeta();
+    const fontSize = Math.max(14, Math.round(width * 0.028));
+    ctx.font = `600 ${fontSize}px 'Sarabun', 'Prompt', sans-serif`;
+    const stampText = `🕒 ${meta.fullStamp}`;
+    const metrics = ctx.measureText(stampText);
+    const padX = 12;
+    const padY = 7;
+    const boxW = metrics.width + (padX * 2);
+    const boxH = fontSize + (padY * 2);
+    const boxX = Math.max(6, width - boxW - 14);
+    const boxY = Math.max(6, height - boxH - 14);
+
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+    ctx.fillRect(boxX, boxY, boxW, boxH);
+    ctx.fillStyle = '#ffffff';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(stampText, boxX + padX, boxY + (boxH / 2));
+
+    const base64 = canvas.toDataURL('image/jpeg', 0.68);
+    const photoObj = {
+      dataUrl: base64,
+      timeStr: meta.timeStr,
+      fullStamp: meta.fullStamp,
+      timestamp: meta.timestamp
+    };
+
+    if (!state.capturedImages) state.capturedImages = [];
+    state.capturedImages.push(photoObj);
+    state.capturedImageBase64 = state.capturedImages[0] ? state.capturedImages[0].dataUrl : null;
+
+    savePatrolFormDraft();
+    renderPatrolThumbnails();
+    updateLiveCameraModalUI();
+
+    const total = state.capturedImages.length;
+    if (total === 1) {
+      showToast('📸 บันทึกรูปที่ 1 แล้ว! กดปุ่มชัตเตอร์อีก 1 ครั้งเพื่อถ่ายรูปที่ 2', '📷');
+    } else if (total === 2) {
+      showToast('✅ ถ่ายครบ 2 รูปแล้ว! กดปุ่ม "ใช้รูปภาพ" หรือถ่ายเพิ่มได้ทันที', '✅');
+    } else {
+      showToast(`✅ บันทึกรูปที่ ${total} เรียบร้อยแล้ว`, '✅');
+    }
+  }
 
   function savePatrolFormDraft() {
     try {
